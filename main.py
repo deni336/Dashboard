@@ -5,10 +5,17 @@ import os
 from time import strftime
 import webbrowser
 import subprocess
+from PIL import ImageTk, Image
 
 root = tk.Tk()
 root.title("Dashboard")
 root.configure(bg="#2e2d2d")
+
+bgImage = ImageTk.PhotoImage(Image.open("Escanor.jpg"))
+
+bgImageLabel = tk.Label(root, image=bgImage)
+bgImageLabel.place(x=0, y=0)
+bgImageLabel.image = bgImage
 
 style = ttk.Style()
 style.theme_use('default')
@@ -111,7 +118,7 @@ def callback(url):
 link = tk.Label(btnFrame, text="GitHub", font=('Helveticabold', 16, 'italic'), background="black", fg="red", cursor="hand2")
 link.pack(side="bottom", pady=2)
 link.bind("<Button-1>", lambda e:
-callback("https://github.com/deni336"))
+callback("https://github.com/deni336/Dashboard"))
 
 chatFrame = tk.Frame(root, background="black")
 chatFrame.pack(side="right")
