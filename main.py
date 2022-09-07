@@ -113,6 +113,12 @@ link.pack(side="bottom", pady=2)
 link.bind("<Button-1>", lambda e:
 callback("https://github.com/deni336"))
 
+chatFrame = tk.Frame(root, background="black")
+chatFrame.pack(side="Right")
+
+
+
+
 icon = r"C:\Users\denis\Documents\icon.ico"
 root.iconbitmap(icon)
 root.wm_attributes('-fullscreen', 'True')
