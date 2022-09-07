@@ -2,66 +2,120 @@ import tkinter as tk
 from tkinter import *
 from tkinter import ttk
 import os
+from time import strftime
+import webbrowser
+import subprocess
 
 root = tk.Tk()
 root.title("Dashboard")
+root.configure(bg="#2e2d2d")
 
+style = ttk.Style()
+style.theme_use('default')
+style.configure('W.TButton', fill="both", borderwidth="5", relief="ridge", font =
+               ('American typewriter', 12, 'bold'),
+                foreground = 'red', background="black")
 
-mainFrame = tk.Frame(root, background="Blue")
-mainFrame.grid(columnspan=100, rowspan=100)
+bannerFrame = tk.Frame(root, background="black")
+bannerFrame.pack(fill="x")
 
-appLabel = ttk.Label(mainFrame, text="Deni's Dashboard", background="Blue", foreground="White", font=("Arial", 25))
-appLabel.grid(sticky="n", columnspan=3)
+appLabel = ttk.Label(bannerFrame, text="Deni's Dashboard", background="Black", foreground="Red", font=("American typewriter", 25))
+appLabel.pack(side="left")
+
+exitBtn = ttk.Button(bannerFrame, text="Exit", style="W.TButton", cursor="hand2",
+                      command= lambda: root.destroy())
+exitBtn.pack(side="right")
+
+minimizeBtn = ttk.Button(bannerFrame, text="Minimize", style="W.TButton", cursor="hand2", command= lambda: root.state("icon"))
+minimizeBtn.pack(side="right")
+
+bottomFrame = tk.Frame(root, background="black")
+bottomFrame.pack(side="bottom", fill="x")
+
+myFont = ('helvetica', 16, "bold italic")
+
+timeLabel = tk.Label(bottomFrame, font=myFont, background="black", foreground="red")
+timeLabel.pack(side="bottom")
+
+def myTime():
+    timeString = strftime('%d %b %y %H:%M:%S %p')
+    timeLabel.config(text=timeString)
+    timeLabel.after(1000, myTime)
+
+btnFrame = tk.Frame(root, background="Black")
+btnFrame.pack(side="left", fill="y")
 
 ####################Work#########################
-workLabel = ttk.Label(mainFrame, text="Work", background="Blue", foreground="White", font=("Arial", 18))
-workLabel.grid(column=0, row=1, sticky="w")
-startVSCodeBtn = ttk.Button(mainFrame, text="VSCode", 
+workLabel = ttk.Label(btnFrame, text="Work", background="Black", foreground="Red", font=("American typewriter", 20))
+workLabel.pack(pady=10)
+startVSCodeBtn = ttk.Button(btnFrame, text="VSCode", style="W.TButton", cursor="hand2",
                             command= lambda: os.startfile(r"C:\Users\denis\AppData\Local\Programs\Microsoft VS Code\Code.exe"))
-startVSCodeBtn.grid(column=0, row=2, sticky="w")
-startGithubDesktop = ttk.Button(mainFrame, text="Ghub Desk",
+startVSCodeBtn.pack(pady=2)
+startGithubDesktop = ttk.Button(btnFrame, text="GitHub", style="W.TButton", cursor="hand2",
                                 command= lambda: os.startfile(r"C:\Users\denis\Desktop\GitHub Desktop.lnk"))
-startGithubDesktop.grid(column=0, row=3, sticky="w")
-openCommandPrompt = ttk.Button(mainFrame, text="Command",
+startGithubDesktop.pack(pady=2)
+openCommandPrompt = ttk.Button(btnFrame, text="Command", style="W.TButton", cursor="hand2",
                                 command= lambda: os.startfile(r"C:\Users\denis\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\System Tools\Command Prompt.lnk"))
-openCommandPrompt.grid(column=0, row=4, sticky="w")
-openChrome = ttk.Button(mainFrame, text="Chrome",
+openCommandPrompt.pack(pady=5)
+openChrome = ttk.Button(btnFrame, text="Chrome", style="W.TButton", cursor="hand2",
                         command= lambda: os.startfile(r"C:\Users\Public\Desktop\Google Chrome.lnk"))
-openChrome.grid(column=0, row=5, sticky="w")
-startShell = ttk.Button(mainFrame, text="Shell",
+openChrome.pack(pady=2)
+startShell = ttk.Button(btnFrame, text="Shell", style="W.TButton", cursor="hand2",
                         command= lambda: os.startfile(r"C:\Users\denis\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Windows PowerShell\Windows PowerShell (x86).lnk"))
-startShell.grid(column=0, row=6, sticky="w")
-startDBBrowser = ttk.Button(mainFrame, text="DB",
+startShell.pack(pady=2)
+startDBBrowser = ttk.Button(btnFrame, text="DB", style="W.TButton", cursor="hand2",
                         command= lambda: os.startfile(r"C:\Program Files\DB Browser for SQLite\DB Browser for SQLite.exe"))
-startDBBrowser.grid(column=0, row=7, sticky="w")
+startDBBrowser.pack(pady=2)
 
 ########################General#####################
-genLabel = ttk.Label(mainFrame, text="General", background="Blue", foreground="White", font=("Arial", 18))
-genLabel.grid(column=1, row=1)
-startDiscordbtn = ttk.Button(mainFrame, text="Discord",
+genLabel = ttk.Label(btnFrame, text="General", background="Black", foreground="Red", font=("American typewriter", 20))
+genLabel.pack(pady=10)
+startDiscordbtn = ttk.Button(btnFrame, text="Discord", style="W.TButton", cursor="hand2",
                             command= lambda: os.startfile(r"C:\Users\denis\Desktop\Discord.lnk"))
-startDiscordbtn.grid(column=1, row=2)
-startSpotify = ttk.Button(mainFrame, text="Spotify",
+startDiscordbtn.pack(pady=2)
+startSpotify = ttk.Button(btnFrame, text="Spotify", style="W.TButton", cursor="hand2",
                         command= lambda: os.startfile(r"C:\Users\denis\Desktop\Spotify.lnk"))
-startSpotify.grid(column=1, row=3)
+startSpotify.pack(pady=2)
 
 ######################Play######################
-playLabel = ttk.Label(mainFrame, text="Play", background="Blue", foreground="White", font=("Arial", 18))
-playLabel.grid(column=2, row=1, sticky="e")
-startBlizzardBtn = ttk.Button(mainFrame, text="Blizz",
+playLabel = ttk.Label(btnFrame, text="Play", background="Black", foreground="Red", font=("American typewriter", 20))
+playLabel.pack(pady=10)
+startBlizzardBtn = ttk.Button(btnFrame, text="Blizz", style="W.TButton", cursor="hand2",
                             command= lambda: os.startfile(r"C:\Users\Public\Desktop\Battle.net.lnk"))
-startBlizzardBtn.grid(column=2, row=2, sticky="e")
-startSteam = ttk.Button(mainFrame, text="Steam",
+startBlizzardBtn.pack(pady=2)
+startSteam = ttk.Button(btnFrame, text="Steam", style="W.TButton", cursor="hand2",
                         command= lambda: os.startfile(r"C:\Users\Public\Desktop\Steam.lnk"))
-startSteam.grid(column=2, row=3, sticky="e")
-startFTB = ttk.Button(mainFrame, text="FTB",
+startSteam.pack(pady=2)
+startFTB = ttk.Button(btnFrame, text="FTB", style="W.TButton", cursor="hand2",
                         command= lambda: os.startfile(r"C:\Users\denis\Desktop\FTB App.lnk"))
-startFTB.grid(column=2, row=4, sticky="e")
+startFTB.pack(pady=2)
+
+#######################War####################
+warLabel = ttk.Label(btnFrame, text="War", background="Black", foreground="Red", font=("American typewriter", 20))
+warLabel.pack(pady=10)
+
+startNord = ttk.Button(btnFrame, text="Nord", style="W.TButton", cursor="hand2", 
+                        command= lambda: os.startfile(r"C:\Users\denis\Desktop\NordVPN.lnk"))
+startNord.pack(pady=2)
+startIncognito = ttk.Button(btnFrame, text="Incog", style="W.TButton", cursor="hand2", 
+                            command= lambda: subprocess.Popen(["C:\Program Files\Google\Chrome\Application\chrome.exe", "-incognito", "www.google.com"]))
+startIncognito.pack(pady=2)
+startPutty = ttk.Button(btnFrame, text="Putty", style="W.TButton", cursor="hand2", 
+                        command= lambda: os.startfile(r"C:\Users\denis\Documents\putty.exe"))
+startPutty.pack(pady=2)
+
+
+def callback(url):
+   webbrowser.open_new_tab(url)
+
+link = tk.Label(btnFrame, text="GitHub", font=('Helveticabold', 16, 'italic'), background="black", fg="red", cursor="hand2")
+link.pack(side="bottom", pady=2)
+link.bind("<Button-1>", lambda e:
+callback("https://github.com/deni336"))
 
 icon = r"C:\Users\denis\Documents\icon.ico"
-root.geometry('+%d+%d'%(0,0)) 
 root.iconbitmap(icon)
-#root.overrideredirect(True)
-root.attributes("-topmost", True)
-root.resizable(0,0)
+root.wm_attributes('-fullscreen', 'True')
+root.state("zoomed")
+myTime()
 root.mainloop()
