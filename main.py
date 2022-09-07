@@ -6,6 +6,7 @@ from time import strftime
 import webbrowser
 import subprocess
 from PIL import ImageTk, Image
+from pathlib import Path
 
 root = tk.Tk()
 root.title("Dashboard")
@@ -55,20 +56,23 @@ btnFrame.pack(side="left", fill="y")
 ####################Work#########################
 workLabel = ttk.Label(btnFrame, text="Work", background="Black", foreground="Red", font=("American typewriter", 20))
 workLabel.pack(pady=10)
+
+user = os.getlogin()
+
 startVSCodeBtn = ttk.Button(btnFrame, text="VSCode", style="W.TButton", cursor="hand2",
-                            command= lambda: os.startfile(r"C:\Users\denis\AppData\Local\Programs\Microsoft VS Code\Code.exe"))
+                            command= lambda: os.startfile(r"C:/users/" + user + "/AppData/Local/Programs/Microsoft VS Code/Code.exe"))
 startVSCodeBtn.pack(pady=2)
 startGithubDesktop = ttk.Button(btnFrame, text="GitHub", style="W.TButton", cursor="hand2",
-                                command= lambda: os.startfile(r"C:\Users\denis\Desktop\GitHub Desktop.lnk"))
+                                command= lambda: os.startfile(r"C:/users/" + user + "/AppData/Local/GitHubDesktop/GitHubDesktop.exe"))
 startGithubDesktop.pack(pady=2)
 openCommandPrompt = ttk.Button(btnFrame, text="Command", style="W.TButton", cursor="hand2",
-                                command= lambda: os.startfile(r"C:\Users\denis\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\System Tools\Command Prompt.lnk"))
+                                command= lambda: os.startfile(r"C:/users/" + user + "/AppData\Roaming\Microsoft\Windows\Start Menu\Programs\System Tools\Command Prompt.lnk"))
 openCommandPrompt.pack(pady=5)
 openChrome = ttk.Button(btnFrame, text="Chrome", style="W.TButton", cursor="hand2",
-                        command= lambda: os.startfile(r"C:\Users\Public\Desktop\Google Chrome.lnk"))
+                        command= lambda: webbrowser.open_new_tab("www.google.com"))
 openChrome.pack(pady=2)
 startShell = ttk.Button(btnFrame, text="Shell", style="W.TButton", cursor="hand2",
-                        command= lambda: os.startfile(r"C:\Users\denis\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Windows PowerShell\Windows PowerShell (x86).lnk"))
+                        command= lambda: os.startfile(r"C:/users/" + user + "/AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Windows PowerShell\Windows PowerShell (x86).lnk"))
 startShell.pack(pady=2)
 startDBBrowser = ttk.Button(btnFrame, text="DB", style="W.TButton", cursor="hand2",
                         command= lambda: os.startfile(r"C:\Program Files\DB Browser for SQLite\DB Browser for SQLite.exe"))
@@ -78,10 +82,10 @@ startDBBrowser.pack(pady=2)
 genLabel = ttk.Label(btnFrame, text="General", background="Black", foreground="Red", font=("American typewriter", 20))
 genLabel.pack(pady=10)
 startDiscordbtn = ttk.Button(btnFrame, text="Discord", style="W.TButton", cursor="hand2",
-                            command= lambda: os.startfile(r"C:\Users\denis\Desktop\Discord.lnk"))
+                            command= lambda: os.startfile(r"C:/users/" + user + "/AppData/Local/Discord/app-1.0.9006/Discord.exe"))
 startDiscordbtn.pack(pady=2)
 startSpotify = ttk.Button(btnFrame, text="Spotify", style="W.TButton", cursor="hand2",
-                        command= lambda: os.startfile(r"C:\Users\denis\Desktop\Spotify.lnk"))
+                        command= lambda: os.startfile(r"C:/users/" + user + "/AppData/Local/Microsoft/WindowsApps/Spotify.exe"))
 startSpotify.pack(pady=2)
 
 ######################Play######################
