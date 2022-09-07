@@ -114,12 +114,12 @@ link.bind("<Button-1>", lambda e:
 callback("https://github.com/deni336"))
 
 chatFrame = tk.Frame(root, background="black")
-chatFrame.pack(side="Right")
+chatFrame.pack(side="right")
 
 
 
 
-icon = r"C:\Users\denis\Documents\icon.ico"
+icon = "icon.ico"
 root.iconbitmap(icon)
 root.wm_attributes('-fullscreen', 'True')
 root.state("zoomed")
