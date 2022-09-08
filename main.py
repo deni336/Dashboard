@@ -137,12 +137,12 @@ class MyApp(tk.Tk):
         def chromeRun():
             try:
                 subprocess.Popen(["C:\Program Files\Google\Chrome\Application\chrome.exe", "-incognito", "www.google.com"])
-            finally:
+            except:
                 subprocess.Popen(["C:\Program Files (x86)\Google\Chrome\Application/chrome.exe", "-incognito", "www.google.com"])
         
 
         startIncognito = ttk.Button(btnFrame, text="Incog", style="W.TButton", cursor="hand2", 
-                                    command= lambda: subprocess.Popen(chromeRun))
+                                    command= lambda: chromeRun())
         startIncognito.pack(pady=2)
         startPutty = ttk.Button(btnFrame, text="Putty", style="W.TButton", cursor="hand2", 
                                 command= lambda: os.startfile(r"putty.exe"))
