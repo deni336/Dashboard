@@ -46,6 +46,12 @@ class MyApp(tk.Tk):
         minimizeBtn = ttk.Button(bannerFrame, text="Minimize", style="W.TButton", cursor="hand2", command= lambda: root.state("icon"))
         minimizeBtn.pack(side="right")
 
+        downsizeBtn = ttk.Button(bannerFrame, text="Downsize", style="W.TButton", cursor="hand2", command= lambda: root.wm_attributes("-fullscreen", False))
+        downsizeBtn.pack(side="right")
+
+        maximizeBtn = ttk.Button(bannerFrame, text="Fullscreen", style="W.TButton", cursor="hand2", command= lambda: root.wm_attributes("-fullscreen", True))
+        maximizeBtn.pack(side="right")
+
         bottomFrame = tk.Frame(mainFrame, background="black")
         bottomFrame.pack(side="bottom", fill="x")
 
@@ -144,8 +150,8 @@ class MyApp(tk.Tk):
         link.bind("<Button-1>", lambda e:
         callback("https://github.com/deni336/Dashboard"))
 
-        chatFrame = tk.Frame(mainFrame, background="black")
-        chatFrame.pack(side="right", fill="y")
+        chatFrame = tk.Frame(mainFrame, background="black", height=100, width=200)
+        chatFrame.pack()
         
         chatLabel = tk.Label(chatFrame, text="Chatticus", background="Black", foreground="red", font=("American typewriter", 20))
         chatLabel.pack(side="top")
@@ -198,5 +204,5 @@ root.iconbitmap(icon)
 root.wm_attributes('-fullscreen', 'True')
 root.state("zoomed")
 root.title("Dashboard")
-
+root.resizable(True, True)
 root.mainloop()
