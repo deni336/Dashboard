@@ -190,11 +190,11 @@ class MyApp(tk.Tk):
 
         def enterPressed(event):
             inputGet = inputField.get()
-            print(inputGet)
+            #print(inputGet)
             messages.config(state=NORMAL)
             messages.insert(INSERT, '\n' + self.chatUser + ':' + inputGet)
             messages.config(state=DISABLED)
-            #chatclient.sendMessage(inputGet)
+            chatclient.sendMessage(inputGet)
             inputUser.set('')
             # label.pack()
             return "break"
