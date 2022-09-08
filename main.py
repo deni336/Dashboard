@@ -6,7 +6,7 @@ from time import strftime
 import webbrowser
 import subprocess
 from PIL import ImageTk, Image
-from pathlib import Path
+import sys, platform
 
 root = tk.Tk()
 root.title("Dashboard")
@@ -71,6 +71,9 @@ openCommandPrompt.pack(pady=5)
 openChrome = ttk.Button(btnFrame, text="Chrome", style="W.TButton", cursor="hand2",
                         command= lambda: webbrowser.open_new_tab("www.google.com"))
 openChrome.pack(pady=2)
+startTeamviewer = ttk.Button(btnFrame, text="TViewer", style="W.TButton", cursor="hand2",
+                                command= lambda: os.startfile(r"C:\Program Files (x86)\TeamViewer\TeamViewer.exe"))
+startTeamviewer.pack(pady=2)
 startShell = ttk.Button(btnFrame, text="Shell", style="W.TButton", cursor="hand2",
                         command= lambda: os.startfile(r"C:/users/" + user + "/AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Windows PowerShell\Windows PowerShell (x86).lnk"))
 startShell.pack(pady=2)
@@ -92,13 +95,13 @@ startSpotify.pack(pady=2)
 playLabel = ttk.Label(btnFrame, text="Play", background="Black", foreground="Red", font=("American typewriter", 20))
 playLabel.pack(pady=10)
 startBlizzardBtn = ttk.Button(btnFrame, text="Blizz", style="W.TButton", cursor="hand2",
-                            command= lambda: os.startfile(r"C:\Users\Public\Desktop\Battle.net.lnk"))
+                            command= lambda: os.startfile(r"C:\Program Files (x86)\Battle.net\Battle.net Launcher.exe"))
 startBlizzardBtn.pack(pady=2)
 startSteam = ttk.Button(btnFrame, text="Steam", style="W.TButton", cursor="hand2",
-                        command= lambda: os.startfile(r"C:\Users\Public\Desktop\Steam.lnk"))
+                        command= lambda: os.startfile(r"C:\Program Files (x86)\Steam\steam.exe"))
 startSteam.pack(pady=2)
 startFTB = ttk.Button(btnFrame, text="FTB", style="W.TButton", cursor="hand2",
-                        command= lambda: os.startfile(r"C:\Users\denis\Desktop\FTB App.lnk"))
+                        command= lambda: subprocess.call(args="-launchapp cmogmmciplgmocnhikmphehmeecmpaggknkjlbag", executable="C:\Program Files (x86)\Overwolf\OverwolfLauncher.exe"))
 startFTB.pack(pady=2)
 
 #######################War####################
@@ -106,13 +109,21 @@ warLabel = ttk.Label(btnFrame, text="War", background="Black", foreground="Red",
 warLabel.pack(pady=10)
 
 startNord = ttk.Button(btnFrame, text="Nord", style="W.TButton", cursor="hand2", 
-                        command= lambda: os.startfile(r"C:\Users\denis\Desktop\NordVPN.lnk"))
+                        command= lambda: os.startfile(r"C:\Program Files\NordVPN\NordVPN.exe"))
 startNord.pack(pady=2)
+
+def isWin11():
+    if sys.getwindowsversion().build > 20000:
+        return True
+    else:
+        return False
+isWin11()
+
 startIncognito = ttk.Button(btnFrame, text="Incog", style="W.TButton", cursor="hand2", 
                             command= lambda: subprocess.Popen(["C:\Program Files\Google\Chrome\Application\chrome.exe", "-incognito", "www.google.com"]))
 startIncognito.pack(pady=2)
 startPutty = ttk.Button(btnFrame, text="Putty", style="W.TButton", cursor="hand2", 
-                        command= lambda: os.startfile(r"C:\Users\denis\Documents\putty.exe"))
+                        command= lambda: os.startfile(r"putty.exe"))
 startPutty.pack(pady=2)
 
 
