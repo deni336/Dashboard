@@ -157,16 +157,16 @@ class MyApp(tk.Tk):
         link.bind("<Button-1>", lambda e:
         callback("https://github.com/deni336/Dashboard"))
 
-        chatFrame = tk.Frame(mainFrame, background="black", height=100, width=200)
-        chatFrame.pack()
+        chatFrame = tk.Frame(mainFrame, background="black")
+        chatFrame.pack(side="right", fill="y")
         
         chatLabel = tk.Label(chatFrame, text="Chatticus", background="Black", foreground="red", font=("American typewriter", 20))
-        chatLabel.pack(side="top")
+        chatLabel.pack(side="top", pady=5)
 
         inputUser1 = StringVar()
         inputUser1.set('Enter your name')
         usernameInput = Entry(chatFrame, text=inputUser1, background="black", foreground="red", font=('American typewriter', 12, 'bold'))
-        usernameInput.pack(side="top")
+        usernameInput.pack(side="top", pady=5)
 
         def enterPressed1(event):
             self.chatUser = usernameInput.get()
@@ -175,10 +175,10 @@ class MyApp(tk.Tk):
         usernameInput.bind("<Return>", enterPressed1)
 
         inputUser = StringVar()
-        inputUser.set('Welcome ' + self.chatUser)
+        inputUser.set('Whalecum ' + self.chatUser)
         
-        messages = Text(chatFrame, background="black", foreground="red", font=('American typewriter', 12, 'bold'))
-        messages.pack()
+        messages = Text(chatFrame, background="black", foreground="red", font=('American typewriter', 12, 'bold'), width=50, height=40)
+        messages.pack(padx=5, pady=2)
 
         # def fromServer(fromUser, message):
         #     messages.config(state=NORMAL)
@@ -186,7 +186,7 @@ class MyApp(tk.Tk):
         #     messages.config(state=DISABLED)
 
         inputField = Entry(chatFrame, text=inputUser, background="black", foreground="red", font=('American typewriter', 12, 'bold'))
-        inputField.pack(fill="x")
+        inputField.pack(fill="x", padx=5, pady=2)
 
         def enterPressed(event):
             inputGet = inputField.get()
