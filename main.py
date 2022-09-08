@@ -80,8 +80,15 @@ class MyApp(tk.Tk):
         openBrowser = ttk.Button(btnFrame, text="Browser", style="W.TButton", cursor="hand2",
                                 command= lambda: webbrowser.open_new_tab("www.google.com"))
         openBrowser.pack(pady=2)
+
+        def findTeamviewer():
+            try:
+                os.startfile(r"C:\Program Files\TeamViewer\TeamViewer.exe")
+            except:
+                os.startfile(r"C:\Program Files (x86)\TeamViewer\TeamViewer.exe")
+
         startTeamviewer = ttk.Button(btnFrame, text="TViewer", style="W.TButton", cursor="hand2",
-                                        command= lambda: os.startfile(r"C:\Program Files (x86)\TeamViewer\TeamViewer.exe"))
+                                        command= lambda: findTeamviewer())
         startTeamviewer.pack(pady=2)
         startShell = ttk.Button(btnFrame, text="Shell", style="W.TButton", cursor="hand2",
                                 command= lambda: os.startfile(r"C:/users/" + user + "/AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Windows PowerShell\Windows PowerShell (x86).lnk"))
@@ -121,15 +128,15 @@ class MyApp(tk.Tk):
                                 command= lambda: os.startfile(r"C:\Program Files\NordVPN\NordVPN.exe"))
         startNord.pack(pady=2)
 
-        def isWin11():
-            if sys.getwindowsversion().build > 20000:
-                return ["C:\Program Files\Google\Chrome\Application\chrome.exe", "-incognito", "www.google.com"]
-            else:
-                return ["C:\Program Files (x86)\Google\Chrome\Application/chrome.exe", "-incognito", "www.google.com"]
-        isWin11()
+        def chromeRun():
+            try:
+                subprocess.Popen(["C:\Program Files\Google\Chrome\Application\chrome.exe", "-incognito", "www.google.com"])
+            finally:
+                subprocess.Popen(["C:\Program Files (x86)\Google\Chrome\Application/chrome.exe", "-incognito", "www.google.com"])
+        
 
         startIncognito = ttk.Button(btnFrame, text="Incog", style="W.TButton", cursor="hand2", 
-                                    command= lambda: subprocess.Popen(isWin11()))
+                                    command= lambda: subprocess.Popen(chromeRun))
         startIncognito.pack(pady=2)
         startPutty = ttk.Button(btnFrame, text="Putty", style="W.TButton", cursor="hand2", 
                                 command= lambda: os.startfile(r"putty.exe"))
