@@ -1,20 +1,26 @@
+from encodings import utf_8
 import socket
 
-HOST = "127.0.0.1"  # The server's hostname or IP address
-PORT = 6969  # The port used by the server
+global server
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+HOST = "127.0.0.1"
+PORT = 6969
+def connection(user):
+    server.connect((HOST, PORT))
+    server.send(user.encode('utf-8'))
+    return
 
-# def sendMessage(message):
-#     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-#         s.connect((HOST, PORT))
-#         s.sendall(b'{message}')
-#         data = s.recv(1024)
-#     return data
+class socketHandling():
+    def sendMessage(message):
+        server.send(message.encode('utf-8'))
+        return
 
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.bind((HOST, PORT))
-    while True:
-        s.listen()
-        data = s.recv(1024)
+    def recMessage():
+        while server:
+            data = server.recv(1024)
+            output = data.decode("utf_8")
+            if data != None:
+                return output
+            
 
-    print(f"Received {data!r}")

@@ -1,14 +1,15 @@
 import tkinter as tk
 from tkinter import *
 from tkinter import ttk
-import os, time
-from time import strftime
+import os, time, socket
+from time import sleep, strftime
 import webbrowser
 import subprocess
 from PIL import ImageTk, Image
 import sys, platform
 import confighandler
-#import chatclient
+import chatclient
+import threading
 
 
 class MyApp(tk.Tk):
@@ -17,21 +18,24 @@ class MyApp(tk.Tk):
         self.chatUser = ''
         tk.Tk.__init__(self)
         
+        #Setting Background frame
         mainFrame = tk.Frame(self)
         mainFrame.pack(expand="1", fill="both")
 
+        #Setting background image into mainFrame
         bgImage = ImageTk.PhotoImage(Image.open("Escanor.jpg"))
-
         bgImageLabel = tk.Label(mainFrame, image=bgImage)
         bgImageLabel.place(x=0, y=0)
         bgImageLabel.image = bgImage
 
+        #Creating Style variable to be used in buttons
         style = ttk.Style()
         style.theme_use('default')
         style.configure('W.TButton', fill="both", borderwidth="5", relief="ridge", font =
                     ('American typewriter', 12, 'bold'),
                         foreground = 'red', background="black")
 
+        #Frame for the top of page to house appLabel, exitBtn, minimizeBtn, downsizeBtn, and maximizeBtn
         bannerFrame = tk.Frame(mainFrame, background="black")
         bannerFrame.pack(fill="x")
 
@@ -51,19 +55,20 @@ class MyApp(tk.Tk):
         maximizeBtn = ttk.Button(bannerFrame, text="Fullscreen", style="W.TButton", cursor="hand2", command= lambda: root.wm_attributes("-fullscreen", True))
         maximizeBtn.pack(side="right")
 
+        #Frame for the bottom of the page to house the timeLabel
         bottomFrame = tk.Frame(mainFrame, background="black")
         bottomFrame.pack(side="bottom", fill="x")
 
-        myFont = ('helvetica', 16, "bold italic")
-
-        timeLabel = tk.Label(bottomFrame, font=myFont, background="black", foreground="red")
+        timeLabel = tk.Label(bottomFrame, font=('helvetica', 16, "bold italic"), background="black", foreground="red")
         timeLabel.pack(side="bottom")
 
+        #Function to run the clock in the timeLabel
         def myTime():
             timeString = strftime('%d %b %y %H:%M:%S %p')
             timeLabel.config(text=timeString)
             timeLabel.after(1000, myTime)
 
+        #Frame on the left side of the page to house the Work, General, Play and War buttons
         btnFrame = tk.Frame(mainFrame, background="Black")
         btnFrame.pack(side="left", fill="y")
 
@@ -71,6 +76,7 @@ class MyApp(tk.Tk):
         workLabel = ttk.Label(btnFrame, text="Work", background="Black", foreground="Red", font=("American typewriter", 20))
         workLabel.pack(pady=10)
 
+        #Getting the OS login to use for file paths
         user = os.getlogin()
 
         startVSCodeBtn = ttk.Button(btnFrame, text="VSCode", style="W.TButton", cursor="hand2",
@@ -86,6 +92,7 @@ class MyApp(tk.Tk):
                                 command= lambda: webbrowser.open_new_tab("www.google.com"))
         openBrowser.pack(pady=2)
 
+        #Finding installed version of Teamviewer
         def findTeamviewer():
             try:
                 os.startfile(r"C:\Program Files\TeamViewer\TeamViewer.exe")
@@ -133,6 +140,7 @@ class MyApp(tk.Tk):
                                 command= lambda: os.startfile(r"C:\Program Files\NordVPN\NordVPN.exe"))
         startNord.pack(pady=2)
 
+        #Finding installed version of chrome to then use for incognito mode
         def chromeRun():
             try:
                 subprocess.Popen(["C:\Program Files\Google\Chrome\Application\chrome.exe", "-incognito", "www.google.com"])
@@ -146,6 +154,7 @@ class MyApp(tk.Tk):
                                 command= lambda: os.startfile(r"putty.exe"))
         startPutty.pack(pady=2)
 
+        #Function for opening the dashboard github page
         def callback(url):
             webbrowser.open_new_tab(url)
 
@@ -155,6 +164,8 @@ class MyApp(tk.Tk):
         callback("https://github.com/deni336/Dashboard"))
 
 #######################Chatbox#####################
+
+        #Frame on the right side of page for housing the chat box and its associated items
         chatFrame = tk.Frame(mainFrame, background="black")
         chatFrame.pack(side="right", fill="y")
         
@@ -178,8 +189,9 @@ class MyApp(tk.Tk):
 
         usernameInput.bind("<Return>", enterPressed1)
 
-        inputUser = StringVar()
-        inputUser.set('Whalecum')
+        messageInput = StringVar()
+
+        #Frame inside of chatFrame used to align the text box and scroll bar
         messagesFrame = tk.Frame(chatFrame, background="black")
         messagesFrame.pack()
         scroll = tk.Scrollbar(messagesFrame, orient="vertical", jump=True)
@@ -188,35 +200,35 @@ class MyApp(tk.Tk):
         messages.pack(padx=5, pady=2, side="left")
         scroll.configure(command=messages.yview)
 
-        
-
-        def fromServer(fromUser, message):
-            messages.config(state=NORMAL)
-            messages.insert(INSERT, '\n' + fromUser + ':' + message)
-            messages.config(state=DISABLED)
-
-        inputField = Entry(chatFrame, text=inputUser, background="black", foreground="red", font=('American typewriter', 12, 'bold'))
+        inputField = Entry(chatFrame, text=messageInput, background="black", foreground="red", font=('American typewriter', 12, 'bold'))
         inputField.pack(fill="x", padx=5, pady=2)
 
+        #Function to gather string from the Entry inputField, send message to server, clear Entry and scroll message box to end
         def enterPressed(event):
             inputGet = inputField.get()
-            #print(inputGet)
-            messages.config(state=NORMAL)
-            messages.insert(INSERT, '\n' + self.chatUser + ':' + inputGet)
-            messages.config(state=DISABLED)
-            #chatclient.sendMessage(inputGet)
-            inputUser.set('')
+            threading.Thread(target=chatclient.socketHandling.sendMessage(inputGet)).start()
+            messageInput.set('')
             messages.see("end")
-            def add_timestamp(self):
-                self.text.insert("end", time.ctime() + "\n")
-                self.text.see("end")
-                self.after(1000, self.add_timestamp)
             return "break"
-        enterPressed("break")
+
+        #Binding enter key to the enterPressed function
         inputField.bind("<Return>", enterPressed)
         
-    
-        myTime()
+        #Connecting to the server
+        chatclient.connection(user)
+
+        #Threading the receiving functions
+        def messageUpdater():
+            response = chatclient.socketHandling.recMessage()
+            messages.config(state=NORMAL)
+            messages.insert(INSERT, '%s\n' % response)
+            messages.config(state=DISABLED)
+            messageUpdater()
+        
+        threading.Thread(target=messageUpdater).start() #Needs to be called in the message frame updater
+        
+        #Calling clock function
+        threading.Thread(target=myTime()).start()
 
 root = MyApp()
 
