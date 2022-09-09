@@ -1,12 +1,11 @@
 import tkinter as tk
 from tkinter import *
 from tkinter import ttk
-import os, time, socket
+import os, time
 from time import sleep, strftime
 import webbrowser
 import subprocess
 from PIL import ImageTk, Image
-import sys, platform
 import confighandler
 import chatclient
 import threading
@@ -16,6 +15,7 @@ class MyApp(tk.Tk):
     
     def __init__(self):
         self.chatUser = ''
+        self.killThread = False
         tk.Tk.__init__(self)
         
         #Setting Background frame
@@ -39,12 +39,12 @@ class MyApp(tk.Tk):
         bannerFrame = tk.Frame(mainFrame, background="black")
         bannerFrame.pack(fill="x")
 
-        appLabel = ttk.Label(bannerFrame, text="Deni's Dashboard", background="Black", foreground="Red", font=("American typewriter", 25))
+        appLabel = ttk.Label(bannerFrame, text="Kasugai", background="Black", foreground="Red", font=("American typewriter", 25))
         appLabel.pack(side="left")
 
         def shutdown():
-            chatclient.socketHandling.close()
-            messageUpdateThread.join()
+            chatclient.socketHandling.close('Goodbye')
+            self.killThread = True
             time.sleep(1)
             root.destroy()
 
@@ -60,6 +60,10 @@ class MyApp(tk.Tk):
 
         maximizeBtn = ttk.Button(bannerFrame, text="Fullscreen", style="W.TButton", cursor="hand2", command= lambda: root.wm_attributes("-fullscreen", True))
         maximizeBtn.pack(side="right")
+
+        chatBtn = ttk.Button(bannerFrame, text="Chatticus", style="W.TButton", cursor="hand2",
+                                command= lambda: minimizeChat())
+        chatBtn.pack(side="right", pady=5)
 
         #Frame for the bottom of the page to house the timeLabel
         bottomFrame = tk.Frame(mainFrame, background="black")
@@ -174,9 +178,14 @@ class MyApp(tk.Tk):
         #Frame on the right side of page for housing the chat box and its associated items
         chatFrame = tk.Frame(mainFrame, background="black")
         chatFrame.pack(side="right", fill="y")
-        
-        chatLabel = tk.Label(chatFrame, text="Chatticus", background="Black", foreground="red", font=("American typewriter", 20))
-        chatLabel.pack(side="top", pady=5)
+        self.chatShow = True
+        def minimizeChat():
+            if self.chatShow:
+                chatFrame.pack_forget()
+                self.chatShow = False
+            else:
+                chatFrame.pack(side="right", fill="y")
+                self.chatShow = True
 
         inputUser1 = StringVar()
         usernameInput = Entry(chatFrame, text=inputUser1, background="black", foreground="red", font=('American typewriter', 12, 'bold'))
@@ -213,7 +222,6 @@ class MyApp(tk.Tk):
         def enterPressed(event):
             inputGet = inputField.get()
             chatclient.socketHandling.sendMessage(inputGet)
-            #threading.Thread(target=chatclient.socketHandling.sendMessage(inputGet)).start()
             messageInput.set('')
             messages.see("end")
             return "break"
@@ -230,11 +238,13 @@ class MyApp(tk.Tk):
             messages.config(state=NORMAL)
             messages.insert(INSERT, '%s\n' % response)
             messages.config(state=DISABLED)
+            if self.killThread:
+                messageUpdateThread.join()
             messageUpdater()
         
         messageUpdateThread = threading.Thread(target=messageUpdater) 
         messageUpdateThread.start()
-        
+
         #Calling clock function
         threading.Thread(target=myTime()).start()
 

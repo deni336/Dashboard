@@ -1,8 +1,6 @@
 from encodings import utf_8
 import socket
 
-
-global server
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 HOST = "192.168.45.10"
@@ -24,7 +22,8 @@ class socketHandling():
             if data != None:
                 return output
     
-    def close():
+    def close(message):
+        server.send(bytearray(message + '\n', 'utf-8'))
         server.close()
             
 
