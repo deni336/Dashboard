@@ -42,8 +42,14 @@ class MyApp(tk.Tk):
         appLabel = ttk.Label(bannerFrame, text="Deni's Dashboard", background="Black", foreground="Red", font=("American typewriter", 25))
         appLabel.pack(side="left")
 
+        def shutdown():
+            chatclient.socketHandling.close()
+            messageUpdateThread.join()
+            time.sleep(1)
+            root.destroy()
+
         exitBtn = ttk.Button(bannerFrame, text="Exit", style="W.TButton", cursor="hand2",
-                            command= lambda: root.destroy())
+                            command= lambda: shutdown())
         exitBtn.pack(side="right")
 
         minimizeBtn = ttk.Button(bannerFrame, text="Minimize", style="W.TButton", cursor="hand2", command= lambda: root.state("icon"))
@@ -206,7 +212,8 @@ class MyApp(tk.Tk):
         #Function to gather string from the Entry inputField, send message to server, clear Entry and scroll message box to end
         def enterPressed(event):
             inputGet = inputField.get()
-            threading.Thread(target=chatclient.socketHandling.sendMessage(inputGet)).start()
+            chatclient.socketHandling.sendMessage(inputGet)
+            #threading.Thread(target=chatclient.socketHandling.sendMessage(inputGet)).start()
             messageInput.set('')
             messages.see("end")
             return "break"
@@ -225,7 +232,8 @@ class MyApp(tk.Tk):
             messages.config(state=DISABLED)
             messageUpdater()
         
-        threading.Thread(target=messageUpdater).start() #Needs to be called in the message frame updater
+        messageUpdateThread = threading.Thread(target=messageUpdater) 
+        messageUpdateThread.start()
         
         #Calling clock function
         threading.Thread(target=myTime()).start()
