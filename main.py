@@ -9,7 +9,8 @@ import webbrowser
 import subprocess
 from PIL import ImageTk, Image
 import sys, platform
-import chatclient
+import confighandler
+#import chatclient
 
 
 class MyApp(tk.Tk):
@@ -157,6 +158,7 @@ class MyApp(tk.Tk):
         link.bind("<Button-1>", lambda e:
         callback("https://github.com/deni336/Dashboard"))
 
+#######################Chatbox#####################
         chatFrame = tk.Frame(mainFrame, background="black")
         chatFrame.pack(side="right", fill="y")
         
@@ -164,21 +166,34 @@ class MyApp(tk.Tk):
         chatLabel.pack(side="top", pady=5)
 
         inputUser1 = StringVar()
-        inputUser1.set('Enter your name')
         usernameInput = Entry(chatFrame, text=inputUser1, background="black", foreground="red", font=('American typewriter', 12, 'bold'))
         usernameInput.pack(side="top", pady=5)
+        if confighandler.loadUser() != None:
+            self.chatUser = confighandler.loadUser()
+            usernameInput.config(state=DISABLED)
+            inputUser1.set(self.chatUser)
+        else:
+            inputUser1.set('Enter your name')
+        
 
         def enterPressed1(event):
             self.chatUser = usernameInput.get()
             usernameInput.config(state=DISABLED)
+            confighandler.setUser(self.chatUser)
 
         usernameInput.bind("<Return>", enterPressed1)
 
         inputUser = StringVar()
-        inputUser.set('Whalecum ' + self.chatUser)
+        inputUser.set('Whalecum')
+        messagesFrame = tk.Frame(chatFrame, background="black")
+        messagesFrame.pack()
+        scroll = tk.Scrollbar(messagesFrame, orient="vertical", jump=True)
+        scroll.pack(side="right", fill='y', pady=2)
+        messages = Text(messagesFrame, background="black", foreground="red", font=('American typewriter', 12, 'bold'), width=50, height=40, yscrollcommand=scroll.set)
+        messages.pack(padx=5, pady=2, side="left")
+        scroll.configure(command=messages.yview)
+
         
-        messages = Text(chatFrame, background="black", foreground="red", font=('American typewriter', 12, 'bold'), width=50, height=40)
-        messages.pack(padx=5, pady=2)
 
         # def fromServer(fromUser, message):
         #     messages.config(state=NORMAL)
@@ -194,9 +209,13 @@ class MyApp(tk.Tk):
             messages.config(state=NORMAL)
             messages.insert(INSERT, '\n' + self.chatUser + ':' + inputGet)
             messages.config(state=DISABLED)
-            chatclient.sendMessage(inputGet)
+            #chatclient.sendMessage(inputGet)
             inputUser.set('')
-            # label.pack()
+            messages.see("end")
+            # def add_timestamp(self):
+            #     self.text.insert("end", time.ctime() + "\n")
+            #     self.text.see("end")
+            #     self.after(1000, self.add_timestamp)
             return "break"
         enterPressed("break")
         inputField.bind("<Return>", enterPressed)
