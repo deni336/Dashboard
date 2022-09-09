@@ -1,10 +1,8 @@
-from textwrap import fill
 import tkinter as tk
 from tkinter import *
 from tkinter import ttk
-import os
+import os, time
 from time import strftime
-from turtle import back, width
 import webbrowser
 import subprocess
 from PIL import ImageTk, Image
@@ -141,14 +139,12 @@ class MyApp(tk.Tk):
             except:
                 subprocess.Popen(["C:\Program Files (x86)\Google\Chrome\Application/chrome.exe", "-incognito", "www.google.com"])
         
-
         startIncognito = ttk.Button(btnFrame, text="Incog", style="W.TButton", cursor="hand2", 
                                     command= lambda: chromeRun())
         startIncognito.pack(pady=2)
         startPutty = ttk.Button(btnFrame, text="Putty", style="W.TButton", cursor="hand2", 
                                 command= lambda: os.startfile(r"putty.exe"))
         startPutty.pack(pady=2)
-
 
         def callback(url):
             webbrowser.open_new_tab(url)
@@ -175,7 +171,6 @@ class MyApp(tk.Tk):
         else:
             inputUser1.set('Enter your name')
         
-
         def enterPressed1(event):
             self.chatUser = usernameInput.get()
             usernameInput.config(state=DISABLED)
@@ -195,10 +190,10 @@ class MyApp(tk.Tk):
 
         
 
-        # def fromServer(fromUser, message):
-        #     messages.config(state=NORMAL)
-        #     messages.insert(INSERT, '\n' fromUser + ':' + message)
-        #     messages.config(state=DISABLED)
+        def fromServer(fromUser, message):
+            messages.config(state=NORMAL)
+            messages.insert(INSERT, '\n' + fromUser + ':' + message)
+            messages.config(state=DISABLED)
 
         inputField = Entry(chatFrame, text=inputUser, background="black", foreground="red", font=('American typewriter', 12, 'bold'))
         inputField.pack(fill="x", padx=5, pady=2)
@@ -212,10 +207,10 @@ class MyApp(tk.Tk):
             #chatclient.sendMessage(inputGet)
             inputUser.set('')
             messages.see("end")
-            # def add_timestamp(self):
-            #     self.text.insert("end", time.ctime() + "\n")
-            #     self.text.see("end")
-            #     self.after(1000, self.add_timestamp)
+            def add_timestamp(self):
+                self.text.insert("end", time.ctime() + "\n")
+                self.text.see("end")
+                self.after(1000, self.add_timestamp)
             return "break"
         enterPressed("break")
         inputField.bind("<Return>", enterPressed)
