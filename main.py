@@ -21,7 +21,9 @@ class MyApp(tk.Tk):
         tk.Tk.__init__(self)
         
         #Setting Background frame
-        mainFrame = tk.Frame(self)
+        
+
+        mainFrame = tk.Frame(self, background=self.configDict.get("frameBackground"))
         mainFrame.pack(expand="1", fill="both")
 
         def loadConfig():
@@ -30,8 +32,10 @@ class MyApp(tk.Tk):
 
         #Setting background image into mainFrame
         bgImagePicked = self.configDict.get('bgImage')
-        bgImage = ImageTk.PhotoImage(Image.open(bgImagePicked))
-        bgImageLabel = tk.Label(mainFrame, image=bgImage)
+        img = Image.open(bgImagePicked)
+        imgResized = img.resize((1920, 1080), Image.ANTIALIAS)
+        bgImage = ImageTk.PhotoImage(imgResized)
+        bgImageLabel = tk.Label(mainFrame, image=bgImage, background=self.configDict.get("frameBackground"))
         bgImageLabel.place(x=0, y=0)
         bgImageLabel.image = bgImage
 
