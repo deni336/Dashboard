@@ -283,14 +283,14 @@ class MyApp(tk.Tk):
         inputField.bind("<Return>", enterPressed)
         
         #Connecting to the server
+        # Get-Process -Id (Get-NetTCPConnection -LocalPort 6969).OwningProcess
         try:
-            if self.chatUser != '':
-                chatclient.connection(self.chatUser)
-            else:
-                chatclient.connection(user)
+            subprocess.Popen([r"chat.exe"])
+            chatclient.connection(user, "127.0.0.1")
+                
         except:
-            messages.insert(END, "No Server Connected")
-
+                messages.insert(END, "No Server Connected")
+        
         #Threading the receiving functions
         def messageUpdater():
             try:

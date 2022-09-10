@@ -110,7 +110,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	fmt.Println("Server Online")
 	go broadcast()
 
 	for {
