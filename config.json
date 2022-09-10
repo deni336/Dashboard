@@ -1,12 +1,12 @@
 {
-    "user": "",
-    "buttonBackground": "#000000",
-    "buttonForeground": "#ff0000",
+    "user": "Mundo",
+    "buttonBackground": "#0080ff",
+    "buttonForeground": "#00ff40",
     "buttonFont": "American Typewriter",
     "buttonFontsize": "12",
     "buttonFontadd": "bold",
-    "labelForeground": "#ff0000",
+    "labelForeground": "#0080ff",
     "frameBackground": "#000000",
     "frameForeground": "red",
-    "bgImage": "Escanor.jpg"
+    "bgImage": "milim.png"
 }
