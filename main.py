@@ -254,7 +254,7 @@ class MyApp(tk.Tk):
             confighandler.setUser(self.chatUser)
 
         usernameInput.bind("<Return>", enterPressed1)
-
+            
         messageInput = StringVar()
 
         #Frame inside of chatFrame used to align the text box and scroll bar
@@ -291,7 +291,7 @@ class MyApp(tk.Tk):
             response = chatclient.socketHandling.recMessage()
             print(response)
             messages.config(state=NORMAL)
-            messages.insert(INSERT, '%s\n' % response)
+            messages.insert(END, response)
             messages.config(state=DISABLED)
             if self.killThread:
                 print("Kill Flag set True")
@@ -308,7 +308,6 @@ class MyApp(tk.Tk):
 
         clockProcess = threading.Thread(target=myTime)
         clockProcess.start()
-
 root = MyApp()
 
 icon = "icon.ico"

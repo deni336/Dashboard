@@ -1,17 +1,18 @@
 import socket
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+# server.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 HOST = "192.168.45.10"
 PORT = 6969
 def connection(user):
     server.connect((HOST, PORT))
-    server.send(bytearray(user + '\n', 'utf-8'))
+    socketHandling.sendMessage(user)
+    
     return
 
 class socketHandling():
     def sendMessage(message):
-        server.send(bytearray(message + '\n', 'utf-8'))
+        a = server.send(bytearray(message + '\n', 'utf-8'))
         return
 
     def recMessage():
