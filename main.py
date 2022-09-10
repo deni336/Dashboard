@@ -2,7 +2,7 @@ from concurrent.futures import thread
 import tkinter as tk
 from tkinter import *
 from tkinter import ttk, colorchooser
-import os, time, sys
+import os, time, sys, signal
 from time import sleep, strftime
 import webbrowser
 import subprocess
@@ -18,7 +18,7 @@ class MyApp(tk.Tk):
     def __init__(self):
         self.chatUser = ''
         self.configDict = {}
-        self.killThread = False
+        self.idList = []
         tk.Tk.__init__(self)
         
         #Setting Background frame
@@ -50,9 +50,8 @@ class MyApp(tk.Tk):
         appLabel.pack(side="left")
 
         def shutdown():
-            chatclient.socketHandling.close('Goodbye')
-            self.killThread = True
-            time.sleep(1)
+            for i in self.idList:
+                os.kill(i, signal.SIGTERM)
             root.destroy()
 
         exitBtn = ttk.Button(bannerFrame, text="Exit", style="W.TButton", cursor="hand2",
@@ -293,21 +292,20 @@ class MyApp(tk.Tk):
             messages.config(state=NORMAL)
             messages.insert(END, response)
             messages.config(state=DISABLED)
-            if self.killThread:
-                print("Kill Flag set True")
-                messageUpdateThread.join(1.0)
             messageUpdater()
 
         try:
             messageUpdateThread = threading.Thread(target=messageUpdater)
-            messageUpdateThread.start()
+            messageUpdateThread.start() 
+            a = os.getpid()
+            self.idList.append(a)
         except (KeyboardInterrupt, SystemExit):
             sys.exit()
 
         #Calling clock function
-
         clockProcess = threading.Thread(target=myTime)
         clockProcess.start()
+
 root = MyApp()
 
 icon = "icon.ico"
