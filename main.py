@@ -322,7 +322,7 @@ root = MyApp()
 icon = "icon.ico"
 root.iconbitmap(icon)
 #root.state("zoomed")
-root.geometry("1920x1080")
+root.geometry("1920x1080+0+0")
 root.title("Dashboard")
 root.resizable(True, True)
 root.mainloop()
