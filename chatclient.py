@@ -2,8 +2,10 @@ import socket
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-HOST = "192.168.45.10"
-#HOST = "127.0.0.1"
+try:
+    HOST = "192.168.45.10"
+except:
+    HOST = "127.0.0.1"
 PORT = 6969
 def connection(user):
     server.connect((HOST, PORT))
