@@ -106,7 +106,7 @@ func Copy(srcFile, dstFile string) error {
 }
 
 func main() {
-	listener, err := net.Listen("tcp", "localhost:6969")
+	listener, err := net.Listen("tcp", "192.168.45.10:6969")
 	if err != nil {
 		log.Fatal(err)
 	}

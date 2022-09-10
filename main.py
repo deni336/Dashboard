@@ -28,6 +28,8 @@ class MyApp(tk.Tk):
             self.configDict = confighandler.getConfig()
         loadConfig()
 
+        #MyApp.wm_attributes("-fullscreen", self.configDict.get('windowMode'))
+
         #Setting background image into mainFrame
         if self.configDict.get('bgImage') != "":
             bgImagePicked = self.configDict.get('bgImage')
@@ -319,9 +321,8 @@ root = MyApp()
 
 icon = "icon.ico"
 root.iconbitmap(icon)
-root.wm_attributes('-fullscreen', 'True')
-root.state("zoomed")
-root['bg'] = '#000000'
+#root.state("zoomed")
+root.geometry("1920x1080")
 root.title("Dashboard")
 root.resizable(True, True)
 root.mainloop()
