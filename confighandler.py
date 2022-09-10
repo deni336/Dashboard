@@ -1,11 +1,9 @@
 import json
 
 def setUser(name):
-    userDict = {"user" : name}
-    username = json.dumps(userDict, indent=4)
-    f = open("config.json", "w")
-    f.write(username)
-    f.close()
+    configDict = getConfig()
+    configDict.update({"user": name})
+    saveConfig(configDict)
 
 def getConfig():
     try:
@@ -25,32 +23,8 @@ def saveConfig(configDict):
 
 def loadUser():
     configDict = getConfig()
-    if configDict == None:
+    if configDict.get('user') == None:
         return None
     else:
-        for key in configDict.keys():
-            if key == "user":
-                user = configDict.get(key)
+        user = configDict.get('user')
         return user
-
-def setBackground(bg):
-    bgSave = {"background" : bg}
-    bgWrite = json.dumps(bgSave, indent=4)
-    f = open("config.json", "w")
-    f.write(bgWrite)
-    f.close()
-
-def setForeground(fg):
-    fgSave = {"background" : fg}
-    fgWrite = json.dumps(fgSave, indent=4)
-    f = open("config.json", "w")
-    f.write(fgWrite)
-    f.close()
-
-
-
-
-
-
-
-

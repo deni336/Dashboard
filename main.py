@@ -240,11 +240,12 @@ class MyApp(tk.Tk):
         inputUser1 = StringVar()
         usernameInput = Entry(chatFrame, text=inputUser1, background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'))
         usernameInput.pack(side="top", pady=5)
-        if confighandler.loadUser() != None:
-            self.chatUser = confighandler.loadUser()
+        if confighandler.loadUser() != "":
+            self.chatUser = self.configDict.get('user')
             usernameInput.config(state=DISABLED)
             inputUser1.set(self.chatUser)
         else:
+            usernameInput.config(state=NORMAL)
             inputUser1.set('Enter your name')
         
         def enterPressed1(event):

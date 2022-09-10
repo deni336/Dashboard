@@ -24,9 +24,4 @@ class socketHandling():
                     return output
             except:
                 return
-    
-    def close(message):
-        server.send(bytearray(message + '\n', 'utf-8'))
-        server.close()
-        return
 
