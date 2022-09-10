@@ -1,7 +1,8 @@
+from concurrent.futures import thread
 import tkinter as tk
 from tkinter import *
 from tkinter import ttk, colorchooser
-import os, time, json, sys
+import os, time, sys
 from time import sleep, strftime
 import webbrowser
 import subprocess
@@ -9,7 +10,7 @@ from PIL import ImageTk, Image
 import confighandler
 import chatclient
 import threading
-import multiprocessing as mp
+
 
 
 class MyApp(tk.Tk):
@@ -17,7 +18,7 @@ class MyApp(tk.Tk):
     def __init__(self):
         self.chatUser = ''
         self.configDict = {}
-        self.allProcesses = []
+        self.killThread = False
         tk.Tk.__init__(self)
         
         #Setting Background frame
@@ -49,9 +50,8 @@ class MyApp(tk.Tk):
         appLabel.pack(side="left")
 
         def shutdown():
-            for i in self.allProcesses:
-                i.terminate()
             chatclient.socketHandling.close('Goodbye')
+            self.killThread = True
             time.sleep(1)
             root.destroy()
 
@@ -262,9 +262,9 @@ class MyApp(tk.Tk):
         messagesFrame.pack()
         scroll = tk.Scrollbar(messagesFrame, orient="vertical", jump=True)
         scroll.pack(side="right", fill='y', pady=2)
-        self.messages = Text(messagesFrame, background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'), width=50, height=40, yscrollcommand=scroll.set)
-        self.messages.pack(padx=5, pady=2, side="left")
-        scroll.configure(command=self.messages.yview)
+        messages = Text(messagesFrame, background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'), width=50, height=40, yscrollcommand=scroll.set)
+        messages.pack(padx=5, pady=2, side="left")
+        scroll.configure(command=messages.yview)
 
         inputField = Entry(chatFrame, text=messageInput, background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'))
         inputField.pack(fill="x", padx=5, pady=2)
@@ -274,7 +274,7 @@ class MyApp(tk.Tk):
             inputGet = inputField.get()
             chatclient.socketHandling.sendMessage(inputGet)
             messageInput.set('')
-            self.messages.see("end")
+            messages.see("end")
             return "break"
 
         #Binding enter key to the enterPressed function
@@ -287,25 +287,27 @@ class MyApp(tk.Tk):
             chatclient.connection(user)
 
         #Threading the receiving functions
-    def messageUpdater(self):
-        response = chatclient.socketHandling.recMessage()
-        self.messages.config(state=NORMAL)
-        self.messages.insert(INSERT, '%s\n' % response)
-        self.messages.config(state=DISABLED)
-        # if self.killThread == True:
-        #     SystemExit()
-        #     messageUpdateThread.join(1)
-        MyApp.messageUpdater(self)
-    def startProcesses(self):
-        self.messageUpdateThread = mp.Process(target=MyApp.messageUpdater())
-        self.allProcesses.append(self.messageUpdateThread)
-        self.messageUpdateThread.start()
+        def messageUpdater():
+            response = chatclient.socketHandling.recMessage()
+            print(response)
+            messages.config(state=NORMAL)
+            messages.insert(INSERT, '%s\n' % response)
+            messages.config(state=DISABLED)
+            if self.killThread:
+                print("Kill Flag set True")
+                messageUpdateThread.join(1.0)
+            messageUpdater()
+
+        try:
+            messageUpdateThread = threading.Thread(target=messageUpdater)
+            messageUpdateThread.start()
+        except (KeyboardInterrupt, SystemExit):
+            sys.exit()
 
         #Calling clock function
 
-        self.clockProcess = mp.Process(target=MyApp.myTime())
-        self.allProcesses.append(self.clockProcess)
-        self.clockProcess.start()
+        clockProcess = threading.Thread(target=myTime)
+        clockProcess.start()
 
 root = MyApp()
 
