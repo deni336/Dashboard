@@ -1,5 +1,5 @@
 {
-    "user": "Mundo",
+    "user": "Deni",
     "buttonBackground": "#0080ff",
     "buttonForeground": "#00ff40",
     "buttonFont": "American Typewriter",
@@ -8,5 +8,5 @@
     "labelForeground": "#0080ff",
     "frameBackground": "#000000",
     "frameForeground": "red",
-    "bgImage": "milim.png"
+    "bgImage": "bg.jpg"
 }
