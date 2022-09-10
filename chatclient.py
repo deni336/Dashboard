@@ -1,7 +1,7 @@
 import socket
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# server.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
 HOST = "192.168.45.10"
 #HOST = "127.0.0.1"
 PORT = 6969
