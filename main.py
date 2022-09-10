@@ -126,7 +126,7 @@ class MyApp(tk.Tk):
 
         #Function to run the clock in the timeLabel
         def myTime():
-            timeString = strftime('%d %b %y %H:%M:%S %p')
+            timeString = strftime('%d %b %y @ %H:%M:%S %p')
             timeLabel.config(text=timeString)
             timeLabel.after(1000, myTime)
 
@@ -264,7 +264,7 @@ class MyApp(tk.Tk):
         messagesFrame.pack()
         scroll = tk.Scrollbar(messagesFrame, orient="vertical", jump=True)
         scroll.pack(side="right", fill='y', pady=2)
-        messages = Text(messagesFrame, background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'), width=50, height=40, yscrollcommand=scroll.set)
+        messages = Text(messagesFrame, background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'), width=45, height=30, yscrollcommand=scroll.set)
         messages.pack(padx=5, pady=2, side="left")
         scroll.configure(command=messages.yview)
 
@@ -289,7 +289,7 @@ class MyApp(tk.Tk):
             else:
                 chatclient.connection(user)
         except:
-            pass
+            messages.insert(END, "No Server Connected")
 
         #Threading the receiving functions
         def messageUpdater():
