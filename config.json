@@ -1,11 +1,11 @@
 {
     "user": "Deni",
-    "buttonBackground": "#0080ff",
-    "buttonForeground": "#00ff40",
+    "buttonBackground": "#000000",
+    "buttonForeground": "#ff0000",
     "buttonFont": "American Typewriter",
     "buttonFontsize": "12",
     "buttonFontadd": "bold",
-    "labelForeground": "#0080ff",
+    "labelForeground": "#ff0000",
     "frameBackground": "#000000",
     "frameForeground": "red",
     "bgImage": "bg.jpg"
