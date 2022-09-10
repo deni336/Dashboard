@@ -1,4 +1,3 @@
-from concurrent.futures import thread
 import tkinter as tk
 from tkinter import *
 from tkinter import ttk, colorchooser
