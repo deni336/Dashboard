@@ -24,9 +24,9 @@ class MyApp(tk.Tk):
         mainFrame = tk.Frame(self, bg=self.configDict.get("frameBackground"))
         mainFrame.pack(expand="1", fill="both")
 
-        def loadConfig():
-            self.configDict = confighandler.getConfig()
-        loadConfig()
+        
+        self.configDict = confighandler.getConfig()
+        
 
         #MyApp.wm_attributes("-fullscreen", self.configDict.get('windowMode'))
 
@@ -244,7 +244,7 @@ class MyApp(tk.Tk):
         inputUser1 = StringVar()
         usernameInput = Entry(chatFrame, text=inputUser1, background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'))
         usernameInput.pack(side="top", pady=5)
-        if confighandler.loadUser() != "":
+        if self.configDict.get('user') != "":
             self.chatUser = self.configDict.get('user')
             usernameInput.config(state=DISABLED)
             inputUser1.set(self.chatUser)
@@ -286,12 +286,13 @@ class MyApp(tk.Tk):
         
         #Connecting to the server
         # Get-Process -Id (Get-NetTCPConnection -LocalPort 6969).OwningProcess
-        try:
-            subprocess.Popen([r"chat.exe"])
-            chatclient.connection(user, "127.0.0.1")
-                
-        except:
-                messages.insert(END, "No Server Connected")
+    
+        b = chatclient.socketHandling.serverConnection(user, self.chatUser)
+        self.idList.append(b[0])
+        if b[1] != '':
+            messages.config(state=NORMAL)
+            messages.insert(END, b[1])
+            messages.config(state=DISABLED)
         
         #Threading the receiving functions
         def messageUpdater():
@@ -326,3 +327,4 @@ root.geometry("1920x1080+0+0")
 root.title("Dashboard")
 root.resizable(True, True)
 root.mainloop()
+

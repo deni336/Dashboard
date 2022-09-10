@@ -1,5 +1,6 @@
 import socket
 import os
+import subprocess
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
    
 PORT = 6969
@@ -23,3 +24,17 @@ class socketHandling():
             except:
                 return
 
+    def serverConnection(user, chatUser = ''):
+        try:
+            serv = subprocess.Popen([r"chat.exe"])
+            b = serv.pid
+            
+            if chatUser == '':
+                connection(user)
+                return [b, '']
+            else:
+                connection(chatUser)
+                return [b, '']
+                
+        except:
+                return [b, "No Server Connected"]
