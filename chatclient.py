@@ -1,4 +1,3 @@
-from encodings import utf_8
 import socket
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -17,13 +16,16 @@ class socketHandling():
 
     def recMessage():
         while server:
-            data = server.recv(1024)
-            output = data.decode("utf_8")
-            if data != None:
-                return output
+            try:
+                data = server.recv(1024)
+                output = data.decode("utf_8")
+                if data != None:
+                    return output
+            except:
+                return
     
     def close(message):
         server.send(bytearray(message + '\n', 'utf-8'))
         server.close()
-            
+        return
 

@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import *
-from tkinter import ttk
-import os, time
+from tkinter import ttk, colorchooser
+import os, time, json, sys
 from time import sleep, strftime
 import webbrowser
 import subprocess
@@ -9,21 +9,28 @@ from PIL import ImageTk, Image
 import confighandler
 import chatclient
 import threading
+import multiprocessing as mp
 
 
 class MyApp(tk.Tk):
     
     def __init__(self):
         self.chatUser = ''
-        self.killThread = False
+        self.configDict = {}
+        self.allProcesses = []
         tk.Tk.__init__(self)
         
         #Setting Background frame
         mainFrame = tk.Frame(self)
         mainFrame.pack(expand="1", fill="both")
 
+        def loadConfig():
+            self.configDict = confighandler.getConfig()
+        loadConfig()
+
         #Setting background image into mainFrame
-        bgImage = ImageTk.PhotoImage(Image.open("Escanor.jpg"))
+        bgImagePicked = self.configDict.get('bgImage')
+        bgImage = ImageTk.PhotoImage(Image.open(bgImagePicked))
         bgImageLabel = tk.Label(mainFrame, image=bgImage)
         bgImageLabel.place(x=0, y=0)
         bgImageLabel.image = bgImage
@@ -31,20 +38,20 @@ class MyApp(tk.Tk):
         #Creating Style variable to be used in buttons
         style = ttk.Style()
         style.theme_use('default')
-        style.configure('W.TButton', fill="both", borderwidth="5", relief="ridge", font =
-                    ('American typewriter', 12, 'bold'),
-                        foreground = 'red', background="black")
+        style.configure('W.TButton', foreground=self.configDict.get('buttonForeground'), background=self.configDict.get('buttonBackground'), fill="both", borderwidth="5", relief="ridge", font=
+                        (self.configDict.get('buttonFont'), self.configDict.get("buttonFontsize"), self.configDict.get("buttonFontadd")))
 
         #Frame for the top of page to house appLabel, exitBtn, minimizeBtn, downsizeBtn, and maximizeBtn
-        bannerFrame = tk.Frame(mainFrame, background="black")
+        bannerFrame = tk.Frame(mainFrame, background=self.configDict.get("frameBackground"))
         bannerFrame.pack(fill="x")
 
-        appLabel = ttk.Label(bannerFrame, text="Kasugai", background="Black", foreground="Red", font=("American typewriter", 25))
+        appLabel = ttk.Label(bannerFrame, text="Kasugai", background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"), font=("American typewriter", 25))
         appLabel.pack(side="left")
 
         def shutdown():
+            for i in self.allProcesses:
+                i.terminate()
             chatclient.socketHandling.close('Goodbye')
-            self.killThread = True
             time.sleep(1)
             root.destroy()
 
@@ -61,15 +68,59 @@ class MyApp(tk.Tk):
         maximizeBtn = ttk.Button(bannerFrame, text="Fullscreen", style="W.TButton", cursor="hand2", command= lambda: root.wm_attributes("-fullscreen", True))
         maximizeBtn.pack(side="right")
 
+        settingsBtn = ttk.Button(bannerFrame, text="Settings", style="W.TButton", cursor="hand2",
+                                command= lambda: settings())
+        settingsBtn.pack(side="right")
+
+        settingsFrame = tk.Frame(mainFrame, background=self.configDict.get("frameBackground"))
+        
+        def chooseColor(item):
+            colorCode = colorchooser.askcolor(title ="Choose color")
+            colorCodes = colorCode[1]
+            self.configDict.update({item: colorCodes})
+            confighandler.saveConfig(self.configDict)
+
+
+        self.settingsShow = False
+        def settings():
+            if self.settingsShow:
+                settingsFrame.pack_forget()
+                self.settingsShow = False
+            else:
+                settingsFrame.pack(side="right", anchor="ne")
+                self.settingsShow = True
+        
+        settingsBtnLabel = tk.Label(settingsFrame, text="Button Colors", background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"))
+        settingsBtnLabel.pack()
+
+        settingsBtnFontColor = ttk.Button(settingsFrame, text="Font Color", style="W.TButton", cursor="hand2", command= lambda: chooseColor("buttonForeground")).pack()
+        settingsBtnBgColor = ttk.Button(settingsFrame, text="Button BG", style="W.TButton", cursor="hand2", command= lambda: chooseColor("buttonBackground")).pack()
+
+
+        settingsLabelsLabel = tk.Label(settingsFrame, text="Label Colors", background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"))
+        settingsLabelsLabel.pack()
+
+        settingsLabelColor = ttk.Button(settingsFrame, text="FG Color", style="W.TButton", cursor="hand2", command= lambda: chooseColor("labelForeground")).pack()
+
+        settingsBkgLabel = tk.Label(settingsFrame, text="Background Color", background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"))
+        settingsBkgLabel.pack()
+
+        settingsBgColor = ttk.Button(settingsFrame, text="Frame BG Color", style="W.TButton", cursor="hand2", command= lambda: chooseColor("frameBackground")).pack()
+
+        changeBgImageLabel = tk.Label(settingsFrame, text="BG Image", background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"))
+        changeBgImageLabel.pack()
+
+        settingsBgImage = ttk.Button(settingsFrame, text="Upload", style="W.TButton", cursor="hand2").pack()
+
         chatBtn = ttk.Button(bannerFrame, text="Chatticus", style="W.TButton", cursor="hand2",
                                 command= lambda: minimizeChat())
         chatBtn.pack(side="right", pady=5)
 
         #Frame for the bottom of the page to house the timeLabel
-        bottomFrame = tk.Frame(mainFrame, background="black")
+        bottomFrame = tk.Frame(mainFrame, background=self.configDict.get("frameBackground"))
         bottomFrame.pack(side="bottom", fill="x")
 
-        timeLabel = tk.Label(bottomFrame, font=('helvetica', 16, "bold italic"), background="black", foreground="red")
+        timeLabel = tk.Label(bottomFrame, font=('helvetica', 16, "bold italic"), background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"))
         timeLabel.pack(side="bottom")
 
         #Function to run the clock in the timeLabel
@@ -79,11 +130,11 @@ class MyApp(tk.Tk):
             timeLabel.after(1000, myTime)
 
         #Frame on the left side of the page to house the Work, General, Play and War buttons
-        btnFrame = tk.Frame(mainFrame, background="Black")
+        btnFrame = tk.Frame(mainFrame, background=self.configDict.get("frameBackground"))
         btnFrame.pack(side="left", fill="y")
 
         ####################Work#########################
-        workLabel = ttk.Label(btnFrame, text="Work", background="Black", foreground="Red", font=("American typewriter", 20))
+        workLabel = ttk.Label(btnFrame, text="Work", background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"), font=("American typewriter", 20))
         workLabel.pack(pady=10)
 
         #Getting the OS login to use for file paths
@@ -120,7 +171,7 @@ class MyApp(tk.Tk):
         startDBBrowser.pack(pady=2)
 
         ########################General#####################
-        genLabel = ttk.Label(btnFrame, text="General", background="Black", foreground="Red", font=("American typewriter", 20))
+        genLabel = ttk.Label(btnFrame, text="General", background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"), font=("American typewriter", 20))
         genLabel.pack(pady=10)
         startDiscordbtn = ttk.Button(btnFrame, text="Discord", style="W.TButton", cursor="hand2",
                                     command= lambda: os.startfile(r"C:/users/" + user + "/AppData/Local/Discord/app-1.0.9006/Discord.exe"))
@@ -130,7 +181,7 @@ class MyApp(tk.Tk):
         startSpotify.pack(pady=2)
 
         ######################Play######################
-        playLabel = ttk.Label(btnFrame, text="Play", background="Black", foreground="Red", font=("American typewriter", 20))
+        playLabel = ttk.Label(btnFrame, text="Play", background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"), font=("American typewriter", 20))
         playLabel.pack(pady=10)
         startBlizzardBtn = ttk.Button(btnFrame, text="Blizz", style="W.TButton", cursor="hand2",
                                     command= lambda: os.startfile(r"C:\Program Files (x86)\Battle.net\Battle.net Launcher.exe"))
@@ -143,7 +194,7 @@ class MyApp(tk.Tk):
         startFTB.pack(pady=2)
 
         #######################War####################
-        warLabel = ttk.Label(btnFrame, text="War", background="Black", foreground="Red", font=("American typewriter", 20))
+        warLabel = ttk.Label(btnFrame, text="War", background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"), font=("American typewriter", 20))
         warLabel.pack(pady=10)
 
         startNord = ttk.Button(btnFrame, text="Nord", style="W.TButton", cursor="hand2", 
@@ -168,7 +219,7 @@ class MyApp(tk.Tk):
         def callback(url):
             webbrowser.open_new_tab(url)
 
-        link = tk.Label(btnFrame, text="GitHub", font=('Helveticabold', 16, 'italic'), background="black", fg="red", cursor="hand2")
+        link = tk.Label(btnFrame, text="GitHub", font=('Helveticabold', 16, 'italic'), background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"), cursor="hand2")
         link.pack(side="bottom", pady=2)
         link.bind("<Button-1>", lambda e:
         callback("https://github.com/deni336/Dashboard"))
@@ -176,9 +227,9 @@ class MyApp(tk.Tk):
 #######################Chatbox#####################
 
         #Frame on the right side of page for housing the chat box and its associated items
-        chatFrame = tk.Frame(mainFrame, background="black")
-        chatFrame.pack(side="right", fill="y")
-        self.chatShow = True
+        chatFrame = tk.Frame(mainFrame, background=self.configDict.get("frameBackground"))
+
+        self.chatShow = False
         def minimizeChat():
             if self.chatShow:
                 chatFrame.pack_forget()
@@ -188,7 +239,7 @@ class MyApp(tk.Tk):
                 self.chatShow = True
 
         inputUser1 = StringVar()
-        usernameInput = Entry(chatFrame, text=inputUser1, background="black", foreground="red", font=('American typewriter', 12, 'bold'))
+        usernameInput = Entry(chatFrame, text=inputUser1, background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'))
         usernameInput.pack(side="top", pady=5)
         if confighandler.loadUser() != None:
             self.chatUser = confighandler.loadUser()
@@ -207,15 +258,15 @@ class MyApp(tk.Tk):
         messageInput = StringVar()
 
         #Frame inside of chatFrame used to align the text box and scroll bar
-        messagesFrame = tk.Frame(chatFrame, background="black")
+        messagesFrame = tk.Frame(chatFrame, background=self.configDict.get("frameBackground"))
         messagesFrame.pack()
         scroll = tk.Scrollbar(messagesFrame, orient="vertical", jump=True)
         scroll.pack(side="right", fill='y', pady=2)
-        messages = Text(messagesFrame, background="black", foreground="red", font=('American typewriter', 12, 'bold'), width=50, height=40, yscrollcommand=scroll.set)
-        messages.pack(padx=5, pady=2, side="left")
-        scroll.configure(command=messages.yview)
+        self.messages = Text(messagesFrame, background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'), width=50, height=40, yscrollcommand=scroll.set)
+        self.messages.pack(padx=5, pady=2, side="left")
+        scroll.configure(command=self.messages.yview)
 
-        inputField = Entry(chatFrame, text=messageInput, background="black", foreground="red", font=('American typewriter', 12, 'bold'))
+        inputField = Entry(chatFrame, text=messageInput, background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'))
         inputField.pack(fill="x", padx=5, pady=2)
 
         #Function to gather string from the Entry inputField, send message to server, clear Entry and scroll message box to end
@@ -223,30 +274,38 @@ class MyApp(tk.Tk):
             inputGet = inputField.get()
             chatclient.socketHandling.sendMessage(inputGet)
             messageInput.set('')
-            messages.see("end")
+            self.messages.see("end")
             return "break"
 
         #Binding enter key to the enterPressed function
         inputField.bind("<Return>", enterPressed)
         
         #Connecting to the server
-        chatclient.connection(user)
+        if self.chatUser != '':
+            chatclient.connection(self.chatUser)
+        else:
+            chatclient.connection(user)
 
         #Threading the receiving functions
-        def messageUpdater():
-            response = chatclient.socketHandling.recMessage()
-            messages.config(state=NORMAL)
-            messages.insert(INSERT, '%s\n' % response)
-            messages.config(state=DISABLED)
-            if self.killThread:
-                messageUpdateThread.join()
-            messageUpdater()
-        
-        messageUpdateThread = threading.Thread(target=messageUpdater) 
-        messageUpdateThread.start()
+    def messageUpdater(self):
+        response = chatclient.socketHandling.recMessage()
+        self.messages.config(state=NORMAL)
+        self.messages.insert(INSERT, '%s\n' % response)
+        self.messages.config(state=DISABLED)
+        # if self.killThread == True:
+        #     SystemExit()
+        #     messageUpdateThread.join(1)
+        MyApp.messageUpdater(self)
+    def startProcesses(self):
+        self.messageUpdateThread = mp.Process(target=MyApp.messageUpdater())
+        self.allProcesses.append(self.messageUpdateThread)
+        self.messageUpdateThread.start()
 
         #Calling clock function
-        threading.Thread(target=myTime()).start()
+
+        self.clockProcess = mp.Process(target=MyApp.myTime())
+        self.allProcesses.append(self.clockProcess)
+        self.clockProcess.start()
 
 root = MyApp()
 

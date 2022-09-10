@@ -1,5 +1,4 @@
 import json
-import re
 
 def setUser(name):
     userDict = {"user" : name}
@@ -17,6 +16,12 @@ def getConfig():
     except:
         with open("config.json", "w") as configFile:
             return None
+    
+def saveConfig(configDict):
+    with open("config.json", "w") as f:
+        dumped = json.dumps(configDict, indent=4)
+        f.write(dumped)
+        f.close()
 
 def loadUser():
     configDict = getConfig()
@@ -27,6 +32,20 @@ def loadUser():
             if key == "user":
                 user = configDict.get(key)
         return user
+
+def setBackground(bg):
+    bgSave = {"background" : bg}
+    bgWrite = json.dumps(bgSave, indent=4)
+    f = open("config.json", "w")
+    f.write(bgWrite)
+    f.close()
+
+def setForeground(fg):
+    fgSave = {"background" : fg}
+    fgWrite = json.dumps(fgSave, indent=4)
+    f = open("config.json", "w")
+    f.write(fgWrite)
+    f.close()
 
 
 
