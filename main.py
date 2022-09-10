@@ -21,9 +21,7 @@ class MyApp(tk.Tk):
         tk.Tk.__init__(self)
         
         #Setting Background frame
-        
-
-        mainFrame = tk.Frame(self, background=self.configDict.get("frameBackground"))
+        mainFrame = tk.Frame(self, bg=self.configDict.get("frameBackground"))
         mainFrame.pack(expand="1", fill="both")
 
         def loadConfig():
@@ -31,13 +29,14 @@ class MyApp(tk.Tk):
         loadConfig()
 
         #Setting background image into mainFrame
-        bgImagePicked = self.configDict.get('bgImage')
-        img = Image.open(bgImagePicked)
-        imgResized = img.resize((1920, 1080), Image.ANTIALIAS)
-        bgImage = ImageTk.PhotoImage(imgResized)
-        bgImageLabel = tk.Label(mainFrame, image=bgImage, background=self.configDict.get("frameBackground"))
-        bgImageLabel.place(x=0, y=0)
-        bgImageLabel.image = bgImage
+        if self.configDict.get('bgImage') != "":
+            bgImagePicked = self.configDict.get('bgImage')
+            img = Image.open(bgImagePicked)
+            imgResized = img.resize((1920, 1080), Image.ANTIALIAS)
+            bgImage = ImageTk.PhotoImage(imgResized)
+            bgImageLabel = tk.Label(mainFrame, image=bgImage, background=self.configDict.get("frameBackground"))
+            bgImageLabel.place(x=0, y=0)
+            bgImageLabel.image = bgImage
 
         #Creating Style variable to be used in buttons
         style = ttk.Style()
@@ -284,19 +283,25 @@ class MyApp(tk.Tk):
         inputField.bind("<Return>", enterPressed)
         
         #Connecting to the server
-        if self.chatUser != '':
-            chatclient.connection(self.chatUser)
-        else:
-            chatclient.connection(user)
+        try:
+            if self.chatUser != '':
+                chatclient.connection(self.chatUser)
+            else:
+                chatclient.connection(user)
+        except:
+            pass
 
         #Threading the receiving functions
         def messageUpdater():
-            response = chatclient.socketHandling.recMessage()
-            print(response)
-            messages.config(state=NORMAL)
-            messages.insert(END, response)
-            messages.config(state=DISABLED)
-            messageUpdater()
+            try:
+                response = chatclient.socketHandling.recMessage()
+                print(response)
+                messages.config(state=NORMAL)
+                messages.insert(END, response)
+                messages.config(state=DISABLED)
+                messageUpdater()
+            except:
+                pass
 
         try:
             messageUpdateThread = threading.Thread(target=messageUpdater)
@@ -316,6 +321,7 @@ icon = "icon.ico"
 root.iconbitmap(icon)
 root.wm_attributes('-fullscreen', 'True')
 root.state("zoomed")
+root['bg'] = '#000000'
 root.title("Dashboard")
 root.resizable(True, True)
 root.mainloop()
