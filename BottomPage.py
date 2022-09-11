@@ -1,6 +1,6 @@
 from tkinter import *
 from tkinter import ttk
-from confighandler import *
+from ConfigHandler import *
 from time import strftime
 import threading
 

@@ -1,10 +1,11 @@
 from tkinter import ttk
-from confighandler import *
+from ConfigHandler import *
 
 configDict = getConfig()
 
-frameSytles = {"bg": "configDict.get('frameBackground')",
-               "fg": "configDict.get('labelForeground')"}
+frameSytles = {"background:": "self.configDict.get('frameBackground')",
+               "foreground:": "foreground=self.configDict.get('labelForeground')",
+               "font=":"self.configDict.get('labelFont')"}
 
 def styler():
     style = ttk.Style()

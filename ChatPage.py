@@ -1,5 +1,5 @@
 from tkinter import *
-from confighandler import *
+from ConfigHandler import *
 import chatclient
 import threading, sys
 import StylingPage
@@ -8,9 +8,9 @@ import os
 class ChatF(Frame):
     configDict = getConfig()
     chatBool = True
-    
+    idList = []
     def __init__(self, parent):
-        self.idList = []
+        
         self.user = loadUser()
         self.connection = []
         Frame.__init__(self, parent)

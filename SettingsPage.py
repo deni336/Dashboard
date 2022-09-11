@@ -1,6 +1,6 @@
 from tkinter import *
 from tkinter import ttk, colorchooser
-from confighandler import getConfig, saveConfig
+from ConfigHandler import getConfig, saveConfig
 import StylingPage as StylP
 
 class SettingsW(Frame):
@@ -14,13 +14,13 @@ class SettingsW(Frame):
         self.widgets()
     
     def widgets(self):
-        self.settingsBtnLabel = Label(self, text="Button Colors", background=self.configDict.get('frameBackground'), foreground=self.configDict.get('labelForeground'))
+        self.settingsBtnLabel = Label(self, text="Button Colors", font=('helvetica', 16, "bold italic"), background=self.configDict.get('frameBackground'), foreground=self.configDict.get('labelForeground'))
         self.settingsBtnLabel.pack()
 
         self.settingsBtnFontColor = ttk.Button(self, text="Font Color", style="W.TButton", cursor="hand2", command= lambda: self.chooseColor("buttonForeground")).pack()
         self.settingsBtnBgColor = ttk.Button(self, text="Button BG", style="W.TButton", cursor="hand2", command= lambda: self.chooseColor("buttonBackground")).pack()
 
-        self.settingsLabelsLabel = Label(self, text="Label Colors", background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"))
+        self.settingsLabelsLabel = Label(self, text="Label Colors", font=('helvetica', 16, "bold italic"), background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"))
         self.settingsLabelsLabel.pack()
 
         self.settingsLabelColor = ttk.Button(self, text="FG Color", style="W.TButton", cursor="hand2", command= lambda: self.chooseColor("labelForeground")).pack()
