@@ -6,10 +6,10 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 PORT = 6969
 def connection(user, ip = "192.168.45.10"):
     server.connect((ip, PORT))
-    socketHandling.sendMessage(user)
+    ChatClient.sendMessage(user)
     return
 
-class socketHandling():
+class ChatClient():
     def sendMessage(message):
         server.send(bytearray(message.replace('\x00', '') + '\n', 'utf-8'))
         return
