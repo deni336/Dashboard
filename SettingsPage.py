@@ -8,7 +8,6 @@ class SettingsW(Frame):
     settingsBool = False
 
     def __init__(self, parent):
-        self.style = StylP.styler()
         Frame.__init__(self, parent)
         self.parent = parent
         self.configure(background=self.configDict.get('frameBackground'))

@@ -95,10 +95,9 @@ class MainApp(Frame):
         self.chatUser = ''
         self.settingsShow = False
         self.chatShow = False
-        self.style = StylP.styler()
         Frame.__init__(self, parent)
         self.parent = parent
-        self.configure(background=self.configDict.get('frameBackground'))
+        self.configure(background=self.configDict['frameBackground'])
         self.mainWidgets()
         
     def mainWidgets(self):
@@ -119,7 +118,6 @@ class MyApp(Tk):
         self.idList = []
         self.configDict = getConfig()
         Tk.__init__(self, *args, **kwargs)
-        # self.configure(background=self.configDict.get('frameBackground'))
         self.widgets()
         
     def widgets(self):

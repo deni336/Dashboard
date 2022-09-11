@@ -9,7 +9,6 @@ class BannerF(Frame):
         self.configDict = getConfig()
         self.settingsBool = False
         self.chatBool = False
-        self.style = StylingPage.styler()
         Frame.__init__(self, parent)
         self.parent = parent
         self.configure(background=self.configDict.get('frameBackground'))

@@ -1,4 +1,4 @@
-from tkinter import Tk, ttk
+from tkinter import ttk
 from confighandler import *
 
 configDict = getConfig()

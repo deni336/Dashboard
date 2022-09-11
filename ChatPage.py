@@ -1,5 +1,4 @@
 from tkinter import *
-from tkinter import ttk
 from confighandler import *
 import chatclient
 import threading, sys
@@ -13,7 +12,6 @@ class ChatF(Frame):
     def __init__(self, parent):
         self.idList = []
         self.user = loadUser()
-        self.style = StylingPage.styler()
         self.connection = []
         Frame.__init__(self, parent)
         self.parent = parent
