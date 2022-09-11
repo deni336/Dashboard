@@ -91,7 +91,7 @@ class ChatF(Frame):
         
             
     def servConn(self):
-        self.connection = chatclient.ChatClient.ServerConnection(self.user, "127.0.0.1")
+        self.connection = chatclient.ChatClient.ServerConnection(self.user)
         self.idList.append(self.connection[0])
         
             

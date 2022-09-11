@@ -16,8 +16,8 @@ import (
 )
 
 var (
-	listen          = flag.String("listen", ":1234", "The address to run the web service on.")
-	path            = flag.String("path", "FileStorage\\storage", "The path files are saved to. The file name is provided by the client.")
+	listen          = flag.String("listen", ":8080", "The address to run the web service on.")
+	path            = flag.String("path", "ChatServer\\chatserver\\FileStorage\\storage", "The path files are saved to. The file name is provided by the client.")
 	disableColor    = flag.Bool("no-color", false, "Disable color output.")
 	disableProgress = flag.Bool("no-progress", false, "Disable progress bars.")
 )
