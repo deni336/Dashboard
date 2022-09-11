@@ -1,12 +1,12 @@
 from tkinter import *
 from tkinter import ttk
-from ConfigHandler import *
+from confighandler import *
 import os, webbrowser, subprocess
 import StylingPage
 
 class ButtonF(Frame):
     configDict = getConfig()
-    def __init__(self, parent, controller):
+    def __init__(self, parent):
         self.user = os.getlogin()
         self.style = StylingPage.styler()
         Frame.__init__(self, parent)

@@ -1,12 +1,12 @@
 from tkinter import *
 from tkinter import ttk
-from ConfigHandler import *
+from confighandler import *
 from time import strftime
 import threading
 
 class BottomF(Frame):
     configDict = getConfig()
-    def __init__(self, parent, controller):
+    def __init__(self, parent):
         Frame.__init__(self, parent)
         self.parent = parent
         self.configure(background=self.configDict.get('frameBackground'))

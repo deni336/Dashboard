@@ -1,5 +1,5 @@
 from tkinter import Tk, ttk
-from ConfigHandler import *
+from confighandler import *
 
 configDict = getConfig()
 

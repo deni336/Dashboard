@@ -1,10 +1,10 @@
 import os, sys
-import ConfigHandler
+import confighandler
 
 class FileManager():
     
     def whatsAvail(self):
-        configDict = ConfigHandler.getConfig()
+        configDict = confighandler.getConfig()
         listOfAvailFiles = configDict.get('download')
         return listOfAvailFiles
 
@@ -12,5 +12,5 @@ class FileManager():
         pass
 
     def stage(filename, path):
-        ConfigHandler.update(filename, path)
+        confighandler.update(filename, path)
 

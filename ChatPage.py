@@ -1,84 +1,87 @@
 from tkinter import *
 from tkinter import ttk
-from ConfigHandler import *
-from time import strftime
-from ChatClient import *
+from confighandler import *
+import chatclient
 import threading, sys
 import StylingPage
+import os
 
 class ChatF(Frame):
     configDict = getConfig()
     chatBool = True
     
-    def __init__(self, parent, controller):
+    def __init__(self, parent):
         self.idList = []
-        self.user = os.getlogin()
+        self.user = loadUser()
         self.style = StylingPage.styler()
+        self.connection = []
         Frame.__init__(self, parent)
         self.parent = parent
         self.configure(background=self.configDict.get('frameBackground'))
-        self.toggleChat()
+        self.servConn()
         self.widgets()
         
+    
     def widgets(self):
-        def enterPressed(event):
-            inputGet = self.inputField.get()
-            ChatClient.sendMessage(inputGet)
-            self.messageInput.set('')
-            self.messages.see("end")
-            return "break"
-        def servConn():
-            b = ChatClient.serverConnection(self.user, self.chatUser)
-            self.idList.append(b[0])
-            if b[1] != '':
-                self.messages.config(state=NORMAL)
-                self.messages.insert(END, b[1])
-                self.messages.config(state=DISABLED)
-
-        def enterPressed1(event):
-            self.chatUser = self.usernameInput.get()
-            self.usernameInput.config(state=DISABLED)
-            update("user", self.chatUser)
+        inputUser1 = StringVar()
+        messageInput = StringVar()
+        nameInputBox = Entry(self, textvariable=inputUser1, background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'))
+        nameInputBox.pack(side="top", pady=5)
         
-        def comms():
-            if self.configDict.get('user') != "":
-                self.chatUser = self.configDict.get('user')
-                self.usernameInput.config(state=DISABLED)
-                self.inputUser1.set(self.chatUser)
-            else:
-                self.usernameInput.config(state=NORMAL)
-                self.inputUser1.set('Enter your name')
+        def enterPressed1(self):
+            self.user = inputUser1.get()
+            self.nameInputBox.config(state=DISABLED)
+            update("user", self.user)
+    
+    
+        if self.configDict.get('user') != "":
+            self.user = self.configDict.get('user')
+            nameInputBox.config(state=DISABLED)
+            inputUser1.set(self.user)
+        else:
+            self.nameInputBox.config(state=NORMAL)
+            inputUser1.set('Enter your name')
+            
+        nameInputBox.bind("<Return>", enterPressed1)
+        
+        self.messagesFrame = Frame(self, background=self.configDict.get("frameBackground"))
+        self.messagesFrame.pack()
+        
+        self.scroll = Scrollbar(self.messagesFrame, orient="vertical", jump=True)
+        self.scroll.pack(side="right", fill='y', pady=2)
+        
+        messages = Text(self.messagesFrame, background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'), width=45, height=30, yscrollcommand=self.scroll.set)
+        messages.pack(padx=5, pady=2, side="left")
+        self.scroll.configure(command=messages.yview)
+        
+        if self.connection[1] != '':
+            messages.config(state=NORMAL)
+            messages.insert(END, self.connection[1])
+            messages.config(state=DISABLED)
+            
+
+        self.inputField = Entry(self, textvariable=messageInput, cursor="fleur",insertbackground="red", background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'))
+        self.inputField.pack(fill="x", padx=5, pady=2)
+        
+        def enterPressed(self):
+            inputGet = messageInput.get()
+            chatclient.ChatClient.sendMessage(inputGet)
+            messageInput.set('')
+            messages.see("end")
+        
+        self.inputField.bind("<Return>", enterPressed)
         
         def messageUpdater():
             try:
-                response = ChatClient.recMessage()
+                response = chatclient.ChatClient.recMessage()
                 print(response)
-                self.messages.config(state=NORMAL)
-                self.messages.insert(END, response)
-                self.messages.config(state=DISABLED)
+                messages.config(state=NORMAL)
+                messages.insert(END, response)
+                messages.config(state=DISABLED)
                 messageUpdater()
             except:
                 pass
         
-        self.inputUser1 = StringVar()
-        self.usernameInput = Entry(self, text=self.inputUser1, background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'))
-        self.usernameInput.pack(side="top", pady=5)
-        self.usernameInput.bind("<Return>", enterPressed1)
-            
-        self.messageInput = StringVar()
-
-        self.messagesFrame = Frame(self, background=self.configDict.get("frameBackground"))
-        self.messagesFrame.pack()
-        self.scroll = Scrollbar(self.messagesFrame, orient="vertical", jump=True)
-        self.scroll.pack(side="right", fill='y', pady=2)
-        self.messages = Text(self.messagesFrame, background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'), width=45, height=30, yscrollcommand=self.scroll.set)
-        self.messages.pack(padx=5, pady=2, side="left")
-        self.scroll.configure(command=self.messages.yview)
-
-        self.inputField = Entry(self, text=self.messageInput, background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'))
-        self.inputField.pack(fill="x", padx=5, pady=2)
-        self.inputField.bind("<Return>", enterPressed)
-
         try:
             messageUpdateThread = threading.Thread(target=messageUpdater)
             messageUpdateThread.start() 
@@ -87,17 +90,14 @@ class ChatF(Frame):
         except (KeyboardInterrupt, SystemExit):
             sys.exit()
         
-        comms()
-        servConn()
-
-    def toggleBool(self):
-        if self.chatBool:
-            self.chatBool = False
-            ChatF.toggleChat(self)
-        else:
-            self.chatBool = True
-            ChatF.toggleChat(self)
-    def toggleChat(self):
+        
+            
+    def servConn(self):
+        self.connection = chatclient.ChatClient.ServerConnection(self.user, "127.0.0.1")
+        self.idList.append(self.connection[0])
+        
+            
+    def ToggleChat(self):
         if self.chatBool:
             self.pack(side="right", fill="y")
             self.chatBool = False

@@ -24,17 +24,16 @@ class ChatClient():
             except:
                 return
 
-    def serverConnection(user, chatUser = ''):
+    def ServerConnection(user = os.getlogin(), ip = "192.168.45.10"):
         try:
             serv = subprocess.Popen([r"chat.exe"])
             b = serv.pid
             
-            if chatUser == '':
-                connection(user)
+            if user == os.getlogin():
+                connection(user, ip)
                 return [b, '']
             else:
-                connection(chatUser)
+                connection(user, ip)
                 return [b, '']
-                
         except:
                 return [b, "No Server Connected"]
