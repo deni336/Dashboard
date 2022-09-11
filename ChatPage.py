@@ -1,5 +1,5 @@
 from tkinter import *
-from confighandler import *
+from ConfigHandler import *
 import chatclient
 import threading, sys
 import StylingPage
@@ -91,7 +91,7 @@ class ChatF(Frame):
         
             
     def servConn(self):
-        self.connection = chatclient.ChatClient.ServerConnection(self.user, "127.0.0.1")
+        self.connection = chatclient.ChatClient.ServerConnection(self.user, "192.168.45.10")
         self.idList.append(self.connection[0])
         
             

@@ -8,7 +8,7 @@ import ChatPage as CP
 import StylingPage as StylP
 from PIL import ImageTk as ITK
 from PIL import Image as PILImage
-from confighandler import *
+from ConfigHandler import *
 
 class Event(object):
  
