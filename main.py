@@ -150,7 +150,7 @@ class MyApp(Tk):
         self.wm_attributes("-fullscreen", False)
        
     def shutdown(self):
-        for i in self.idList:
+        for i in CP.ChatF.idList:
             os.kill(i, signal.SIGTERM)
         root.destroy()
        

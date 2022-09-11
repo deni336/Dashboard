@@ -8,9 +8,9 @@ import os
 class ChatF(Frame):
     configDict = getConfig()
     chatBool = True
-    
+    idList = []
     def __init__(self, parent):
-        self.idList = []
+        
         self.user = loadUser()
         self.connection = []
         Frame.__init__(self, parent)
