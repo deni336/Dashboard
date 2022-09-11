@@ -1,6 +1,6 @@
 from tkinter import *
 from ConfigHandler import *
-import chatclient
+import ChatClient
 import threading, sys
 import StylingPage
 import os
@@ -63,7 +63,7 @@ class ChatF(Frame):
         
         def enterPressed(self):
             inputGet = messageInput.get()
-            chatclient.ChatClient.sendMessage(inputGet)
+            ChatClient.ChatClient.sendMessage(inputGet)
             messageInput.set('')
             messages.see("end")
         
@@ -71,7 +71,7 @@ class ChatF(Frame):
         
         def messageUpdater():
             try:
-                response = chatclient.ChatClient.recMessage()
+                response = ChatClient.ChatClient.recMessage()
                 print(response)
                 messages.config(state=NORMAL)
                 messages.insert(END, response)
@@ -91,7 +91,7 @@ class ChatF(Frame):
         
             
     def servConn(self):
-        self.connection = chatclient.ChatClient.ServerConnection(self.user)
+        self.connection = ChatClient.ChatClient.ServerConnection(self.user)
         self.idList.append(self.connection[0])
         
             

@@ -126,7 +126,6 @@ class MyApp(Tk):
         
         self.mainFrame = MainApp(self, self.configDict)
         self.bannerFrame = BP.BannerF(self.mainFrame, eventHandler)
-        
         self.bottomFrame = BotP.BottomF(self.mainFrame)
         self.buttonFrame = ButP.ButtonF(self.mainFrame)
         self.settingsFrame = SP.SettingsW(self.mainFrame)
