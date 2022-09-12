@@ -9,10 +9,10 @@ def update(key, value):
 def getConfig():
     try:
         with open("config.json", "r") as configFile:
-            fileContent = configFile.read()
-            configDict = json.loads(fileContent)
-            return configDict
-    except:
+            # fileContent = configFile.read()
+            # configDict = json.loads(fileContent)
+            return json.loads(configFile)
+    except FileNotFoundError:
         with open("config.json", "w") as configFile:
             return None
     

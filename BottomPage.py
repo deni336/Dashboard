@@ -18,7 +18,7 @@ class BottomF(Frame):
         self.timeLabel = Label(self, font=('helvetica', 16, "bold italic"), background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"))
         self.timeLabel.pack(side="bottom")
 
-        clockProcess = threading.Thread(target=self.myTime())
+        clockProcess = threading.Thread(target=self.myTime)
         clockProcess.start()
         
     def myTime(self):

@@ -152,8 +152,8 @@ class MyApp(Tk):
        
     def shutdown(self):
         for i in CP.ChatF.idList:
-            os.kill(i, signal.SIGTERM)
-        root.destroy()
+            os.kill(i, signal.SIGTERM) # os._kill
+        root.destroy() # sys.exit
        
 root = MyApp()
 

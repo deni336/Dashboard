@@ -44,7 +44,7 @@ class ChatF(Frame):
             nameInputBox.config(state=DISABLED)
             inputUser1.set(self.user)
         else:
-            self.nameInputBox.config(state=NORMAL)
+            nameInputBox.config(state=NORMAL)
             inputUser1.set('Enter your name')
             
         nameInputBox.bind("<Return>", enterPressed1)
@@ -119,8 +119,8 @@ class ChatF(Frame):
         self.deleteBtn = ttk.Button(self, text="Delete", style="W.TButton", cursor="hand2", command= lambda: delMeth(self))
         self.deleteBtn.pack(side='left', anchor='n', padx=5, pady=5)
         
-        self.refreshBtn = ttk.Button(self, text="Refresh", style="W.TButton", cursor="hand2", command= lambda: tv1LoadData(self))
-        self.refreshBtn.pack(side='left', anchor='n', padx=5, pady=5)
+        # self.refreshBtn = ttk.Button(self, text="Refresh", style="W.TButton", cursor="hand2", command= lambda: tv1LoadData(self))
+        # self.refreshBtn.pack(side='left', anchor='n', padx=5, pady=5)
 
         self.downloadBtn = ttk.Button(self, text="Download", style="W.TButton", cursor="hand2", command= lambda: download(self))
         self.downloadBtn.pack(side='left', anchor='ne', padx=5, pady=5)
@@ -130,14 +130,14 @@ class ChatF(Frame):
             fItem = self.tv1.item(focusItem)
             delItem = fItem.get('values')
             FileManager.FileManager.delete(FileManager.FileManager, delItem[3])
-            tv1LoadData(self)
+            # tv1LoadData(self)
 
         def stageMeth(self):
             filename = filedialog.askdirectory()
             size = os.path.getsize(filename)
             ip = socket.socket.getsockname(ChatClient.server)
             FileManager.FileManager.stage(FileManager.FileManager, filename, ip, size)
-            tv1LoadData(self)
+            # tv1LoadData(self)
         
         def download(self):
             focusItem = self.tv1.focus()
@@ -148,21 +148,21 @@ class ChatF(Frame):
             FileClient.FileSender.sendingFile(getItem[0], getItem[2], getItem[3])
             
 
-        def tv1LoadData(self):
-            configDi = getConfig()
-            tv1ClearData()
-            download = configDi.get('download')
-            dnlsize = download[0]
-            size = os.path.getsize(dnlsize[0])
-            for i in download:
-                self.tv1.insert("", "end", values=(self.user, os.path.basename(i[0]), size, i[0]))
+        # def tv1LoadData(self):
+            # configDi = getConfig()
+            # tv1ClearData()
+            # download = configDi.get('download')
+            # # dnlsize = download[0]
+            # # size = os.path.getsize(dnlsize[0])
+            # for i in download:
+            #     self.tv1.insert("", "end", values=(self.user, os.path.basename(i[0]), size, i[0]))
 
         def tv1ClearData():
             x = self.tv1.get_children()
             for i in x:
                 self.tv1.delete(i)
             
-        tv1LoadData(self)
+        # tv1LoadData(self)
 
         
     def servConn(self):
