@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	storage "chat/FileStorage"
+	shr "chat/ScreenShare"
 	"fmt"
 	"io"
 	"log"
@@ -65,7 +66,7 @@ func clientWriter(conn net.Conn, ch <-chan string) {
 
 func handleConnection(conn net.Conn, user User) {
 	ch := make(chan string) // outgoing client message
-	storage.HostUploader("192.168.45.10:8080")
+	storage.HostUploader("192.168.45.69:8080")
 
 	go clientWriter(conn, ch)
 	user.isConnected = true
@@ -107,8 +108,13 @@ func Copy(srcFile, dstFile string) error {
 	return nil
 }
 
+func startScreenShareServer() {
+	shr.StartScreenShareServer()
+}
+
 func main() {
-	listener, err := net.Listen("tcp", "192.168.45.10:6969")
+	startScreenShareServer()
+	listener, err := net.Listen("tcp", "192.168.45.69:6969")
 	if err != nil {
 		log.Fatal(err)
 	}
