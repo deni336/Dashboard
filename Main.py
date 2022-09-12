@@ -34,7 +34,8 @@ class Event(object):
         print ("Alarm has started")
          
 class Events(object):
-     
+    # configDict = getConfig()
+
     def __init__(self):
         self.DownSize = Event()
         self.FullScreen = Event()
@@ -42,6 +43,7 @@ class Events(object):
         self.OnLockBroken = Event()
         self.OnShutDown = Event()
         self.ToggleOpen = Event()
+        # self.bind(Event, self.handler())
          
     def FireEvent(self):
         # This function will be executed once a lock is broken and will
@@ -52,6 +54,9 @@ class Events(object):
         self.OnLockBroken()
         self.OnShutDown()
         self.ToggleOpen()
+    
+    # def handler(self, event):
+    #     values = self.configDict.get('keyBinds')
         
         
     def AddSubscribersForLockBrokenEvent(self, objMethod):
@@ -152,7 +157,7 @@ class MyApp(Tk):
        
     def shutdown(self):
         for i in CP.ChatF.idList:
-            os.kill(i, signal.SIGTERM) # os._kill
+            os.kill(i, signal.SIGTERM)
         root.destroy() # sys.exit
        
 root = MyApp()

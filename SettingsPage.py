@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter import ttk, colorchooser, filedialog
 from ConfigHandler import getConfig, saveConfig
+#import BindWindow
 import StylingPage as StylP
 
 class SettingsW(Frame):
@@ -39,6 +40,14 @@ class SettingsW(Frame):
         self.workDirLabel.pack()
 
         self.workDirBtn = ttk.Button(self, text="Dir", style="W.TButton", cursor="hand2", command= lambda: self.setWorkDir()).pack()
+
+        self.bindLabel = Label(self, text="Keybinds", font=('helvetica', 16, "bold italic"), background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"))
+        self.bindLabel.pack()
+
+        #self.bindBtn = ttk.Button(self, text="Bind", style="W.TButton", cursor="hand2", command= lambda: self.setKeyBinds()).pack()
+
+    #
+        
 
     def setWorkDir(self):
         filename = filedialog.askdirectory()

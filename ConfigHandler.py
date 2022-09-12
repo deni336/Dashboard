@@ -9,9 +9,9 @@ def update(key, value):
 def getConfig():
     try:
         with open("config.json", "r") as configFile:
-            # fileContent = configFile.read()
-            # configDict = json.loads(fileContent)
-            return json.loads(configFile)
+            fileContent = configFile.read()
+            configDict = json.loads(fileContent)
+            return configDict
     except FileNotFoundError:
         with open("config.json", "w") as configFile:
             configF = {
@@ -30,8 +30,6 @@ def getConfig():
     "workDir": "",
     "keyBinds": []
 }
-            saveConfig(configF)
-            return None
     
 def saveConfig(configDict):
     with open("config.json", "w") as f:
