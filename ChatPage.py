@@ -99,17 +99,17 @@ class ChatF(Frame):
         treeFrame = Frame(self, background=self.configDict.get("frameBackground"))
         treeFrame.pack(fill='both')
 
-        tv1 = ttk.Treeview(treeFrame)
+        self.tv1 = ttk.Treeview(treeFrame)
         columnList = ['User','Filename', 'Path']
-        tv1['columns'] = columnList
-        tv1['show'] = "headings"
+        self.tv1['columns'] = columnList
+        self.tv1['show'] = "headings"
         for column in columnList:
-            tv1.heading(column, text=column)
-            tv1.column(column, width=135)
-        tv1.pack(side='left', fill='x', anchor='n', padx=5)
+            self.tv1.heading(column, text=column)
+            self.tv1.column(column, width=135)
+        self.tv1.pack(side='left', fill='x', anchor='n', padx=5)
         treeScrollY = Scrollbar(treeFrame)
-        treeScrollY.configure(command=tv1.yview)
-        tv1.configure(yscrollcomman=treeScrollY.set)
+        treeScrollY.configure(command=self.tv1.yview)
+        self.tv1.configure(yscrollcomman=treeScrollY.set)
         treeScrollY.pack(side='right', fill='y')
 
         self.stageBtn = ttk.Button(self, text="Stage", style="W.TButton", cursor="hand2", command= lambda: stageMeth(self))
@@ -125,8 +125,8 @@ class ChatF(Frame):
         self.downloadBtn.pack(side='left', anchor='ne', padx=5, pady=5)
 
         def delMeth(self):
-            focusItem = tv1.focus()
-            fItem = tv1.item(focusItem)
+            focusItem = self.tv1.focus()
+            fItem = self.tv1.item(focusItem)
             delItem = fItem.get('values')
             FileManager.FileManager.delete(FileManager.FileManager, delItem[2])
             tv1LoadData(self)
@@ -141,12 +141,13 @@ class ChatF(Frame):
             tv1ClearData()
             download = configDi.get('download')
             for i in download:
-                tv1.insert("", "end", values=(self.user, os.path.basename(i), i))
+                self.tv1.insert("", "end", values=(self.user, os.path.basename(i), i))
 
         def tv1ClearData():
-            x = tv1.get_children()
+            x = self.tv1.get_children()
             for i in x:
-                tv1.detach(*i)
+                self.tv1.delete(i)
+            
         
         tv1LoadData(self)
         
