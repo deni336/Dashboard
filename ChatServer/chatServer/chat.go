@@ -24,6 +24,7 @@ type User struct {
 }
 
 var (
+	connect  = make(chan string)
 	entering = make(chan client)
 	leaving  = make(chan client)
 	messages = make(chan string) // all incoming client messages
@@ -39,6 +40,10 @@ func broadcast() {
 			// clients outgoin message channel
 			for cli := range clients {
 				cli <- msg
+			}
+		case upd := <-connect:
+			for cli := range clients {
+				cli <- upd
 			}
 		case cli := <-entering:
 			clients[cli] = true
@@ -113,7 +118,8 @@ func startScreenShareServer() {
 }
 
 func main() {
-	startScreenShareServer()
+	go startScreenShareServer()
+	listOfUsers := make(map[string]string)
 	listener, err := net.Listen("tcp", "192.168.45.10:6969")
 	if err != nil {
 		log.Fatal(err)
@@ -135,7 +141,11 @@ func main() {
 		}
 		cleanBuff := bytes.Trim(buffer, "\x00")
 		user := User{Name: strings.Trim(string(cleanBuff), "\n"), Address: conn.RemoteAddr().String(), Connection: &conn}
+		listOfUsers[user.Name] = conn.RemoteAddr().String()
+		for k, v := range listOfUsers {
 
+			connect <- "[ " + k + " " + v + " ]"
+		}
 		go handleConnection(conn, user)
 	}
 }
