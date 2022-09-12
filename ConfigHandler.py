@@ -14,6 +14,23 @@ def getConfig():
             return json.loads(configFile)
     except FileNotFoundError:
         with open("config.json", "w") as configFile:
+            configF = {
+    "user": "",
+    "buttonBackground": "#000000",
+    "buttonForeground": "#ff0000",
+    "buttonFont": "American Typewriter",
+    "buttonFontsize": "12",
+    "buttonFontadd": "bold",
+    "labelFont": "('helvetica', 16, 'bold italic')",
+    "labelForeground": "#ff0000",
+    "frameBackground": "#000000",
+    "bgImage": "bg.jpg",
+    "windowMode": "True",
+    "download": [],
+    "workDir": "",
+    "keyBinds": []
+}
+            saveConfig(configF)
             return None
     
 def saveConfig(configDict):
