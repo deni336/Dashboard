@@ -1,6 +1,7 @@
 from tkinter import *
 import BannerPage as BP
 import os, signal
+from FileManager import FileManager
 import SettingsPage as SP
 import BottomPage as BotP
 import ButtonPage as ButP
@@ -117,6 +118,7 @@ class MyApp(Tk):
     def __init__(self, *args, **kwargs):
         self.idList = []
         self.configDict = getConfig()
+        FileManager.whatsAvail(FileManager)
         Tk.__init__(self, *args, **kwargs)
         self.widgets()
         
