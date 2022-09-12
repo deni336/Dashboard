@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	storage "chat/FileStorage"
 	"fmt"
 	"io"
 	"log"
@@ -64,6 +65,7 @@ func clientWriter(conn net.Conn, ch <-chan string) {
 
 func handleConnection(conn net.Conn, user User) {
 	ch := make(chan string) // outgoing client message
+	storage.HostUploader("192.168.45.10:8080")
 
 	go clientWriter(conn, ch)
 	user.isConnected = true

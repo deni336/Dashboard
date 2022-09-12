@@ -1,8 +1,9 @@
 import json
 
-def setUser(name):
+
+def update(key, value):
     configDict = getConfig()
-    configDict.update({"user": name})
+    configDict.update({key: value})
     saveConfig(configDict)
 
 def getConfig():

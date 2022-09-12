@@ -6,10 +6,10 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 PORT = 6969
 def connection(user, ip = "192.168.45.10"):
     server.connect((ip, PORT))
-    socketHandling.sendMessage(user)
+    ChatClient.sendMessage(user)
     return
 
-class socketHandling():
+class ChatClient():
     def sendMessage(message):
         server.send(bytearray(message.replace('\x00', '') + '\n', 'utf-8'))
         return
@@ -24,17 +24,16 @@ class socketHandling():
             except:
                 return
 
-    def serverConnection(user, chatUser = ''):
+    def ServerConnection(user = os.getlogin(), ip = "192.168.45.10"):
         try:
             serv = subprocess.Popen([r"chat.exe"])
             b = serv.pid
             
-            if chatUser == '':
-                connection(user)
+            if user == os.getlogin():
+                connection(user, ip)
                 return [b, '']
             else:
-                connection(chatUser)
+                connection(user, ip)
                 return [b, '']
-                
         except:
                 return [b, "No Server Connected"]
