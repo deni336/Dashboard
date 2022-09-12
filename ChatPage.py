@@ -4,9 +4,10 @@ from tkinter import filedialog
 import tkinter
 from ConfigHandler import *
 import ChatClient
+import FileClient
 import threading, sys
 import FileManager
-import os
+import os, socket
 
 class ChatF(Frame):
     configDict = getConfig()
@@ -100,12 +101,12 @@ class ChatF(Frame):
         treeFrame.pack(fill='both')
 
         self.tv1 = ttk.Treeview(treeFrame)
-        columnList = ['User','Filename', 'Path']
+        columnList = ['User','Filename', 'Size', 'Path']
         self.tv1['columns'] = columnList
         self.tv1['show'] = "headings"
         for column in columnList:
             self.tv1.heading(column, text=column)
-            self.tv1.column(column, width=135)
+            self.tv1.column(column, width=103)
         self.tv1.pack(side='left', fill='x', anchor='n', padx=5)
         treeScrollY = Scrollbar(treeFrame)
         treeScrollY.configure(command=self.tv1.yview)
@@ -121,35 +122,48 @@ class ChatF(Frame):
         self.refreshBtn = ttk.Button(self, text="Refresh", style="W.TButton", cursor="hand2", command= lambda: tv1LoadData(self))
         self.refreshBtn.pack(side='left', anchor='n', padx=5, pady=5)
 
-        self.downloadBtn = ttk.Button(self, text="Download", style="W.TButton", cursor="hand2", command= lambda: FileManager.FileManager.download())
+        self.downloadBtn = ttk.Button(self, text="Download", style="W.TButton", cursor="hand2", command= lambda: download(self))
         self.downloadBtn.pack(side='left', anchor='ne', padx=5, pady=5)
 
         def delMeth(self):
             focusItem = self.tv1.focus()
             fItem = self.tv1.item(focusItem)
             delItem = fItem.get('values')
-            FileManager.FileManager.delete(FileManager.FileManager, delItem[2])
+            FileManager.FileManager.delete(FileManager.FileManager, delItem[3])
             tv1LoadData(self)
 
         def stageMeth(self):
             filename = filedialog.askdirectory()
-            FileManager.FileManager.stage(FileManager.FileManager, filename)
+            size = os.path.getsize(filename)
+            ip = socket.socket.getsockname(ChatClient.server)
+            FileManager.FileManager.stage(FileManager.FileManager, filename, ip, size)
             tv1LoadData(self)
+        
+        def download(self):
+            focusItem = self.tv1.focus()
+            fItem = self.tv1.item(focusItem)
+            getItem = fItem.get('values')
+            ip = ChatClient.ChatClient.dictOfUsers()
+            FileClient.FileSender.connection(FileClient.FileSender, ip)
+            FileClient.FileSender.sendingFile(getItem[0], getItem[2], getItem[3])
+            
 
         def tv1LoadData(self):
             configDi = getConfig()
             tv1ClearData()
             download = configDi.get('download')
+            dnlsize = download[0]
+            size = os.path.getsize(dnlsize[0])
             for i in download:
-                self.tv1.insert("", "end", values=(self.user, os.path.basename(i), i))
+                self.tv1.insert("", "end", values=(self.user, os.path.basename(i[0]), size, i[0]))
 
         def tv1ClearData():
             x = self.tv1.get_children()
             for i in x:
                 self.tv1.delete(i)
             
-        
         tv1LoadData(self)
+
         
     def servConn(self):
         self.connection = ChatClient.ChatClient.ServerConnection(self.user)

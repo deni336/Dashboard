@@ -16,8 +16,8 @@ class FileManager():
         ConfigHandler.update('download', self.listOfAvailFiles)
 
 
-    def stage(self, path):
-        self.listOfAvailFiles.append(path)
+    def stage(self, ip, size, path):
+        self.listOfAvailFiles.append([ip, size, path])
         ConfigHandler.update('download', self.listOfAvailFiles)
     
     

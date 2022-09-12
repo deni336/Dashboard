@@ -1,5 +1,5 @@
 from tkinter import *
-from tkinter import ttk, colorchooser
+from tkinter import ttk, colorchooser, filedialog
 from ConfigHandler import getConfig, saveConfig
 import StylingPage as StylP
 
@@ -34,6 +34,17 @@ class SettingsW(Frame):
         self.changeBgImageLabel.pack()
 
         self.settingsBgImage = ttk.Button(self, text="Upload", style="W.TButton", cursor="hand2").pack()
+
+        self.workDirLabel = Label(self, text="DL Dir", font=('helvetica', 16, "bold italic"), background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"))
+        self.workDirLabel.pack()
+
+        self.workDirBtn = ttk.Button(self, text="Dir", style="W.TButton", cursor="hand2", command= lambda: self.setWorkDir()).pack()
+
+    def setWorkDir(self):
+        filename = filedialog.askdirectory()
+        configDi = getConfig()
+        configDi.update({'workDir': filename})
+        saveConfig(configDi)
 
     def ToggleSettings(self):
         if self.settingsBool:

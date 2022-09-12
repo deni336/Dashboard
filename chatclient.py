@@ -4,17 +4,19 @@ import subprocess
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
    
 PORT = 6969
+
 def connection(user, ip = "192.168.45.10"):
     server.connect((ip, PORT))
     ChatClient.sendMessage(user)
     return
 
 class ChatClient():
+    
     def sendMessage(message):
         server.send(bytearray(message.replace('\x00', '') + '\n', 'utf-8'))
         return
 
-    def recMessage():
+    def recMessage(self):
         while server:
             try:
                 data = server.recv(1024)

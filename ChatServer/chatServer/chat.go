@@ -71,7 +71,7 @@ func clientWriter(conn net.Conn, ch <-chan string) {
 
 func handleConnection(conn net.Conn, user User) {
 	ch := make(chan string) // outgoing client message
-	storage.HostUploader("192.168.45.10:8080")
+	storage.HostUploader("192.168.45.10:6969")
 
 	go clientWriter(conn, ch)
 	user.isConnected = true
