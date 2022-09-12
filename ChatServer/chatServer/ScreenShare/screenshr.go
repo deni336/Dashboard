@@ -32,7 +32,7 @@ var interrupt = make(chan bool, 1)
 var bytesToSend = make([]byte, 0) // current image going to user
 
 func StartScreenShareServer() {
-	addr := "192.168.45.69:7070"
+	addr := "192.168.45.10:7070"
 	root := "./ScreenShare/temp"
 
 	var err error
@@ -107,7 +107,7 @@ func takeScreenShot(w http.ResponseWriter, r *http.Request) {
 }
 
 func fetchScreenShot(w http.ResponseWriter, r *http.Request) {
-	filename := ".\\frontend\\0_1920x1080.png"
+	filename := ""
 	body, err := ioutil.ReadFile(filename)
 	if err != nil {
 		fmt.Fprint(w, err)

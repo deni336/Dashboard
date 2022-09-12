@@ -66,7 +66,7 @@ func clientWriter(conn net.Conn, ch <-chan string) {
 
 func handleConnection(conn net.Conn, user User) {
 	ch := make(chan string) // outgoing client message
-	storage.HostUploader("192.168.45.69:8080")
+	storage.HostUploader("192.168.45.10:8080")
 
 	go clientWriter(conn, ch)
 	user.isConnected = true
@@ -114,7 +114,7 @@ func startScreenShareServer() {
 
 func main() {
 	startScreenShareServer()
-	listener, err := net.Listen("tcp", "192.168.45.69:6969")
+	listener, err := net.Listen("tcp", "192.168.45.10:6969")
 	if err != nil {
 		log.Fatal(err)
 	}
