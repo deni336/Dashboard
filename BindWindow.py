@@ -8,7 +8,7 @@ class BindW(Tk):
 
     def __init__(self, *args, **kwargs):
         configDict = getConfig()
-        
+
         Tk.__init__(self, *args, **kwargs)
         self.configure(background=self.configDict.get('frameBackground'))
         self.widgets()
@@ -36,4 +36,4 @@ root.geometry("300x300+500+500")
 #root.state('withdrawn')
 root.title("KeyBinds")
 root.resizable(0, 0)
-# root.mainloop()
+root.mainloop()

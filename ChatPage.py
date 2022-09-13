@@ -24,21 +24,21 @@ class ChatF(Frame):
         self.servConn()
         self.widgets()
         self.treeLoop()
-        
-        
-    
+
+
+
     def widgets(self):
         inputUser1 = StringVar()
         messageInput = StringVar()
         nameInputBox = Entry(self, textvariable=inputUser1, background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'))
         nameInputBox.pack(side="top", pady=5)
-        
+
         def enterPressed1(self):
             self.user = inputUser1.get()
             self.nameInputBox.config(state=DISABLED)
             update("user", self.user)
-    
-    
+
+
         if self.configDict.get('user') != "":
             self.user = self.configDict.get('user')
             nameInputBox.config(state=DISABLED)
@@ -46,37 +46,37 @@ class ChatF(Frame):
         else:
             nameInputBox.config(state=NORMAL)
             inputUser1.set('Enter your name')
-            
+
         nameInputBox.bind("<Return>", enterPressed1)
-        
+
         self.messagesFrame = Frame(self, background=self.configDict.get("frameBackground"))
         self.messagesFrame.pack()
-        
+
         self.scroll = Scrollbar(self.messagesFrame, orient="vertical", jump=True)
         self.scroll.pack(side="right", fill='y', pady=2)
-        
+
         messages = Text(self.messagesFrame, background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'), width=45, height=30, yscrollcommand=self.scroll.set)
         messages.pack(padx=5, pady=2, side="left")
         self.scroll.configure(command=messages.yview)
-        
+
         if self.connection[1] != '':
             messages.config(state=NORMAL)
             messages.insert(END, self.connection[1])
             messages.config(state=DISABLED)
-            
+
 
         self.inputField = Entry(self, textvariable=messageInput, cursor="xterm",insertbackground="red", background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'))
         self.inputField.pack(fill="x", padx=5, pady=2)
-    
+
 
         def enterPressed(self):
             inputGet = messageInput.get()
             ChatClient.ChatClient.sendMessage(inputGet)
             messageInput.set('')
             messages.see("end")
-        
+
         self.inputField.bind("<Return>", enterPressed)
-        
+
         def messageUpdater():
             try:
                 response = ChatClient.ChatClient.recMessage()
@@ -87,7 +87,7 @@ class ChatF(Frame):
                 messageUpdater()
             except:
                 pass
-        
+
         try:
             messageUpdateThread = threading.Thread(target=messageUpdater)
             messageUpdateThread.start() 
@@ -118,7 +118,7 @@ class ChatF(Frame):
 
         self.deleteBtn = ttk.Button(self, text="Delete", style="W.TButton", cursor="hand2", command= lambda: delMeth(self))
         self.deleteBtn.pack(side='left', anchor='n', padx=5, pady=5)
-        
+
         self.refreshBtn = ttk.Button(self, text="Refresh", style="W.TButton", cursor="hand2", command= lambda: tv1LoadData(self))
         self.refreshBtn.pack(side='left', anchor='n', padx=5, pady=5)
 
@@ -139,7 +139,7 @@ class ChatF(Frame):
             ip = socket.socket.getsockname(ChatClient.server)
             FileManager.FileManager.stage(FileManager.FileManager, filename, ip[0], size)
             tv1LoadData(self)
-        
+
         def download(self):
             focusItem = self.tv1.focus()
         #     fItem = self.tv1.item(focusItem)
@@ -147,7 +147,7 @@ class ChatF(Frame):
         #     ip = ChatClient.ChatClient.dictOfUsers()
         #     FileClient.FileSender.connection(FileClient.FileSender, ip)
         #     FileClient.FileSender.sendingFile(getItem[0], getItem[2], getItem[3])
-            
+
 
         def tv1LoadData(self):
             configDi = getConfig()
@@ -165,15 +165,15 @@ class ChatF(Frame):
             x = self.tv1.get_children()
             for i in x:
                 self.tv1.delete(i)
-            
+
         tv1LoadData(self)
 
-        
+
     def servConn(self):
         self.connection = ChatClient.ChatClient.ServerConnection(self.user)
         self.idList.append(self.connection[0])
-        
-            
+
+
     def ToggleChat(self):
         if self.chatBool:
             self.pack(side="right", fill="y")

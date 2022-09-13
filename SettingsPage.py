@@ -13,7 +13,7 @@ class SettingsW(Frame):
         self.parent = parent
         self.configure(background=self.configDict.get('frameBackground'))
         self.widgets()
-    
+
     def widgets(self):
         self.settingsBtnLabel = Label(self, text="Button Colors", font=('helvetica', 16, "bold italic"), background=self.configDict.get('frameBackground'), foreground=self.configDict.get('labelForeground'))
         self.settingsBtnLabel.pack()
@@ -46,9 +46,6 @@ class SettingsW(Frame):
 
         #self.bindBtn = ttk.Button(self, text="Bind", style="W.TButton", cursor="hand2", command= lambda: self.setKeyBinds()).pack()
 
-    #
-        
-
     def setWorkDir(self):
         filename = filedialog.askdirectory()
         configDi = getConfig()
@@ -62,7 +59,7 @@ class SettingsW(Frame):
         else:
             self.pack(side="right", anchor="ne")
             self.settingsBool = True
-        
+
     def chooseColor(self, item):
         colorCode = colorchooser.askcolor(title ="Choose color")
         colorCodes = colorCode[1]
