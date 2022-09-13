@@ -1,6 +1,7 @@
 from tkinter import *
-from tkinter import ttk, colorchooser
+from tkinter import ttk, colorchooser, filedialog
 from ConfigHandler import getConfig, saveConfig
+#import BindWindow
 import StylingPage as StylP
 
 class SettingsW(Frame):
@@ -12,7 +13,7 @@ class SettingsW(Frame):
         self.parent = parent
         self.configure(background=self.configDict.get('frameBackground'))
         self.widgets()
-    
+
     def widgets(self):
         self.settingsBtnLabel = Label(self, text="Button Colors", font=('helvetica', 16, "bold italic"), background=self.configDict.get('frameBackground'), foreground=self.configDict.get('labelForeground'))
         self.settingsBtnLabel.pack()
@@ -35,6 +36,22 @@ class SettingsW(Frame):
 
         self.settingsBgImage = ttk.Button(self, text="Upload", style="W.TButton", cursor="hand2").pack()
 
+        self.workDirLabel = Label(self, text="DL Dir", font=('helvetica', 16, "bold italic"), background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"))
+        self.workDirLabel.pack()
+
+        self.workDirBtn = ttk.Button(self, text="Dir", style="W.TButton", cursor="hand2", command= lambda: self.setWorkDir()).pack()
+
+        self.bindLabel = Label(self, text="Keybinds", font=('helvetica', 16, "bold italic"), background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"))
+        self.bindLabel.pack()
+
+        #self.bindBtn = ttk.Button(self, text="Bind", style="W.TButton", cursor="hand2", command= lambda: self.setKeyBinds()).pack()
+
+    def setWorkDir(self):
+        filename = filedialog.askdirectory()
+        configDi = getConfig()
+        configDi.update({'workDir': filename})
+        saveConfig(configDi)
+
     def ToggleSettings(self):
         if self.settingsBool:
             self.pack_forget()
@@ -42,7 +59,7 @@ class SettingsW(Frame):
         else:
             self.pack(side="right", anchor="ne")
             self.settingsBool = True
-        
+
     def chooseColor(self, item):
         colorCode = colorchooser.askcolor(title ="Choose color")
         colorCodes = colorCode[1]

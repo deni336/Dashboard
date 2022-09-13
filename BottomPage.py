@@ -2,7 +2,8 @@ from tkinter import *
 from tkinter import ttk
 from ConfigHandler import *
 from time import strftime
-import threading
+import threading, os
+import ChatPage
 
 class BottomF(Frame):
     configDict = getConfig()
@@ -20,10 +21,13 @@ class BottomF(Frame):
 
         clockProcess = threading.Thread(target=self.myTime())
         clockProcess.start()
+        c = os.getpid()
+        ChatPage.ChatF.idList.append(c)
+
         
     def myTime(self):
         timeString = strftime('%d %b %y @ %H:%M:%S %p')
         self.timeLabel.config(text=timeString)
-        self.timeLabel.after(1000, self.myTime)
+        self.timeLabel.after(2000, self.myTime)
         
         

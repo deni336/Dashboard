@@ -5,7 +5,10 @@ go 1.19
 require (
 	github.com/GeertJohan/go.rice v1.0.2
 	github.com/fatih/color v1.13.0
+	github.com/gen2brain/shm v0.0.0-20210511105953-083dbc7d9d83
 	github.com/gosuri/uiprogress v0.0.1
+	github.com/jezek/xgb v1.0.1
+	github.com/lxn/win v0.0.0-20210218163916-a377121e959e
 )
 
 require (
