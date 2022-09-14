@@ -9,10 +9,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strconv"
 	"syscall"
-	"text/template"
 	"time"
 
 	screenshot "chat/ScreenShare/internal/screenshot"
@@ -33,32 +31,32 @@ var bytesToSend = make([]byte, 0) // current image going to user
 
 func StartScreenShareServer() {
 	addr := "192.168.45.10:7070"
-	root := "./ScreenShare/temp"
+	//root := "./temp"
 
-	var err error
+	//var err error
 
-	root, err = filepath.Abs(root)
-	if err != nil {
-		fmt.Println(err)
-	}
+	// root, err = filepath.Abs(root)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
 
 	currentTime := time.Now()
 	fmt.Println("Share Screen server started...", currentTime.Format("Mon 02 2006 03:04pm"))
 	//log.Printf("serving %s as %s on %s", root, prefix, addr)
 	//http.Handle(prefix, http.StripPrefix(prefix, http.FileServer(http.Dir(root))))
 
-	tmpl := template.Must(template.ParseFiles(root + "\\layout.html"))
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		data := TodoPageData{
-			PageTitle: "My TODO list",
-			Todos: []Todo{
-				{Title: "Task 1", Done: false},
-				{Title: "Task 2", Done: true},
-				{Title: "Task 3", Done: true},
-			},
-		}
-		tmpl.Execute(w, data)
-	})
+	// tmpl := template.Must(template.ParseFiles(root + "\\layout.html"))
+	// http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	// 	data := TodoPageData{
+	// 		PageTitle: "My TODO list",
+	// 		Todos: []Todo{
+	// 			{Title: "Task 1", Done: false},
+	// 			{Title: "Task 2", Done: true},
+	// 			{Title: "Task 3", Done: true},
+	// 		},
+	// 	}
+	// 	tmpl.Execute(w, data)
+	// })
 
 	http.HandleFunc("/start-sharing", takeScreenShot)
 	http.HandleFunc("/shared-screen", fetchScreenShot)
