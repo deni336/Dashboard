@@ -16,21 +16,10 @@ import (
 	screenshot "chat/ScreenShare/internal/screenshot"
 )
 
-type Todo struct {
-	Title string
-	Done  bool
-}
-
-type TodoPageData struct {
-	PageTitle string
-	Todos     []Todo
-}
-
 var interrupt = make(chan bool, 1)
 var bytesToSend = make([]byte, 0) // current image going to user
 
-func StartScreenShareServer() {
-	addr := "192.168.45.10:7070"
+func StartScreenShareServer(addr string) {
 	//root := "./temp"
 
 	//var err error
@@ -44,19 +33,6 @@ func StartScreenShareServer() {
 	fmt.Println("Share Screen server started...", currentTime.Format("Mon 02 2006 03:04pm"))
 	//log.Printf("serving %s as %s on %s", root, prefix, addr)
 	//http.Handle(prefix, http.StripPrefix(prefix, http.FileServer(http.Dir(root))))
-
-	// tmpl := template.Must(template.ParseFiles(root + "\\layout.html"))
-	// http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-	// 	data := TodoPageData{
-	// 		PageTitle: "My TODO list",
-	// 		Todos: []Todo{
-	// 			{Title: "Task 1", Done: false},
-	// 			{Title: "Task 2", Done: true},
-	// 			{Title: "Task 3", Done: true},
-	// 		},
-	// 	}
-	// 	tmpl.Execute(w, data)
-	// })
 
 	http.HandleFunc("/start-sharing", takeScreenShot)
 	http.HandleFunc("/shared-screen", fetchScreenShot)

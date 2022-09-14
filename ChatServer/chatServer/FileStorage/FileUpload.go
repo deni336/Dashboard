@@ -17,7 +17,7 @@ import (
 
 var (
 	listen          = flag.String("listen", ":8080", "The address to run the web service on.")
-	path            = flag.String("path", "ChatServer\\chatserver\\FileStorage\\storage", "The path files are saved to. The file name is provided by the client.")
+	path            = flag.String("path", "", "The path files are saved to. The file name is provided by the client.")
 	disableColor    = flag.Bool("no-color", false, "Disable color output.")
 	disableProgress = flag.Bool("no-progress", false, "Disable progress bars.")
 )
@@ -36,6 +36,14 @@ func HostUploader(addr string) {
 		bars = uiprogress.New()
 		bars.Start()
 	}
+
+	wrkDir, e := os.Getwd()
+	if e != nil {
+		fmt.Println(e)
+	}
+	wrkDir += "\\FileStorage\\storage"
+
+	path = &wrkDir
 
 	// Setup Server
 	mux := http.NewServeMux()

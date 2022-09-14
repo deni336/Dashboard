@@ -5,30 +5,61 @@ import (
 	"bytes"
 	storage "chat/FileStorage"
 	shr "chat/ScreenShare"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net"
-	"os"
+	"net/http"
 	"strings"
 )
 
 type client chan<- string // an outgoing message channel
 
 type User struct {
-	Msg         *client
-	Name        string
-	Address     string
-	Connection  *net.Conn
-	isConnected bool
+	Msg         *client      `json:"msg"`
+	Name        string       `json:"name"`
+	Address     string       `json:"address"`
+	Connection  *net.Conn    `json:"connection"`
+	IsConnected bool         `json:"isconnected"`
+	ListUsers   *ActiveUsers `json:"user-list"`
+}
+
+type ActiveUsers struct {
+	Users []User `json:"Users"`
 }
 
 var (
-	connect  = make(chan string)
-	entering = make(chan client)
-	leaving  = make(chan client)
-	messages = make(chan string) // all incoming client messages
+	chatIP       = "192.168.45.10:6969"
+	scrshareIP   = "192.168.45.10:7070"
+	fileUploadIP = "192.168.45.10:8080"
+	APIIP        = "192.168.45.10:1337"
+	entering     = make(chan client)
+	leaving      = make(chan client)
+	messages     = make(chan string) // all incoming client messages
+	active_users = ActiveUsers{}
 )
+
+func (au *ActiveUsers) Add(user User) {
+	au.Users = append(au.Users, user)
+}
+
+func API(addr string) {
+	http.HandleFunc("/active-users", updateActiveUsers)
+
+	mux := http.DefaultServeMux.ServeHTTP
+	logger := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Println(r.RemoteAddr + " " + r.Method + " " + r.URL.String())
+		mux(w, r)
+	})
+
+	e := http.ListenAndServe(addr, logger)
+	if e != nil {
+		log.Fatalln(e)
+	}
+
+	fmt.Println("API Online")
+}
 
 func broadcast() {
 	clients := make(map[client]bool) // all connected clients
@@ -40,10 +71,7 @@ func broadcast() {
 			// clients outgoin message channel
 			for cli := range clients {
 				cli <- msg
-			}
-		case upd := <-connect:
-			for cli := range clients {
-				cli <- upd
+				fmt.Printf("message broadcasted => %v\n", msg)
 			}
 		case cli := <-entering:
 			clients[cli] = true
@@ -56,25 +84,20 @@ func broadcast() {
 
 func clientWriter(conn net.Conn, ch <-chan string) {
 	fmt.Fprintln(conn, "Connection made successfully")
-
 	for msg := range ch {
 		fmt.Fprintln(conn, msg)
-		if msg[len(msg)-9:] == "/download" {
-			a := msg[:len(msg)-9]
-			rtn := strings.Split(a, ": ")
-			fmt.Println("Transfering files...", strings.TrimSpace(rtn[1]))
-			Copy(msg[:len(msg)-9], "./")
-		}
+		fmt.Printf("message sent => %v\n", msg)
 	}
-	fmt.Fprintln(conn, "Message sent to user")
 }
 
 func handleConnection(conn net.Conn, user User) {
 	ch := make(chan string) // outgoing client message
-	storage.HostUploader("192.168.45.10:8080")
+	user.IsConnected = true
+	active_users.Add(user)
+	user.ListUsers = &active_users
 
 	go clientWriter(conn, ch)
-	user.isConnected = true
+
 	who := user.Name
 	ch <- "You are " + who
 	messages <- "Welcome " + who
@@ -88,64 +111,72 @@ func handleConnection(conn net.Conn, user User) {
 
 	leaving <- ch
 	messages <- who + " has left"
+
 	conn.Close()
+
+	user.IsConnected = false
 }
 
-func Copy(srcFile, dstFile string) error {
-	out, err := os.Create(dstFile)
-	if err != nil {
-		return err
+func parseBufferStr(cleanBuff []byte, addr string) (s string) {
+	str := strings.Trim(string(cleanBuff), "\n")
+	if str == "" {
+		str = addr
 	}
-	defer out.Close()
-
-	in, err := os.Open(srcFile)
-	if err != nil {
-		return err
-	}
-
-	defer in.Close()
-
-	_, err = io.Copy(out, in)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return str
 }
 
-func startScreenShareServer() {
-	shr.StartScreenShareServer()
+func readBuffer(conn net.Conn) []byte {
+	buffer := make([]byte, 1024)
+	_, err := conn.Read(buffer)
+	if err != nil && err != io.EOF {
+		log.Fatal(err)
+	}
+	return buffer
 }
 
-func main() {
-	go startScreenShareServer()
-	listOfUsers := make(map[string]string)
-	listener, err := net.Listen("tcp", "192.168.45.10:6969")
+func startChatServer(addr string) net.Listener {
+	chatConn, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("Server Online")
 	go broadcast()
+	return chatConn
+}
+
+func updateActiveUsers(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		j, _ := json.Marshal(active_users)
+		w.Write(j)
+	case "POST":
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprintf(w, "No access")
+	}
+}
+
+func main() {
+	go shr.StartScreenShareServer(scrshareIP)
+	go storage.HostUploader(fileUploadIP)
+	go API(APIIP)
+	chatConn := startChatServer(chatIP)
 
 	for {
-		conn, err := listener.Accept()
+		conn, err := chatConn.Accept()
 		if err != nil {
 			log.Print(err)
 			continue
 		}
 
-		buffer := make([]byte, 1024)
-		_, er := conn.Read(buffer)
-		if er != nil && err != io.EOF {
-			log.Fatal(err)
-		}
-		cleanBuff := bytes.Trim(buffer, "\x00")
-		user := User{Name: strings.Trim(string(cleanBuff), "\n"), Address: conn.RemoteAddr().String(), Connection: &conn}
-		listOfUsers[user.Name] = conn.RemoteAddr().String()
-		for k, v := range listOfUsers {
+		cleanBuff := bytes.Trim(readBuffer(conn), "\x00")
 
-			connect <- "[ " + k + " " + v + " ]"
+		user := User{
+			Name:       parseBufferStr(cleanBuff, conn.RemoteAddr().String()),
+			Address:    conn.RemoteAddr().String(),
+			Connection: &conn,
 		}
+
 		go handleConnection(conn, user)
 	}
 }
