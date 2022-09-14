@@ -16,24 +16,27 @@ def getConfig():
                 
     except:
         with open("config.json", "w") as configFile:
-                configF = {
-                    "user": "",
-                    "buttonBackground": "#000000",
-                    "buttonForeground": "#ff0000",
-                    "buttonFont": "American Typewriter",
-                    "buttonFontsize": "12",
-                    "buttonFontadd": "bold",
-                    "labelFont": "('helvetica', 16, 'bold italic')",
-                    "labelForeground": "#ff0000",
-                    "frameBackground": "#000000",
-                    "bgImage": "bg.jpg",
-                    "windowMode": "True",
-                    "download": [],
-                    "workDir": "",
-                    "keyBinds": []
-                }
-                saveConfig(configF)
-    return configDict
+            configF = {
+                "user": "",
+                "buttonBackground": "#000000",
+                "buttonForeground": "#ff0000",
+                "buttonFont": "American Typewriter",
+                "buttonFontsize": "12",
+                "buttonFontadd": "bold",
+                "labelFont": "('helvetica', 16, 'bold italic')",
+                "labelForeground": "#ff0000",
+                "frameBackground": "#000000",
+                "bgImage": "bg.jpg",
+                "windowMode": "True",
+                "download": [],
+                "workDir": "",
+                "keyBinds": []
+            }
+            saveConfig(configF)
+            with open("config.json", "r") as configFile:
+                fileContent = configFile.read()
+                configDict = json.loads(fileContent)
+                return configDict
         
     
 def saveConfig(configD):
