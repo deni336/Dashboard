@@ -8,11 +8,11 @@ def update(key, value):
     saveConfig(configDict)
 
 def getConfig():
-    configDict = {}
     try:
         with open("config.json", "r") as configFile:
                 fileContent = configFile.read()
                 configDict = json.loads(fileContent)
+                return configDict
                 
     except:
         with open("config.json", "w") as configFile:
