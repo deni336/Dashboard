@@ -3,7 +3,6 @@ package clienthandler
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"net"
 )
 
@@ -18,7 +17,8 @@ var (
 func ClientListener(addr string) net.Listener {
 	chatConn, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		fmt.Println("Failed to start chat server")
 	}
 	fmt.Println("[success!] chat server online and listening on", addr)
 	go broadcast()

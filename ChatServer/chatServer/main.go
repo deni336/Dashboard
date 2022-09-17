@@ -24,8 +24,8 @@ import (
 var (
 	CHAT       = "192.168.45.10:6969"
 	SCRNSHR    = "192.168.45.10:7070"
-	FILEUPLOAD = "192.168.45.10:8080"
-	APIIP      = "192.168.45.10:1337"
+	FILEUPLOAD = "192.168.45.10:7777"
+	//APIIP      = "192.168.45.10:1337"
 )
 
 func main() {
@@ -39,10 +39,12 @@ func main() {
 	go storage.HostUploadServer(FILEUPLOAD)
 
 	fmt.Println("Initializing chat server...")
+	clientListener := clienthandler.ClientListener(CHAT)
 	for {
-		conn, err := clienthandler.ClientListener(CHAT).Accept()
+		conn, err := clientListener.Accept()
 		if err != nil {
 			log.Print(err)
+			fmt.Println("Failed to start chat server")
 			continue
 		}
 
