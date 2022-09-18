@@ -10,17 +10,14 @@ import (
 )
 
 /*
-# Clienthandler:
-- [] clienthandler main clean up.
-- [X] active users hash table
-- [X] user object
-- [] Add some print statements for troubleshooting purposes
-- [] Chat handler needs to get cleaned up
-- [] Clean up Screenshare and Uploader
+# TODO
+= [] may need to re-structure active users
+- [] Add file manager to setup storage and screen share support
 - [] Write test for this code
 - [] Add ability to save snapshot to screen share
-- [] need to add a check in storage server for working dir
+- [] Add gRPC for API for deni
 */
+
 var (
 	CHAT       = "192.168.45.10:6969"
 	SCRNSHR    = "192.168.45.10:7070"
@@ -32,14 +29,27 @@ func main() {
 	atv_usrs := clienthandler.InitializeActiveUserList()
 	fmt.Println("Created active user list")
 
+	startSupportingServers()
+
+	startChatServer(atv_usrs)
+}
+
+func startSupportingServers() {
 	fmt.Println("Initializing screen share server...")
 	go screenshare.InitScreenShareServer(SCRNSHR)
 
 	fmt.Println("Initializing file upload server...")
 	go storage.HostUploadServer(FILEUPLOAD)
+}
 
+func startChatServer(atv_usrs *clienthandler.ActiveUsers) {
 	fmt.Println("Initializing chat server...")
-	clientListener := clienthandler.ClientListener(CHAT)
+
+	clientListener, err := clienthandler.ClientListener(CHAT)
+	if err != nil {
+		fmt.Println("failed setting up chat server")
+	}
+
 	for {
 		conn, err := clientListener.Accept()
 		if err != nil {
@@ -57,8 +67,7 @@ func main() {
 
 		atv_usrs.Add(user.Name)
 		fmt.Println("User created and added to active_user list")
-		// need to send data out to deni
-		//active_users <- atv_usrs.Serialize()
+
 		go clienthandler.HandleConnection(user)
 	}
 }

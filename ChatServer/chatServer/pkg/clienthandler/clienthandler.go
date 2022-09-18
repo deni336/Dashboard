@@ -14,15 +14,16 @@ var (
 	messages = make(chan string) // all incoming client messages
 )
 
-func ClientListener(addr string) net.Listener {
+func ClientListener(addr string) (net.Listener, error) {
 	chatConn, err := net.Listen("tcp", addr)
 	if err != nil {
 		fmt.Println(err)
 		fmt.Println("Failed to start chat server")
+		return nil, err
 	}
 	fmt.Println("[success!] chat server online and listening on", addr)
 	go broadcast()
-	return chatConn
+	return chatConn, nil
 }
 
 func HandleConnection(u *User) {
@@ -71,5 +72,8 @@ func handleInput(u *User, ch chan string) {
 	for input.Scan() {
 		messages <- u.Name + ": " + input.Text()
 	}
-	// Need to handle errors from input.Err()
+
+	if input.Err() != nil {
+		fmt.Println("input handler failed")
+	}
 }

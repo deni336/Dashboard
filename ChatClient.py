@@ -5,7 +5,7 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 PORT = 6969
 
-def connection(user, ip = "192.168.45.10"):
+def connection(user, ip = "192.168.45.12"):
     server.connect((ip, PORT))
     ChatClient.sendMessage(user)
     return
@@ -26,7 +26,7 @@ class ChatClient():
             except:
                 return
 
-    def ServerConnection(user, ip = "192.168.45.10"):
+    def ServerConnection(user, ip = "192.168.45.12"):
         try:
             serv = subprocess.Popen([r"chat.exe"])
             b = serv.pid

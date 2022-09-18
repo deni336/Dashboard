@@ -6,7 +6,6 @@ import (
 )
 
 type User struct {
-	Message     string   `json:"message"`
 	Name        string   `json:"name"`
 	Connection  net.Conn `json:"connection"`
 	Address     string   `json:"address"`
