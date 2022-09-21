@@ -35,7 +35,7 @@ class ChatF(Frame):
 
         def enterPressed1(self):
             self.user = inputUser1.get()
-            self.nameInputBox.config(state=DISABLED)
+            nameInputBox.config(state=DISABLED)
             update("user", self.user)
 
         nameInputBox.bind("<Return>", enterPressed1)
@@ -81,7 +81,7 @@ class ChatF(Frame):
 
         def messageUpdater():
             try:
-                response = ChatClient.ChatClient.recMessage()
+                response = ChatClient.ChatClient.recMessage(ChatClient.ChatClient)
                 print(response)
                 messages.config(state=NORMAL)
                 messages.insert(END, response)
