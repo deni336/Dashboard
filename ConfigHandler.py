@@ -1,6 +1,7 @@
 import json
 import os
 
+user = os.getlogin()
 
 def update(key, value):
     configDict = getConfig()
@@ -9,13 +10,13 @@ def update(key, value):
 
 def getConfig():
     try:
-        with open("config.json", "r") as configFile:
+        with open("C:/users/" + user + "/dashconfig.json", "r") as configFile:
                 fileContent = configFile.read()
                 configDict = json.loads(fileContent)
                 return configDict
                 
     except:
-        with open("config.json", "w") as configFile:
+        with open("C:/users/" + user + "/dashconfig.json", "w") as configFile:
             configF = {
                 "user": "",
                 "buttonBackground": "#000000",
@@ -33,14 +34,14 @@ def getConfig():
                 "keyBinds": []
             }
             saveConfig(configF)
-            with open("config.json", "r") as configFile:
+            with open("C:/users/" + user + "/dashconfig.json", "r") as configFile:
                 fileContent = configFile.read()
                 configDict = json.loads(fileContent)
                 return configDict
         
     
 def saveConfig(configD):
-    with open("config.json", "w") as f:
+    with open("C:/users/" + user + "/dashconfig.json", "w") as f:
         dumped = json.dumps(configD, indent=4)
         f.write(dumped)
         f.close()

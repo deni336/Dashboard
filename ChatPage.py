@@ -38,6 +38,8 @@ class ChatF(Frame):
             self.nameInputBox.config(state=DISABLED)
             update("user", self.user)
 
+        nameInputBox.bind("<Return>", enterPressed1)
+
 
         if self.configDict.get('user') != "":
             self.user = self.configDict.get('user')
@@ -47,7 +49,7 @@ class ChatF(Frame):
             nameInputBox.config(state=NORMAL)
             inputUser1.set('Enter your name')
 
-        nameInputBox.bind("<Return>", enterPressed1)
+        # nameInputBox.bind("<Return>", enterPressed1)
 
         self.messagesFrame = Frame(self, background=self.configDict.get("frameBackground"))
         self.messagesFrame.pack()
