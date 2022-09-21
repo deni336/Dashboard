@@ -113,7 +113,7 @@ class MainApp(Frame):
             self.configDict.get('bgImage')
             bgImagePicked = self.configDict.get('bgImage')
             img = PILImage.open(bgImagePicked)
-            imgResized = img.resize((1920, 1080), PILImage.ANTIALIAS)
+            imgResized = img.resize((1920, 1080), PILImage.Resampling.LANCZOS)
             bgImage = ITK.PhotoImage(imgResized)
             bgImageLabel = Label(self, image=bgImage, background=self.configDict.get("frameBackground"))
             bgImageLabel.place(x=0, y=0)
