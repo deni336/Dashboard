@@ -19,9 +19,9 @@ import (
 */
 
 var (
-	CHAT       = "192.168.45.10:6969"
-	SCRNSHR    = "192.168.45.10:7070"
-	FILEUPLOAD = "192.168.45.10:7777"
+	CHAT       = "localhost:6969"
+	SCRNSHR    = "localhost:7070"
+	FILEUPLOAD = "localhost:7777"
 	//APIIP      = "192.168.45.10:1337"
 )
 
