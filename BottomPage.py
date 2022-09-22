@@ -24,6 +24,6 @@ class BottomF(Frame):
     def myTime(self):
         timeString = strftime('%d %b %y @ %H:%M:%S %p')
         self.timeLabel.config(text=timeString)
-        self.timeLabel.after(100, self.myTime())
+        self.timeLabel.after(1000, self.myTime)
         
         
