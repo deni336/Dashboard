@@ -19,11 +19,7 @@ class BottomF(Frame):
         self.timeLabel = Label(self, font=('helvetica', 16, "bold italic"), background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"))
         self.timeLabel.pack(side="bottom")
 
-        clockProcess = threading.Thread(target=self.myTime)
-        clockProcess.start()
-        c = os.getpid()
-        ChatPage.ChatF.idList.append(c)
-
+        self.myTime()
         
     def myTime(self):
         timeString = strftime('%d %b %y @ %H:%M:%S %p')
