@@ -10,6 +10,7 @@ import StylingPage as StylP
 from PIL import ImageTk as ITK
 from PIL import Image as PILImage
 from ConfigHandler import *
+from pathlib import Path
 
 class Event(object):
  
@@ -165,7 +166,7 @@ class MyApp(Tk):
 
 root = MyApp()
 
-icon = "icon.ico"
+icon = Path.cwd().joinpath("icon.ico")
 root.iconbitmap(icon)
 #root.state("zoomed")
 root.geometry("1920x1080+0+0")
