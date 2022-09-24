@@ -1,9 +1,8 @@
 from tkinter import *
 from tkinter import ttk
-from ConfigHandler import *
 from time import strftime
-import threading, os
-import ChatPage
+
+from ConfigHandler import *
 
 class BottomF(Frame):
     configDict = getConfig()
@@ -16,7 +15,12 @@ class BottomF(Frame):
     def widgets(self):
         self.pack(side="bottom", fill="x")
 
-        self.timeLabel = Label(self, font=('helvetica', 16, "bold italic"), background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"))
+        self.timeLabel = Label(
+            self, 
+            font=('helvetica', 16, "bold italic"), 
+            background=self.configDict.get("frameBackground"), 
+            foreground=self.configDict.get("labelForeground")
+        )
         self.timeLabel.pack(side="bottom")
 
         self.myTime()

@@ -1,3 +1,4 @@
+from ChatClient import ChatClient
 import ConfigHandler
 
 class FileManager():
@@ -19,6 +20,7 @@ class FileManager():
     def stage(self, ip, size, path):
         self.listOfAvailFiles.append([ip, size, path])
         ConfigHandler.update('download', self.listOfAvailFiles)
+        ChatClient.sendStage(ChatClient[ip, size, path])
     
     
 

@@ -1,4 +1,5 @@
 from tkinter import *
+from pathlib import Path
 import BannerPage as BP
 import os, signal
 from FileManager import FileManager
@@ -10,7 +11,23 @@ import StylingPage as StylP
 from PIL import ImageTk as ITK
 from PIL import Image as PILImage
 from ConfigHandler import *
-from pathlib import Path
+import ServerTransactionsPage as ST
+##### To Do's
+
+## Deni
+# Server call for file list
+# Update file list from server with refresh button
+# Add front end for screen share connection
+# Functionality for background image
+# Client side for who is screen sharing
+
+
+## Desmond
+'''
+- [] Setup endpoints for p2p file transfer
+- [] Refine server storage
+'''
+
 
 class Event(object):
  
@@ -44,6 +61,7 @@ class Events(object):
         self.OnLockBroken = Event()
         self.OnShutDown = Event()
         self.ToggleOpen = Event()
+        self.ToggleServTrans = Event()
         # self.bind(Event, self.handler())
 
     def FireEvent(self):
@@ -55,9 +73,7 @@ class Events(object):
         self.OnLockBroken()
         self.OnShutDown()
         self.ToggleOpen()
-
-    # def handler(self, event):
-    #     values = self.configDict.get('keyBinds')
+        self.ToggleServTrans()
 
 
     def AddSubscribersForLockBrokenEvent(self, objMethod):
@@ -77,6 +93,12 @@ class Events(object):
 
     def RemoveSubscribersForToggleOpenEvent(self, objMethod):
         self.ToggleOpen -= objMethod
+
+    def AddSubscribersForToggleServTransEvent(self, objMethod):
+        self.ToggleServTrans += objMethod
+
+    def RemoveSubscribersForToggleServTransEvent(self, objMethod):
+        self.ToggleServTrans -= objMethod
 
     def AddSubscribersForMinimizeEvent(self, objMethod):
         self.Minimize += objMethod
@@ -102,6 +124,7 @@ class MainApp(Frame):
         self.chatUser = ''
         self.settingsShow = False
         self.chatShow = False
+        self.servTransShow = False
         Frame.__init__(self, parent)
         self.parent = parent
         self.configure(background=self.configDict['frameBackground'])
@@ -116,7 +139,11 @@ class MainApp(Frame):
             img = PILImage.open(bgImagePicked)
             imgResized = img.resize((1920, 1080), PILImage.Resampling.LANCZOS)
             bgImage = ITK.PhotoImage(imgResized)
-            bgImageLabel = Label(self, image=bgImage, background=self.configDict.get("frameBackground"))
+            bgImageLabel = Label(
+                self, 
+                image=bgImage, 
+                background=self.configDict.get("frameBackground")
+            )
             bgImageLabel.place(x=0, y=0)
             bgImageLabel.image = bgImage
         except:
@@ -141,6 +168,7 @@ class MyApp(Tk):
         self.buttonFrame = ButP.ButtonF(self.mainFrame)
         self.settingsFrame = SP.SettingsW(self.mainFrame)
         self.chatFrame = CP.ChatF(self.mainFrame)
+        self.servFrame = ST.ServTransF(self.mainFrame)
 
         eventHandler.AddSubscribersForDownSizeEvent(self.DownSize)
         eventHandler.AddSubscribersForFullScreenEvent(self.FullScreen)
@@ -148,6 +176,7 @@ class MyApp(Tk):
         eventHandler.AddSubscribersForToggleOpenEvent(self.chatFrame.ToggleChat)
         eventHandler.AddSubscribersForShutDownEvent(self.shutdown)
         eventHandler.AddSubscribersForLockBrokenEvent(self.settingsFrame.ToggleSettings)
+        eventHandler.AddSubscribersForToggleServTransEvent(self.servFrame.ToggleServ)
 
 
     def Minimize(self): 

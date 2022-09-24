@@ -11,7 +11,7 @@ import (
 
 /*
 # TODO
-= [] may need to re-structure active users
+- [] may need to re-structure active users
 - [] Add file manager to setup storage and screen share support
 - [] Write test for this code
 - [] Add ability to save snapshot to screen share

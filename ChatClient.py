@@ -1,5 +1,5 @@
-import socket
 import os
+import socket
 import subprocess
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -30,14 +30,20 @@ class ChatClient():
     def ServerConnection(user, ip = "localhost"):
         try:
             serv = subprocess.Popen([r"chat.exe"])
-            b = serv.pid
             
             if user == '':
                 user = os.getlogin()
                 connection(user, ip)
-                return [b, '']
+                return ''
             else:
                 connection(user, ip)
-                return [b, '']
+                return ''
         except:
-                return [b, "No Server Connected"]
+                return "No Server Connected"
+
+    def sendStage(self, stagedList):
+        server.send(bytearray(stagedList.replace('\x00', '') + '\n', 'utf-8'))
+
+    def servCall():
+        pass
+
