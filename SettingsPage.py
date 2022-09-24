@@ -11,38 +11,104 @@ class SettingsW(Frame):
     def __init__(self, parent):
         Frame.__init__(self, parent)
         self.parent = parent
-        self.configure(background=self.configDict.get('frameBackground'))
+        self.configure(background=self.configDict["frameBackground"])
         self.widgets()
 
     def widgets(self):
-        self.settingsBtnLabel = Label(self, text="Button Colors", font=('helvetica', 16, "bold italic"), background=self.configDict.get('frameBackground'), foreground=self.configDict.get('labelForeground'))
-        self.settingsBtnLabel.pack()
+        self.settingsBtnLabel = Label(
+            self, 
+            text="Button Colors", 
+            font=('helvetica', 16, "bold italic"), 
+            background=self.configDict.get('frameBackground'), 
+            foreground=self.configDict.get('labelForeground')
+        ).pack()
 
-        self.settingsBtnFontColor = ttk.Button(self, text="Font Color", style="W.TButton", cursor="hand2", command= lambda: self.chooseColor("buttonForeground")).pack()
-        self.settingsBtnBgColor = ttk.Button(self, text="Button BG", style="W.TButton", cursor="hand2", command= lambda: self.chooseColor("buttonBackground")).pack()
+        self.settingsBtnFontColor = ttk.Button(
+            self, 
+            text="Font Color", 
+            style="W.TButton", 
+            cursor="hand2", 
+            command= lambda: self.chooseColor("buttonForeground")
+        ).pack()
 
-        self.settingsLabelsLabel = Label(self, text="Label Colors", font=('helvetica', 16, "bold italic"), background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"))
-        self.settingsLabelsLabel.pack()
+        self.settingsBtnBgColor = ttk.Button(
+            self, 
+            text="Button BG", 
+            style="W.TButton", 
+            cursor="hand2", 
+            command= lambda: self.chooseColor("buttonBackground")
+        ).pack()
 
-        self.settingsLabelColor = ttk.Button(self, text="FG Color", style="W.TButton", cursor="hand2", command= lambda: self.chooseColor("labelForeground")).pack()
+        self.settingsLabelsLabel = Label(
+            self, 
+            text="Label Colors", 
+            font=('helvetica', 16, "bold italic"), 
+            background=self.configDict["frameBackground"], 
+            foreground=self.configDict["labelForeground"]
+        ).pack()
 
-        self.settingsBkgLabel = Label(self, text="Background Color", font=('helvetica', 16, "bold italic"), background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"))
-        self.settingsBkgLabel.pack()
+        self.settingsLabelColor = ttk.Button(
+            self, 
+            text="FG Color", 
+            style="W.TButton", 
+            cursor="hand2", 
+            command= lambda: self.chooseColor("labelForeground")
+        ).pack()
 
-        self.settingsBgColor = ttk.Button(self, text="Frame BG Color", style="W.TButton", cursor="hand2", command= lambda: self.chooseColor("frameBackground")).pack()
+        self.settingsBkgLabel = Label(
+            self, 
+            text="Background Color", 
+            font=('helvetica', 16, "bold italic"), 
+            background=self.configDict["frameBackground"], 
+            foreground=self.configDict["labelForeground"]
+        ).pack()
 
-        self.changeBgImageLabel = Label(self, text="BG Image", font=('helvetica', 16, "bold italic"), background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"))
-        self.changeBgImageLabel.pack()
+        self.settingsBgColor = ttk.Button(
+            self, 
+            text="Frame BG Color", 
+            style="W.TButton", 
+            cursor="hand2", 
+            command= lambda: self.chooseColor("frameBackground")
+        ).pack()
 
-        self.settingsBgImage = ttk.Button(self, text="Upload", style="W.TButton", cursor="hand2").pack()
+        self.changeBgImageLabel = Label(
+            self, 
+            text="BG Image", 
+            font=('helvetica', 16, "bold italic"), 
+            background=self.configDict["frameBackground"], 
+            foreground=self.configDict["labelForeground"]
+        ).pack()
 
-        self.workDirLabel = Label(self, text="DL Dir", font=('helvetica', 16, "bold italic"), background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"))
-        self.workDirLabel.pack()
+        self.settingsBgImage = ttk.Button(
+            self, 
+            text="Upload", 
+            style="W.TButton", 
+            cursor="hand2"
+        ).pack()
 
-        self.workDirBtn = ttk.Button(self, text="Dir", style="W.TButton", cursor="hand2", command= lambda: self.setWorkDir()).pack()
+        self.workDirLabel = Label(
+            self, 
+            text="DL Dir", 
+            font=('helvetica', 16, "bold italic"), 
+            background=self.configDict["frameBackground"], 
+            foreground=self.configDict["labelForeground"]
+        ).pack()
 
-        self.bindLabel = Label(self, text="Keybinds", font=('helvetica', 16, "bold italic"), background=self.configDict.get("frameBackground"), foreground=self.configDict.get("labelForeground"))
-        self.bindLabel.pack()
+        self.workDirBtn = ttk.Button(
+            self, 
+            text="Dir", 
+            style="W.TButton", 
+            cursor="hand2", 
+            command= lambda: self.setWorkDir()
+        ).pack()
+
+        self.bindLabel = Label(
+            self, 
+            text="Keybinds", 
+            font=('helvetica', 16, "bold italic"), 
+            background=self.configDict["frameBackground"], 
+            foreground=self.configDict["labelForeground"]
+        ).pack()
 
         #self.bindBtn = ttk.Button(self, text="Bind", style="W.TButton", cursor="hand2", command= lambda: self.setKeyBinds()).pack()
 

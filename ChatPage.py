@@ -1,13 +1,12 @@
-from tkinter import *
-from tkinter import ttk
-from tkinter import filedialog
-import tkinter
-from ConfigHandler import *
-import ChatClient
-# import FileClient
-import threading, sys
-import FileManager
 import os, socket
+import threading, sys
+from tkinter import *
+from tkinter import ttk, filedialog
+
+import ChatClient
+from ConfigHandler import *
+import FileManager
+
 
 class ChatF(Frame):
     configDict = getConfig()
@@ -20,17 +19,21 @@ class ChatF(Frame):
         
         Frame.__init__(self, parent)
         self.parent = parent
-        self.configure(background=self.configDict.get('frameBackground'))
+        self.configure(background=self.configDict['frameBackground'])
         self.servConn()
         self.widgets()
         self.treeLoop()
 
-
-
     def widgets(self):
         inputUser1 = StringVar()
         messageInput = StringVar()
-        nameInputBox = Entry(self, textvariable=inputUser1, background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'))
+        nameInputBox = Entry(
+            self, 
+            textvariable=inputUser1, 
+            background=self.configDict["frameBackground"], 
+            foreground=self.configDict['buttonForeground'], 
+            font=('American typewriter', 12, 'bold')
+        )
         nameInputBox.pack(side="top", pady=5)
 
         def enterPressed1(self):
@@ -38,7 +41,10 @@ class ChatF(Frame):
             nameInputBox.config(state=DISABLED)
             update("user", self.user)
 
-        nameInputBox.bind("<Return>", enterPressed1)
+        nameInputBox.bind(
+            "<Return>", 
+            enterPressed1
+        )
 
 
         if self.configDict.get('user') != "":
@@ -49,16 +55,30 @@ class ChatF(Frame):
             nameInputBox.config(state=NORMAL)
             inputUser1.set('Enter your name')
 
-        # nameInputBox.bind("<Return>", enterPressed1)
-
-        self.messagesFrame = Frame(self, background=self.configDict.get("frameBackground"))
+        self.messagesFrame = Frame(
+            self, 
+            background=self.configDict["frameBackground"]
+        )
         self.messagesFrame.pack()
 
-        self.scroll = Scrollbar(self.messagesFrame, orient="vertical", jump=True)
+        self.scroll = Scrollbar(
+            self.messagesFrame, 
+            orient="vertical", 
+            jump=True
+        )
         self.scroll.pack(side="right", fill='y', pady=2)
 
-        messages = Text(self.messagesFrame, background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'), width=45, height=30, yscrollcommand=self.scroll.set)
+        messages = Text(
+            self.messagesFrame, 
+            background=self.configDict["frameBackground"], 
+            foreground=self.configDict['buttonForeground'], 
+            font=('American typewriter', 12, 'bold'), 
+            width=45, 
+            height=30, 
+            yscrollcommand=self.scroll.set
+        )
         messages.pack(padx=5, pady=2, side="left")
+
         self.scroll.configure(command=messages.yview)
 
         if self.connection[1] != '':
@@ -67,7 +87,15 @@ class ChatF(Frame):
             messages.config(state=DISABLED)
 
 
-        self.inputField = Entry(self, textvariable=messageInput, cursor="xterm",insertbackground="red", background=self.configDict.get("frameBackground"), foreground=self.configDict.get('buttonForeground'), font=('American typewriter', 12, 'bold'))
+        self.inputField = Entry(
+            self, 
+            textvariable=messageInput, 
+            cursor="xterm",
+            insertbackground="red", 
+            background=self.configDict["frameBackground"], 
+            foreground=self.configDict['buttonForeground'], 
+            font=('American typewriter', 12, 'bold')
+        )
         self.inputField.pack(fill="x", padx=5, pady=2)
 
 
@@ -99,7 +127,10 @@ class ChatF(Frame):
             sys.exit()
 
     def treeLoop(self):
-        treeFrame = Frame(self, background=self.configDict.get("frameBackground"))
+        treeFrame = Frame(
+            self, 
+            background=self.configDict["frameBackground"]
+        )
         treeFrame.pack(fill='both')
 
         self.tv1 = ttk.Treeview(treeFrame)
@@ -115,17 +146,37 @@ class ChatF(Frame):
         self.tv1.configure(yscrollcomman=treeScrollY.set)
         treeScrollY.pack(side='right', fill='y')
 
-        self.stageBtn = ttk.Button(self, text="Stage", style="W.TButton", cursor="hand2", command= lambda: stageMeth(self))
-        self.stageBtn.pack(side='left', anchor='nw', padx=5, pady=5)
+        self.stageBtn = ttk.Button(
+            self, 
+            text="Stage", 
+            style="W.TButton", 
+            cursor="hand2", 
+            command= lambda: stageMeth(self)
+        ).pack(side='left', anchor='nw', padx=5, pady=5)
 
-        self.deleteBtn = ttk.Button(self, text="Delete", style="W.TButton", cursor="hand2", command= lambda: delMeth(self))
-        self.deleteBtn.pack(side='left', anchor='n', padx=5, pady=5)
+        self.deleteBtn = ttk.Button(
+            self, 
+            text="Delete", 
+            style="W.TButton", 
+            cursor="hand2", 
+            command= lambda: delMeth(self)
+        ).pack(side='left', anchor='n', padx=5, pady=5)
 
-        self.refreshBtn = ttk.Button(self, text="Refresh", style="W.TButton", cursor="hand2", command= lambda: tv1LoadData(self))
-        self.refreshBtn.pack(side='left', anchor='n', padx=5, pady=5)
+        self.refreshBtn = ttk.Button(
+            self, 
+            text="Refresh", 
+            style="W.TButton", 
+            cursor="hand2", 
+            command= lambda: tv1LoadData(self)
+        ).pack(side='left', anchor='n', padx=5, pady=5)
 
-        self.downloadBtn = ttk.Button(self, text="Download", style="W.TButton", cursor="hand2", command= lambda: download(self))
-        self.downloadBtn.pack(side='left', anchor='ne', padx=5, pady=5)
+        self.downloadBtn = ttk.Button(
+            self, 
+            text="Download", 
+            style="W.TButton", 
+            cursor="hand2", 
+            command= lambda: download(self)
+        ).pack(side='left', anchor='ne', padx=5, pady=5)
 
         def delMeth(self):
             focusItem = self.tv1.focus()
@@ -153,6 +204,7 @@ class ChatF(Frame):
 
         def tv1LoadData(self):
             configDi = getConfig()
+            #servList = ChatClient.ChatClient.listCall()
             tv1ClearData()
             download = configDi.get('download')
             if download != []:
@@ -160,6 +212,9 @@ class ChatF(Frame):
                 size = os.path.getsize(dnlsize[0])
                 for i in download:
                     self.tv1.insert("", "end", values=(self.user, os.path.basename(i[0]), size, i[0]))
+            # elif servList != []:
+            #     for i in servList:
+            #         self.tv1.insert("", "end", values=(i[3], os.path.basename(i[0]), size, i[0]))
             else:
                 return
 
@@ -170,11 +225,9 @@ class ChatF(Frame):
 
         tv1LoadData(self)
 
-
     def servConn(self):
         self.connection = ChatClient.ChatClient.ServerConnection(self.user)
         self.idList.append(self.connection[0])
-
 
     def ToggleChat(self):
         if self.chatBool:
