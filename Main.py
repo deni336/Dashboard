@@ -1,4 +1,5 @@
 from tkinter import *
+from pathlib import Path
 import BannerPage as BP
 import os, signal
 from FileManager import FileManager
@@ -26,6 +27,7 @@ import ServerTransactionsPage as ST
 - [] Setup endpoints for p2p file transfer
 - [] Refine server storage
 '''
+
 
 class Event(object):
  
@@ -193,7 +195,7 @@ class MyApp(Tk):
 
 root = MyApp()
 
-icon = "icon.ico"
+icon = Path.cwd().joinpath("icon.ico")
 root.iconbitmap(icon)
 #root.state("zoomed")
 root.geometry("1920x1080+0+0")
