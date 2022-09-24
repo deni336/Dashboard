@@ -10,7 +10,7 @@ import StylingPage as StylP
 from PIL import ImageTk as ITK
 from PIL import Image as PILImage
 from ConfigHandler import *
-import ServerTransactions as ST
+import ServerTransactionsPage as ST
 ##### To Do's
 
 ## Deni
@@ -18,10 +18,14 @@ import ServerTransactions as ST
 # Update file list from server with refresh button
 # Add front end for screen share connection
 # Functionality for background image
+# Client side for who is screen sharing
 
 
 ## Desmond
-
+'''
+- [] Setup endpoints for p2p file transfer
+- [] Refine server storage
+'''
 
 class Event(object):
  
