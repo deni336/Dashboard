@@ -227,7 +227,7 @@ class ChatF(Frame):
 
     def servConn(self):
         self.connection = ChatClient.ChatClient.ServerConnection(self.user)
-        self.idList.append(self.connection[0])
+        
 
     def ToggleChat(self):
         if self.chatBool:
