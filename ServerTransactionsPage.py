@@ -1,13 +1,16 @@
-import sys
+import os, signal, sys, time
 from tkinter import *
 from tkinter import ttk
+import socket
+import subprocess
+import webbrowser
 
+import ChatClient
 from ConfigHandler import *
 
 class ServTransF(Frame):
     configDict = getConfig()
     servTransBool = True
-
     def __init__(self, parent):
         self.user = loadUser()
         
@@ -21,19 +24,89 @@ class ServTransF(Frame):
             self, 
             background=self.configDict['frameBackground']
         )
-        self.transFrame.pack(fill='y')
+        self.transFrame.pack()
 
-        testBtn = ttk.Button(
+        screenShareLabel = Label(
             self.transFrame,
-            text="test",
+            text="Screen Sharing",
+            background=self.configDict["frameBackground"], 
+            foreground=self.configDict["labelForeground"], 
+            font=("American typewriter", 20)
+        ).pack()
+
+        columns = ('Users')
+        self.shareTree = ttk.Treeview(
+            self.transFrame,
+            columns=columns,
+            show='headings'
+        )
+        self.shareTree.heading('Users', text="Users")
+        self.shareTree.pack(fill='x')
+
+        refreshBtn = ttk.Button(
+            self.transFrame,
+            text="Refresh",
+            style="W.TButton",
+            command= lambda: self.updateShareTree()
+        ).pack(side='right')
+
+        disconnectBtn = ttk.Button(
+            self.transFrame,
+            text="Disco",
+            style="W.TButton",
+            command= lambda: self.killShareScreen()
+        ).pack(side='right')
+
+        shareScreenBtn = ttk.Button(
+            self.transFrame,
+            text="Share",
+            style="W.TButton",
+            command= lambda: self.fireScreenShare()
+        ).pack(side='right')
+
+        viewBtn = ttk.Button(
+            self.transFrame,
+            text="View",
             style="W.TButton", 
             cursor="hand2", 
-            command= lambda: sys.exit
-        ).pack()
+            command= lambda: sys
+        ).pack(side='right')
+
+    def updateShareTree(self):
+        x = self.shareTree.get_children()
+        for i in x:
+            self.shareTree.delete(i)
+        # self.shareTree.insert(#desmond)
+
+    def killShareScreen(self):
+        subprocess.Popen(
+                [
+                    'C:\Program Files\Google\Chrome\Application\chrome.exe', 
+                    self.myIp[0] + ':' + '7070/stop-sharing'
+                ]
+            )
+        
+
+    def fireScreenShare(self):
+        self.myIp = socket.socket.getsockname(ChatClient.server)
+        try:
+            subprocess.Popen(
+                [
+                    'C:\Program Files\Google\Chrome\Application\chrome.exe',  
+                    self.myIp[0] + ':' + '7070/start-sharing'
+                ]
+            )
+        except:
+            subprocess.Popen(
+                [
+                    'C:\Program Files (x86)\Google\Chrome\Application/chrome.exe', 
+                    self.myIp[0] + ':' + '7070/start-sharing'
+                ]
+            )
 
     def ToggleServ(self):
         if self.servTransBool:
-            self.pack(side="right", fill="y")
+            self.pack(side="right", anchor='ne')
             self.servTransBool = False
         else:
             self.pack_forget()

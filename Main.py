@@ -1,31 +1,35 @@
-from tkinter import *
-from pathlib import Path
-import BannerPage as BP
 import os, signal
-from FileManager import FileManager
-import SettingsPage as SP
+from pathlib import Path
+from PIL import ImageTk as ITK
+from PIL import Image as PILImage
+from tkinter import *
+
+import BannerPage as BP
 import BottomPage as BotP
 import ButtonPage as ButP
 import ChatPage as CP
-import StylingPage as StylP
-from PIL import ImageTk as ITK
-from PIL import Image as PILImage
 from ConfigHandler import *
+from FileManager import FileManager
 import ServerTransactionsPage as ST
+import SettingsPage as SP
+import StylingPage as StylP
+
 ##### To Do's
 
 ## Deni
-# Server call for file list
+# Server call for file list and broadcasting users list
 # Update file list from server with refresh button
 # Add front end for screen share connection
 # Functionality for background image
 # Client side for who is screen sharing
-
+# Kill screen share
 
 ## Desmond
 '''
 - [] Setup endpoints for p2p file transfer
 - [] Refine server storage
+- [] **Bug screen share crashes and wont restart with no user on other end
+- [] Handle if screen share is closed by browser
 '''
 
 
@@ -191,7 +195,7 @@ class MyApp(Tk):
     def shutdown(self):
         for i in CP.ChatF.idList:
             os.kill(i, signal.SIGTERM)
-        root.destroy() # sys.exit
+        root.destroy()
 
 root = MyApp()
 
