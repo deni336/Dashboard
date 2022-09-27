@@ -1,14 +1,14 @@
 from tkinter import *
 from tkinter import ttk, colorchooser, filedialog
-from ConfigHandler import getConfig, saveConfig
-#import BindWindow
+from ConfigHandler import getConfig, saveConfig, update
 import StylingPage as StylP
 
 class SettingsW(Frame):
     configDict = getConfig()
     settingsBool = False
 
-    def __init__(self, parent):
+    def __init__(self, parent, e):
+        self.event = e
         Frame.__init__(self, parent)
         self.parent = parent
         self.configure(background=self.configDict["frameBackground"])
@@ -83,7 +83,8 @@ class SettingsW(Frame):
             self, 
             text="Upload", 
             style="W.TButton", 
-            cursor="hand2"
+            cursor="hand2",
+            command= lambda: self.chooseBgImage()
         ).pack()
 
         self.workDirLabel = Label(
@@ -102,21 +103,35 @@ class SettingsW(Frame):
             command= lambda: self.setWorkDir()
         ).pack()
 
-        self.bindLabel = Label(
-            self, 
-            text="Keybinds", 
-            font=('helvetica', 16, "bold italic"), 
-            background=self.configDict["frameBackground"], 
-            foreground=self.configDict["labelForeground"]
-        ).pack()
+        # self.bindLabel = Label(
+        #     self, 
+        #     text="Keybinds", 
+        #     font=('helvetica', 16, "bold italic"), 
+        #     background=self.configDict["frameBackground"], 
+        #     foreground=self.configDict["labelForeground"]
+        # ).pack()
 
-        #self.bindBtn = ttk.Button(self, text="Bind", style="W.TButton", cursor="hand2", command= lambda: self.setKeyBinds()).pack()
+        # self.bindBtn = ttk.Button(
+        #     self, 
+        #     text="Bind", 
+        #     style="W.TButton", 
+        #     cursor="hand2", 
+        #     command= lambda: self.setKeyBinds()
+        # ).pack()
+    def chooseBgImage(self):
+        bgImageFile = filedialog.askopenfilename()
+        if bgImageFile == '':
+            pass
+        else:
+            update('bgImage', bgImageFile)
+            self.event.UpdateBackground(self)
 
     def setWorkDir(self):
         filename = filedialog.askdirectory()
-        configDi = getConfig()
-        configDi.update({'workDir': filename})
-        saveConfig(configDi)
+        if filename == '':
+            pass
+        else:
+            update('workDir', filename)
 
     def ToggleSettings(self):
         if self.settingsBool:

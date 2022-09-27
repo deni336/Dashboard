@@ -6,6 +6,8 @@ from tkinter import ttk, filedialog
 import ChatClient
 from ConfigHandler import *
 import FileManager
+from ServerCommunicationHandler import run
+import ServerTransactionHandler
 
 
 class ChatF(Frame):
@@ -101,7 +103,7 @@ class ChatF(Frame):
 
         def enterPressed(self):
             inputGet = messageInput.get()
-            ChatClient.ChatClient.sendMessage(inputGet)
+            run(,inputGet)
             messageInput.set('')
             messages.see("end")
 
@@ -227,6 +229,7 @@ class ChatF(Frame):
 
     def servConn(self):
         self.connection = ChatClient.ChatClient.ServerConnection(self.user)
+        ServerTransactionHandler.checkIp(ServerTransactionHandler)
         
 
     def ToggleChat(self):

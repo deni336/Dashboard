@@ -1,0 +1,6 @@
+service ListOfConnUsers {
+
+    rpc getUsers (userRequest) returns (userResponse){
+        // errors
+    };
+}

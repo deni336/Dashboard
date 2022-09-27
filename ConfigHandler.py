@@ -31,7 +31,8 @@ def getConfig():
                 "windowMode": "True",
                 "download": [],
                 "workDir": "",
-                "keyBinds": []
+                "keyBinds": [],
+                "clientIp": ""
             }
             saveConfig(configF)
             with open("C:/users/" + user + "/dashconfig.json", "r") as configFile:

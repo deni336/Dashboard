@@ -1,8 +1,10 @@
 import os, signal
 from pathlib import Path
+import tkinter
 from PIL import ImageTk as ITK
 from PIL import Image as PILImage
 from tkinter import *
+from tkinter import TclError
 
 import BannerPage as BP
 import BottomPage as BotP
@@ -11,8 +13,8 @@ import ChatPage as CP
 from ConfigHandler import *
 from FileManager import FileManager
 import ServerTransactionsPage as ST
+from ServerTransactionHandler import *
 import SettingsPage as SP
-import StylingPage as StylP
 
 ##### To Do's
 
@@ -22,7 +24,9 @@ import StylingPage as StylP
 # Add front end for screen share connection
 # Functionality for background image
 # Client side for who is screen sharing
-# Kill screen share
+# Key Binds?
+# refresh bg image
+
 
 ## Desmond
 '''
@@ -31,6 +35,11 @@ import StylingPage as StylP
 - [] **Bug screen share crashes and wont restart with no user on other end
 - [] Handle if screen share is closed by browser
 '''
+
+## gRPC
+
+# connected users list
+# 
 
 
 class Event(object):
@@ -50,13 +59,10 @@ class Event(object):
         for eventhandler in self.__eventhandlers:
             eventhandler(*args, **keywargs)
 
-
-
     def StartAlarm(self):
         print ("Alarm has started")
 
 class Events(object):
-    # configDict = getConfig()
 
     def __init__(self):
         self.DownSize = Event()
@@ -66,7 +72,8 @@ class Events(object):
         self.OnShutDown = Event()
         self.ToggleOpen = Event()
         self.ToggleServTrans = Event()
-        # self.bind(Event, self.handler())
+        self.UpdateBackground = Event()
+       
 
     def FireEvent(self):
         # This function will be executed once a lock is broken and will
@@ -78,6 +85,7 @@ class Events(object):
         self.OnShutDown()
         self.ToggleOpen()
         self.ToggleServTrans()
+        self.UpdateBackground()
 
 
     def AddSubscribersForLockBrokenEvent(self, objMethod):
@@ -122,6 +130,12 @@ class Events(object):
     def RemoveSubscribersForFullScreenEvent(self,objMethod):
         self.FullScreen -= objMethod
 
+    def AddSubscribersForUpdateBackgroundEvent(self, objMethod):
+        self.UpdateBackground += objMethod
+
+    def RemoveSubscribersForUpdateBackgroundEvent(self, objMethod):
+        self.UpdateBackground -= objMethod
+
 class MainApp(Frame):
     def __init__(self, parent, config):
         self.configDict = config
@@ -133,10 +147,12 @@ class MainApp(Frame):
         self.parent = parent
         self.configure(background=self.configDict['frameBackground'])
         self.mainWidgets()
+        self.UpdateBackground()
 
     def mainWidgets(self):
         self.pack(expand="true", fill="both")
 
+    def UpdateBackground(self):
         try:
             self.configDict.get('bgImage')
             bgImagePicked = self.configDict.get('bgImage')
@@ -150,8 +166,9 @@ class MainApp(Frame):
             )
             bgImageLabel.place(x=0, y=0)
             bgImageLabel.image = bgImage
-        except:
-            pass
+            MyApp.update(self)
+        except tkinter.TclError as e:
+            print(e)
 
 class MyApp(Tk):
 
@@ -170,7 +187,7 @@ class MyApp(Tk):
         self.bannerFrame = BP.BannerF(self.mainFrame, eventHandler)
         self.bottomFrame = BotP.BottomF(self.mainFrame)
         self.buttonFrame = ButP.ButtonF(self.mainFrame)
-        self.settingsFrame = SP.SettingsW(self.mainFrame)
+        self.settingsFrame = SP.SettingsW(self.mainFrame, eventHandler)
         self.chatFrame = CP.ChatF(self.mainFrame)
         self.servFrame = ST.ServTransF(self.mainFrame)
 
@@ -181,6 +198,7 @@ class MyApp(Tk):
         eventHandler.AddSubscribersForShutDownEvent(self.shutdown)
         eventHandler.AddSubscribersForLockBrokenEvent(self.settingsFrame.ToggleSettings)
         eventHandler.AddSubscribersForToggleServTransEvent(self.servFrame.ToggleServ)
+        eventHandler.AddSubscribersForUpdateBackgroundEvent(MainApp.UpdateBackground)
 
 
     def Minimize(self): 

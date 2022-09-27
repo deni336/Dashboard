@@ -7,6 +7,7 @@ import webbrowser
 
 import ChatClient
 from ConfigHandler import *
+import ServerTransactionHandler as STH
 
 class ServTransF(Frame):
     configDict = getConfig()
@@ -76,7 +77,7 @@ class ServTransF(Frame):
         x = self.shareTree.get_children()
         for i in x:
             self.shareTree.delete(i)
-        # self.shareTree.insert(#desmond)
+        self.shareTree.insert(STH.ServerTransactionHandler.retrieveLists(STH.ServerTransactionHandler, self.user))
 
     def killShareScreen(self):
         subprocess.Popen(
@@ -88,7 +89,7 @@ class ServTransF(Frame):
         
 
     def fireScreenShare(self):
-        self.myIp = socket.socket.getsockname(ChatClient.server)
+        self.myIp = self.configDict['clientIp']
         try:
             subprocess.Popen(
                 [
