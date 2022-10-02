@@ -1,7 +1,7 @@
 import os, socket
 import threading, sys
 from tkinter import *
-from tkinter import ttk, filedialog
+from tkinter import filedialog, ttk
 
 import ChatClient
 from ConfigHandler import *
@@ -103,7 +103,7 @@ class ChatF(Frame):
 
         def enterPressed(self):
             inputGet = messageInput.get()
-            run(,inputGet)
+            run('chatstream',inputGet)
             messageInput.set('')
             messages.see("end")
 
@@ -229,7 +229,7 @@ class ChatF(Frame):
 
     def servConn(self):
         self.connection = ChatClient.ChatClient.ServerConnection(self.user)
-        ServerTransactionHandler.checkIp(ServerTransactionHandler)
+        # ServerTransactionHandler.ServerTransactionHandler.checkIp(ServerTransactionHandler)
         
 
     def ToggleChat(self):

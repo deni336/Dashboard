@@ -12,7 +12,7 @@ import ButtonPage as ButP
 import ChatPage as CP
 from ConfigHandler import *
 from FileManager import FileManager
-import ServerTransactionsPage as ST
+import ScreenShareWindow as SSW
 from ServerTransactionHandler import *
 import SettingsPage as SP
 
@@ -85,7 +85,6 @@ class Events(object):
         self.OnShutDown()
         self.ToggleOpen()
         self.ToggleServTrans()
-        self.UpdateBackground()
 
 
     def AddSubscribersForLockBrokenEvent(self, objMethod):
@@ -136,6 +135,7 @@ class Events(object):
     def RemoveSubscribersForUpdateBackgroundEvent(self, objMethod):
         self.UpdateBackground -= objMethod
 
+
 class MainApp(Frame):
     def __init__(self, parent, config):
         self.configDict = config
@@ -182,14 +182,12 @@ class MyApp(Tk):
     def widgets(self):
         eventHandler = Events()
 
-
         self.mainFrame = MainApp(self, self.configDict)
         self.bannerFrame = BP.BannerF(self.mainFrame, eventHandler)
         self.bottomFrame = BotP.BottomF(self.mainFrame)
         self.buttonFrame = ButP.ButtonF(self.mainFrame)
         self.settingsFrame = SP.SettingsW(self.mainFrame, eventHandler)
         self.chatFrame = CP.ChatF(self.mainFrame)
-        self.servFrame = ST.ServTransF(self.mainFrame)
 
         eventHandler.AddSubscribersForDownSizeEvent(self.DownSize)
         eventHandler.AddSubscribersForFullScreenEvent(self.FullScreen)

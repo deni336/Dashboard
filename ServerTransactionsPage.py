@@ -12,6 +12,7 @@ import ServerTransactionHandler as STH
 class ServTransF(Frame):
     configDict = getConfig()
     servTransBool = True
+    getItem = []
     def __init__(self, parent):
         self.user = loadUser()
         
@@ -70,7 +71,7 @@ class ServTransF(Frame):
             text="View",
             style="W.TButton", 
             cursor="hand2", 
-            command= lambda: sys
+            command= lambda: self.viewSelectedScreen()
         ).pack(side='right')
 
     def updateShareTree(self):
@@ -87,6 +88,12 @@ class ServTransF(Frame):
                 ]
             )
         
+    def viewSelectedScreen(self):
+        focusItem = self.shareTree.focus()
+        fItem = self.shareTree.item(focusItem)
+        self.getItem = fItem.get('values')
+        self.event.OpenScreenShare()
+
 
     def fireScreenShare(self):
         self.myIp = self.configDict['clientIp']

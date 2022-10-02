@@ -16,15 +16,15 @@ CHANNEL_OPTIONS = [('grpc.lb_policy_name', 'pick_first'),
                    ('grpc.keepalive_timeout_ms', 10000)]
 
 
-async def run(method) -> None:
+async def run(method, message) -> None:
+    
     async with grpc.aio.insecure_channel(target='localhost:50051',
                                          options=CHANNEL_OPTIONS) as channel:
         stub = kasugai_pb2_grpc.GreeterStub(channel)
-        # Timeout in seconds.
-        # Please refer gRPC Python documents for more detail. https://grpc.io/grpc/python/grpc.html
-        response = await stub.method(kasugai_pb2.method(name=configDict['user']),
+        response = await stub.method(kasugai_pb2.method(message, name=configDict['user']),
                                        timeout=10)
-    print("Greeter client received: " + response.message)
+    return response
+    
 
 
 if __name__ == '__main__':
