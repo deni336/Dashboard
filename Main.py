@@ -14,6 +14,7 @@ from ConfigHandler import *
 from FileManager import FileManager
 import ScreenShareWindow as SSW
 from ServerTransactionHandler import *
+import ServerTransactionsPage
 import SettingsPage as SP
 
 ##### To Do's
@@ -188,6 +189,7 @@ class MyApp(Tk):
         self.buttonFrame = ButP.ButtonF(self.mainFrame)
         self.settingsFrame = SP.SettingsW(self.mainFrame, eventHandler)
         self.chatFrame = CP.ChatF(self.mainFrame)
+        self.servFrame = ServerTransactionsPage.ServTransF
 
         eventHandler.AddSubscribersForDownSizeEvent(self.DownSize)
         eventHandler.AddSubscribersForFullScreenEvent(self.FullScreen)
