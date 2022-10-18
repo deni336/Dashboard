@@ -81,7 +81,7 @@ class ChatF(Frame):
 
         self.scroll.configure(command=messages.yview)
 
-        if self.connection[1] != '':
+        if self.connection != '':
             messages.config(state=NORMAL)
             messages.insert(END, self.connection[1])
             messages.config(state=DISABLED)

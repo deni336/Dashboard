@@ -1,12 +1,11 @@
 package clienthandler
 
 import (
-	pb "chat/pkg/kasugai"
 	"io"
+	pb "kasugai/kasugai"
 )
 
 type User struct {
-	user        *pb.User
 	conn        pb.Broadcast_ChatServiceServer
 	send        chan *pb.MessageResponse
 	quit        chan struct{}
@@ -14,9 +13,8 @@ type User struct {
 	WorkingDir  string
 }
 
-func NewUser(conn pb.Broadcast_ChatServiceServer, usr *pb.User) *User {
+func NewUser(conn pb.Broadcast_ChatServiceServer) *User {
 	u := &User{
-		user: usr,
 		conn: conn,
 		send: make(chan *pb.MessageResponse),
 		quit: make(chan struct{}),
