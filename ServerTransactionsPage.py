@@ -7,7 +7,7 @@ import webbrowser
 
 import ChatClient
 from ConfigHandler import *
-import ServerTransactionHandler as STH
+# import ServerTransactionHandler as STH
 
 class ServTransF(Frame):
     configDict = getConfig()
@@ -78,7 +78,7 @@ class ServTransF(Frame):
         x = self.shareTree.get_children()
         for i in x:
             self.shareTree.delete(i)
-        self.shareTree.insert(STH.ServerTransactionHandler.retrieveLists(STH.ServerTransactionHandler, self.user))
+        self.shareTree.insert()
 
     def killShareScreen(self):
         subprocess.Popen(

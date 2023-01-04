@@ -1,7 +1,11 @@
 import json
 import os
+from pathlib import Path
 
 user = os.getlogin()
+configPath = Path().home().joinpath("dashconfig.json")
+
+protoDict = {}
 
 def update(key, value):
     configDict = getConfig()
@@ -10,13 +14,13 @@ def update(key, value):
 
 def getConfig():
     try:
-        with open("C:/users/" + user + "/dashconfig.json", "r") as configFile:
+        with open(configPath, "r") as configFile:
                 fileContent = configFile.read()
                 configDict = json.loads(fileContent)
                 return configDict
                 
     except:
-        with open("C:/users/" + user + "/dashconfig.json", "w") as configFile:
+        with open(configPath, "w") as configFile:
             configF = {
                 "user": "",
                 "buttonBackground": "#000000",
@@ -35,17 +39,16 @@ def getConfig():
                 "clientIp": ""
             }
             saveConfig(configF)
-            with open("C:/users/" + user + "/dashconfig.json", "r") as configFile:
+            with open(configPath, "r") as configFile:
                 fileContent = configFile.read()
                 configDict = json.loads(fileContent)
                 return configDict
         
     
 def saveConfig(configD):
-    with open("C:/users/" + user + "/dashconfig.json", "w") as f:
+    with open(configPath, "w") as f:
         dumped = json.dumps(configD, indent=4)
         f.write(dumped)
-        f.close()
 
 def loadUser():
     configDict = getConfig()

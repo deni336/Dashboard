@@ -13,7 +13,6 @@ import ChatPage as CP
 from ConfigHandler import *
 from FileManager import FileManager
 import ScreenShareWindow as SSW
-from ServerTransactionHandler import *
 import ServerTransactionsPage
 import SettingsPage as SP
 
@@ -27,6 +26,7 @@ import SettingsPage as SP
 # Client side for who is screen sharing
 # Key Binds?
 # refresh bg image
+# get screen res from system
 
 
 ## Desmond
@@ -155,15 +155,14 @@ class MainApp(Frame):
 
     def UpdateBackground(self):
         try:
-            self.configDict.get('bgImage')
-            bgImagePicked = self.configDict.get('bgImage')
+            bgImagePicked = self.configDict['bgImage']
             img = PILImage.open(bgImagePicked)
             imgResized = img.resize((1920, 1080), PILImage.Resampling.LANCZOS)
             bgImage = ITK.PhotoImage(imgResized)
             bgImageLabel = Label(
                 self, 
                 image=bgImage, 
-                background=self.configDict.get("frameBackground")
+                background=self.configDict["frameBackground"]
             )
             bgImageLabel.place(x=0, y=0)
             bgImageLabel.image = bgImage
@@ -189,7 +188,7 @@ class MyApp(Tk):
         self.buttonFrame = ButP.ButtonF(self.mainFrame)
         self.settingsFrame = SP.SettingsW(self.mainFrame, eventHandler)
         self.chatFrame = CP.ChatF(self.mainFrame)
-        self.servFrame = ServerTransactionsPage.ServTransF
+        self.servFrame = ServerTransactionsPage.ServTransF(self.mainFrame)
 
         eventHandler.AddSubscribersForDownSizeEvent(self.DownSize)
         eventHandler.AddSubscribersForFullScreenEvent(self.FullScreen)

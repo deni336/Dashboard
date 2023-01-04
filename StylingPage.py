@@ -3,10 +3,6 @@ from ConfigHandler import *
 
 configDict = getConfig()
 
-frameSytles = {"background:": "self.configDict.get('frameBackground')",
-               "foreground:": "foreground=self.configDict.get('labelForeground')",
-               "font=":"self.configDict.get('labelFont')"}
-
 def styler():
     style = ttk.Style()
     style.theme_use('default')

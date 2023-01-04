@@ -7,7 +7,6 @@ import ChatClient
 from ConfigHandler import *
 import FileManager
 from ServerCommunicationHandler import run
-import ServerTransactionHandler
 
 
 class ChatF(Frame):
@@ -29,32 +28,41 @@ class ChatF(Frame):
     def widgets(self):
         inputUser1 = StringVar()
         messageInput = StringVar()
-        nameInputBox = Entry(
+
+        self.nameInputFrame = Frame(
             self, 
+            background=self.configDict["frameBackground"]
+        )
+        self.nameInputFrame.pack()
+
+        self.nameInputBox = Entry(
+            self.nameInputFrame, 
             textvariable=inputUser1, 
             background=self.configDict["frameBackground"], 
             foreground=self.configDict['buttonForeground'], 
             font=('American typewriter', 12, 'bold')
         )
-        nameInputBox.pack(side="top", pady=5)
+        self.nameInputBox.pack(anchor='n', side='left', pady=5)
+
+        self.submitBtn = ttk.Button(
+            self.nameInputFrame, 
+            text="Submit", 
+            style="W.TButton", 
+            cursor="hand2", 
+            command= lambda: enterPressed1(self)
+        ).pack(anchor='n', side='right', padx=5, pady=5)
 
         def enterPressed1(self):
             self.user = inputUser1.get()
-            nameInputBox.config(state=DISABLED)
+            self.nameInputBox.config(state=DISABLED)
             update("user", self.user)
-
-        nameInputBox.bind(
-            "<Return>", 
-            enterPressed1
-        )
-
 
         if self.configDict.get('user') != "":
             self.user = self.configDict.get('user')
-            nameInputBox.config(state=DISABLED)
+            self.nameInputBox.config(state=DISABLED)
             inputUser1.set(self.user)
         else:
-            nameInputBox.config(state=NORMAL)
+            self.nameInputBox.config(state=NORMAL)
             inputUser1.set('Enter your name')
 
         self.messagesFrame = Frame(
@@ -100,10 +108,9 @@ class ChatF(Frame):
         )
         self.inputField.pack(fill="x", padx=5, pady=2)
 
-
         def enterPressed(self):
             inputGet = messageInput.get()
-            run('chatstream',inputGet)
+            run(protoDict[0], inputGet)
             messageInput.set('')
             messages.see("end")
 
