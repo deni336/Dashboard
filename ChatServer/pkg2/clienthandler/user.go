@@ -1,8 +1,8 @@
 package clienthandler
 
 import (
+	pb "chat/kasugai"
 	"io"
-	pb "kasugai/kasugai"
 )
 
 type User struct {

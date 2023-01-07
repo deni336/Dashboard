@@ -3,7 +3,6 @@ package main
 import (
 	"chat/internal/screenshare"
 	"chat/internal/storage"
-	"chat/pkg/api"
 	"chat/pkg/clienthandler"
 	"chat/pkg/utils"
 	"fmt"
@@ -53,8 +52,6 @@ func startSupportingServers(au *clienthandler.ActiveUsers) {
 	fmt.Println("Initializing file upload server...")
 	go storage.HostUploadServer(FILEUPLOAD)
 
-	fmt.Println("Initializing chat server API...")
-	api.API(APIIP, au)
 }
 
 func startChatServer(atv_usrs *clienthandler.ActiveUsers) {

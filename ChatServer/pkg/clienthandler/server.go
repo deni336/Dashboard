@@ -1,8 +1,8 @@
 package clienthandler
 
 import (
+	pb "chat/pkg/kasugai"
 	"fmt"
-	pb "kasugai/kasugai"
 	"net"
 	"sync"
 
