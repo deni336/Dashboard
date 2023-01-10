@@ -1,5 +1,7 @@
 import grpc
 import grpc_tools
+import future
+import asyncio_route_guide_client
 
 
 class client():
@@ -9,9 +11,9 @@ class client():
         AuthKey = CreateAuth.createKey()
 
     def getFeature(self, request, context):
-        feature = get_feature(self.db, request)
+        feature = asyncio_route_guide_client.guide_get_feature(self.db, request)
         if feature is None:
-            return route_guide_pb2.Feature(name="", location=request)
+            return future.route_guide_pb2.Feature(name="", location=request)
         else:
             return feature
 
