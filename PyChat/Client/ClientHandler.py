@@ -16,6 +16,21 @@ class client():
             return future.route_guide_pb2.Feature(name="", location=request)
         else:
             return feature
+    
+    def listFeatures(self, request, context):
+        featList = []
+        for feature in self.db:
+            featList.append(feature)
+        return featList
+    
+    def recordChat(self, requestIterator, context):
+        prevNotes = []
+        for newNote in requestIterator:
+            for prevNote in prevNotes:
+                if prevNote.location == newNote.location:
+                    yield prevNote
+            prevNotes.append(newNote)
+
 
 class CreateAuth():
     def createKey():
