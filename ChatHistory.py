@@ -35,3 +35,19 @@ class DatabaseManipulation():
         conn = createConnection(db)
         sql = '''INSERT INTO HIST (NAME, MESSAGE, TIME) VALUES (?,?,?)
         '''
+        cur = conn.cursor()
+        cur.execute(sql)
+        conn.commit()
+        conn.close()
+
+    def viewMessages(self):
+        messageHistory = []
+        conn = createConnection(db)
+        sql = '''SELECT * FORM HIST'''
+        cur = conn.cursor()
+        read = cur.execute(sql)
+        for i in read:
+            messageHistory.append(i)
+        return messageHistory
+        
+

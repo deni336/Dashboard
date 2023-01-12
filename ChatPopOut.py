@@ -3,7 +3,6 @@ import threading, sys
 from tkinter import *
 from tkinter import filedialog, ttk
 
-
 import ChatClient
 import ChatHistory
 from ConfigHandler import *
