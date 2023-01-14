@@ -8,6 +8,7 @@ import ChatHistory
 from ConfigHandler import *
 import FileManager
 from ServerCommunicationHandler import run
+import StylingPage
 
 
 class ChatF(Tk):
@@ -17,6 +18,7 @@ class ChatF(Tk):
     def __init__(self):
         self.user = loadUser()
         self.connection = []
+        self.style = StylingPage.styler()
         
         Tk.__init__(self)
         self.configure(background=self.configDict['frameBackground'])

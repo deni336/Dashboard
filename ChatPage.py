@@ -159,6 +159,7 @@ class ChatF(Frame):
                 messages.config(state=NORMAL)
                 messages.insert(END, response)
                 messages.config(state=DISABLED)
+                ChatHistory.DatabaseManipulation.addMessage(response)
                 messageUpdater()
             except:
                 pass
