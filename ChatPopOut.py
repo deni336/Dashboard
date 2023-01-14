@@ -10,63 +10,22 @@ import FileManager
 from ServerCommunicationHandler import run
 
 
-class ChatF(Frame):
+class ChatF(Tk):
     configDict = getConfig()
-    chatBool = True
     idList = []
 
-    def __init__(self, parent):
+    def __init__(self):
         self.user = loadUser()
         self.connection = []
         
-        Frame.__init__(self, parent)
-        self.parent = parent
+        Tk.__init__(self)
         self.configure(background=self.configDict['frameBackground'])
         self.servConn()
         self.widgets()
         self.treeLoop()
 
     def widgets(self):
-        inputUser1 = StringVar()
-        
-
-        self.nameInputFrame = Frame(
-            self, 
-            background=self.configDict["frameBackground"]
-        )
-        self.nameInputFrame.pack()
-
-        self.nameInputBox = Entry(
-            self.nameInputFrame, 
-            textvariable=inputUser1, 
-            background=self.configDict["frameBackground"], 
-            foreground=self.configDict['buttonForeground'], 
-            font=('American typewriter', 12, 'bold')
-        )
-        self.nameInputBox.pack(anchor='n', side='left', pady=5)
-
-        self.submitBtn = ttk.Button(
-            self.nameInputFrame, 
-            text="Submit", 
-            style="W.TButton", 
-            cursor="hand2", 
-            command= lambda: enterPressed1(self)
-        ).pack(anchor='n', side='right', padx=5, pady=5)
-
-        def enterPressed1(self):
-            self.user = inputUser1.get()
-            self.nameInputBox.config(state=DISABLED)
-            update("user", self.user)
-
-        if self.configDict.get('user') != "":
-            self.user = self.configDict.get('user')
-            self.nameInputBox.config(state=DISABLED)
-            inputUser1.set(self.user)
-        else:
-            self.nameInputBox.config(state=NORMAL)
-            inputUser1.set('Enter your name')
-
-        
+        self.title('Dashboard')
 
     def treeLoop(self):
         messageInput = StringVar()
@@ -82,7 +41,7 @@ class ChatF(Frame):
             style="W.TButton",
             cursor="hand2",
             command= lambda: self.tv1LoadData()
-        )        
+        ).pack(side='left')
 
         self.viewHist = ttk.Button(
             self.additionalButtons,
@@ -90,15 +49,15 @@ class ChatF(Frame):
             style="W.TButton",
             cursor="hand2",
             command= lambda: self.tv1LoadHist()
-        ).pack(side='left')
-
-        self.popOut = ttk.Button(
-            self.additionalButtons,
-            text="Pop out",
-            style="W.TButton",
-            cursor="hand2"
-
         ).pack(side='right')
+
+        # self.popOut = ttk.Button(
+        #     self.additionalButtons,
+        #     text="Pop out",
+        #     style="W.TButton",
+        #     cursor="hand2"
+
+        # ).pack(side='right')
 
         self.messagesFrame = Frame(
             self, 
@@ -278,15 +237,6 @@ class ChatF(Frame):
     def servConn(self):
         self.connection = ChatClient.ChatClient.ServerConnection(self.user)
         # ServerTransactionHandler.ServerTransactionHandler.checkIp(ServerTransactionHandler)
-        
-
-    def ToggleChat(self):
-        if self.chatBool:
-            self.pack(side="right", anchor='ne')
-            self.chatBool = False
-        else:
-            self.pack_forget()
-            self.chatBool = True
 
  #Connecting to the server
 # Get-Process -Id (Get-NetTCPConnection -LocalPort 6969).OwningProcess

@@ -6,6 +6,7 @@ from tkinter import filedialog, ttk
 
 import ChatClient
 import ChatHistory
+import ChatPopOut
 from ConfigHandler import *
 import FileManager
 from ServerCommunicationHandler import run
@@ -67,7 +68,6 @@ class ChatF(Frame):
             self.nameInputBox.config(state=NORMAL)
             inputUser1.set('Enter your name')
 
-        
 
     def treeLoop(self):
         messageInput = StringVar()
@@ -83,7 +83,7 @@ class ChatF(Frame):
             style="W.TButton",
             cursor="hand2",
             command= lambda: self.tv1LoadData()
-        )        
+        ).pack(side='left')
 
         self.viewHist = ttk.Button(
             self.additionalButtons,
@@ -97,8 +97,8 @@ class ChatF(Frame):
             self.additionalButtons,
             text="Pop out",
             style="W.TButton",
-            cursor="hand2"
-
+            cursor="hand2",
+            command= lambda: ChatPopOut.ChatF()
         ).pack(side='right')
 
         self.messagesFrame = Frame(
