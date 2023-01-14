@@ -1,6 +1,8 @@
 import os
 import socket
 import subprocess
+import protos.kasugaipy_pb2
+import protos.kasugaipy_pb2_grpc
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 PORT = 6969
@@ -28,22 +30,12 @@ class ChatClient():
                 return
 
     def ServerConnection(user, ip = "localhost"):
-        try:
-            serv = subprocess.Popen([r"chat.exe"])
-            
-            if user == '':
-                user = os.getlogin()
-                connection(user, ip)
-                return ''
-            else:
-                connection(user, ip)
-                return ''
-        except:
-                return "No Server Connected"
-
-    def sendStage(self, stagedList):
-        server.send(bytearray(stagedList.replace('\x00', '') + '\n', 'utf-8'))
-
-    def servCall():
         pass
 
+class User():
+    user = protos.kasugaipy_pb2.User()
+    send = protos.kasugaipy_pb2.MessageResponse()
+    send.Message = "Hello from bob"
+    send.Timestamp = "1800"
+    user.Name = 'Bob'
+    user.Message = send

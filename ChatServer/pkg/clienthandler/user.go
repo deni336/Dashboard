@@ -2,6 +2,7 @@ package clienthandler
 
 import (
 	pb "chat/pkg/kasugai"
+	"fmt"
 	"io"
 )
 
@@ -64,6 +65,7 @@ func (u *User) GetMessages(broadcast chan<- *pb.MessageResponse) error {
 		go func(msg *pb.MessageResponse) {
 			select {
 			case broadcast <- msg:
+				fmt.Println(msg)
 			case <-u.quit:
 			}
 		}(msg)
