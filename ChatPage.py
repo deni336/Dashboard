@@ -10,8 +10,8 @@ import ChatHistory
 import ChatPopOut
 from ConfigHandler import *
 import FileManager
-import protos.kasugaipy_pb2
-import protos.kasugaipy_pb2_grpc
+import protos.kasugai_pb2
+import protos.kasugai_pb2_grpc
 
 
 
@@ -22,12 +22,10 @@ class ChatF(Frame):
 
     def __init__(self, parent):
         self.user = loadUser()
-        self.connection = []
         
         Frame.__init__(self, parent)
         self.parent = parent
         self.configure(background=self.configDict['frameBackground'])
-        ChatClient.ChatClient.connection(ChatClient)
         self.widgets()
         self.treeLoop()
 
@@ -92,12 +90,6 @@ class ChatF(Frame):
 
         self.scroll.configure(command=messages.yview)
 
-        if self.connection != '':
-            messages.config(state=NORMAL)
-            #messages.insert(END, self.connection[1])
-            messages.config(state=DISABLED)
-
-
         self.inputField = Entry(
             self, 
             textvariable=messageInput, 
@@ -111,7 +103,7 @@ class ChatF(Frame):
 
         def enterPressed(self):
             inputGet = messageInput.get()
-            ChatClient.ChatClient.sendMessage(ChatClient, inputGet)
+            ChatClient.ChatClient.sendMessage(ChatClient.ChatClient, inputGet)
             messageInput.set('')
             messages.see("end")
 
@@ -240,7 +232,10 @@ class ChatF(Frame):
             for i in x:
                 self.tv1.delete(i)
 
-        tv1LoadData(self)       
+        tv1LoadData(self)
+
+    
+
 
     def ToggleChat(self):
         if self.chatBool:
