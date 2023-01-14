@@ -7,7 +7,6 @@ import ChatClient
 import ChatHistory
 from ConfigHandler import *
 import FileManager
-from ServerCommunicationHandler import run
 import StylingPage
 
 
@@ -106,7 +105,7 @@ class ChatF(Tk):
 
         def enterPressed(self):
             inputGet = messageInput.get()
-            run(protoDict[0], inputGet)
+            #run(protoDict[0], inputGet)
             messageInput.set('')
             messages.see("end")
 

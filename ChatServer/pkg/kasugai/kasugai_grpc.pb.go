@@ -22,8 +22,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type BroadcastClient interface {
-	Connect(ctx context.Context, in *User, opts ...grpc.CallOption) (*WelcomeMessage, error)
 	ChatService(ctx context.Context, opts ...grpc.CallOption) (Broadcast_ChatServiceClient, error)
+	ActiveUsers(ctx context.Context, in *ActiveUsersRequest, opts ...grpc.CallOption) (*ActiveUsersList, error)
 }
 
 type broadcastClient struct {
@@ -32,15 +32,6 @@ type broadcastClient struct {
 
 func NewBroadcastClient(cc grpc.ClientConnInterface) BroadcastClient {
 	return &broadcastClient{cc}
-}
-
-func (c *broadcastClient) Connect(ctx context.Context, in *User, opts ...grpc.CallOption) (*WelcomeMessage, error) {
-	out := new(WelcomeMessage)
-	err := c.cc.Invoke(ctx, "/kasugai.Broadcast/Connect", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *broadcastClient) ChatService(ctx context.Context, opts ...grpc.CallOption) (Broadcast_ChatServiceClient, error) {
@@ -74,12 +65,21 @@ func (x *broadcastChatServiceClient) Recv() (*MessageResponse, error) {
 	return m, nil
 }
 
+func (c *broadcastClient) ActiveUsers(ctx context.Context, in *ActiveUsersRequest, opts ...grpc.CallOption) (*ActiveUsersList, error) {
+	out := new(ActiveUsersList)
+	err := c.cc.Invoke(ctx, "/kasugai.Broadcast/ActiveUsers", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BroadcastServer is the server API for Broadcast service.
 // All implementations must embed UnimplementedBroadcastServer
 // for forward compatibility
 type BroadcastServer interface {
-	Connect(context.Context, *User) (*WelcomeMessage, error)
 	ChatService(Broadcast_ChatServiceServer) error
+	ActiveUsers(context.Context, *ActiveUsersRequest) (*ActiveUsersList, error)
 	mustEmbedUnimplementedBroadcastServer()
 }
 
@@ -87,11 +87,11 @@ type BroadcastServer interface {
 type UnimplementedBroadcastServer struct {
 }
 
-func (UnimplementedBroadcastServer) Connect(context.Context, *User) (*WelcomeMessage, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Connect not implemented")
-}
 func (UnimplementedBroadcastServer) ChatService(Broadcast_ChatServiceServer) error {
 	return status.Errorf(codes.Unimplemented, "method ChatService not implemented")
+}
+func (UnimplementedBroadcastServer) ActiveUsers(context.Context, *ActiveUsersRequest) (*ActiveUsersList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ActiveUsers not implemented")
 }
 func (UnimplementedBroadcastServer) mustEmbedUnimplementedBroadcastServer() {}
 
@@ -104,24 +104,6 @@ type UnsafeBroadcastServer interface {
 
 func RegisterBroadcastServer(s grpc.ServiceRegistrar, srv BroadcastServer) {
 	s.RegisterService(&Broadcast_ServiceDesc, srv)
-}
-
-func _Broadcast_Connect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(User)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BroadcastServer).Connect(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/kasugai.Broadcast/Connect",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BroadcastServer).Connect(ctx, req.(*User))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _Broadcast_ChatService_Handler(srv interface{}, stream grpc.ServerStream) error {
@@ -150,6 +132,24 @@ func (x *broadcastChatServiceServer) Recv() (*MessageResponse, error) {
 	return m, nil
 }
 
+func _Broadcast_ActiveUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActiveUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BroadcastServer).ActiveUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/kasugai.Broadcast/ActiveUsers",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BroadcastServer).ActiveUsers(ctx, req.(*ActiveUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Broadcast_ServiceDesc is the grpc.ServiceDesc for Broadcast service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -158,8 +158,8 @@ var Broadcast_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*BroadcastServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Connect",
-			Handler:    _Broadcast_Connect_Handler,
+			MethodName: "ActiveUsers",
+			Handler:    _Broadcast_ActiveUsers_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

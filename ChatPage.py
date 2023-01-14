@@ -1,4 +1,5 @@
 import os, socket
+import grpc
 import threading, sys
 from tkinter import *
 from tkinter import filedialog, ttk
@@ -9,7 +10,9 @@ import ChatHistory
 import ChatPopOut
 from ConfigHandler import *
 import FileManager
-from ServerCommunicationHandler import run
+import protos.kasugaipy_pb2
+import protos.kasugaipy_pb2_grpc
+
 
 
 class ChatF(Frame):
@@ -24,50 +27,12 @@ class ChatF(Frame):
         Frame.__init__(self, parent)
         self.parent = parent
         self.configure(background=self.configDict['frameBackground'])
-        self.servConn()
+        ChatClient.ChatClient.connection(ChatClient)
         self.widgets()
         self.treeLoop()
 
     def widgets(self):
-        inputUser1 = StringVar()
-        
-
-        self.nameInputFrame = Frame(
-            self, 
-            background=self.configDict["frameBackground"]
-        )
-        self.nameInputFrame.pack()
-
-        self.nameInputBox = Entry(
-            self.nameInputFrame, 
-            textvariable=inputUser1, 
-            background=self.configDict["frameBackground"], 
-            foreground=self.configDict['buttonForeground'], 
-            font=('American typewriter', 12, 'bold')
-        )
-        self.nameInputBox.pack(anchor='n', side='left', pady=5)
-
-        self.submitBtn = ttk.Button(
-            self.nameInputFrame, 
-            text="Submit", 
-            style="W.TButton", 
-            cursor="hand2", 
-            command= lambda: enterPressed1(self)
-        ).pack(anchor='n', side='right', padx=5, pady=5)
-
-        def enterPressed1(self):
-            self.user = inputUser1.get()
-            self.nameInputBox.config(state=DISABLED)
-            update("user", self.user)
-
-        if self.configDict.get('user') != "":
-            self.user = self.configDict.get('user')
-            self.nameInputBox.config(state=DISABLED)
-            inputUser1.set(self.user)
-        else:
-            self.nameInputBox.config(state=NORMAL)
-            inputUser1.set('Enter your name')
-
+        pass
 
     def treeLoop(self):
         messageInput = StringVar()
@@ -129,7 +94,7 @@ class ChatF(Frame):
 
         if self.connection != '':
             messages.config(state=NORMAL)
-            messages.insert(END, self.connection[1])
+            #messages.insert(END, self.connection[1])
             messages.config(state=DISABLED)
 
 
@@ -146,7 +111,7 @@ class ChatF(Frame):
 
         def enterPressed(self):
             inputGet = messageInput.get()
-            run(protoDict[0], inputGet)
+            ChatClient.ChatClient.sendMessage(ChatClient, inputGet)
             messageInput.set('')
             messages.see("end")
 
@@ -275,12 +240,7 @@ class ChatF(Frame):
             for i in x:
                 self.tv1.delete(i)
 
-        tv1LoadData(self)
-
-    def servConn(self):
-        self.connection = ChatClient.ChatClient.ServerConnection(self.user)
-        # ServerTransactionHandler.ServerTransactionHandler.checkIp(ServerTransactionHandler)
-        
+        tv1LoadData(self)       
 
     def ToggleChat(self):
         if self.chatBool:
@@ -289,6 +249,3 @@ class ChatF(Frame):
         else:
             self.pack_forget()
             self.chatBool = True
-
- #Connecting to the server
-# Get-Process -Id (Get-NetTCPConnection -LocalPort 6969).OwningProcess
