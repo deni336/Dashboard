@@ -70,12 +70,23 @@ func Run(addr string) error {
 }
 
 func (s *Server) ChatService(stream pb.Broadcast_ChatServiceServer) error {
-	conn := NewUser(stream)
 
+	// response := &pb.MessageResponse{
+	// 	Message:   "Bob is here bitches",
+	// 	Timestamp: time.Now().Format("2006-01-02T15:04:05"),
+	// }
+
+	protoc_user := &pb.User{
+		Name: "Bob",
+	}
+
+	conn := NewUser(stream, protoc_user)
 	s.connLock.Lock()
 	s.connections = append(s.connections, conn)
 	s.connLock.Unlock()
-
+	// atv_usrs.Add(user.Name, user)
+	// fmt.Println("User created and added to active_user list")
+	// fmt.Println(atv_usrs.ListUsers())
 	err := conn.GetMessages(s.bcast)
 
 	s.connLock.Lock()

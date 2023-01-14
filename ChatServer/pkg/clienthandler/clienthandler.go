@@ -1,7 +1,6 @@
 package clienthandler
 
 import (
-	"bufio"
 	"fmt"
 	"net"
 )
@@ -27,18 +26,18 @@ func ClientListener(addr string) (net.Listener, error) {
 }
 
 func HandleConnection(u *User) {
-	ch := make(chan string) // outgoing client message
+	//ch := make(chan string) // outgoing client message
 
-	fmt.Fprintln(u.Connection, "Connection made successfully")
+	// fmt.Fprintln(u.Connection, "Connection made successfully")
 
-	defer u.Connection.Close()
+	// defer u.Connection.Close()
 
-	go u.ClientWriter(ch)
+	// go u.ClientWriter(ch)
 
-	handleInput(u, ch)
+	// handleInput(u, ch)
 
-	leaving <- ch
-	messages <- u.Name + " has left"
+	// leaving <- ch
+	// messages <- u.Name + " has left"
 
 	u.IsConnected = false
 }
@@ -65,15 +64,15 @@ func broadcast() {
 }
 
 func handleInput(u *User, ch chan string) {
-	ch <- "You are " + u.Name
-	messages <- "Welcome " + u.Name
-	entering <- ch
-	input := bufio.NewScanner(u.Connection)
-	for input.Scan() {
-		messages <- u.Name + ": " + input.Text()
-	}
+	// ch <- "You are " + u.Name
+	// messages <- "Welcome " + u.Name
+	// entering <- ch
+	// input := bufio.NewScanner(u.Connection)
+	// for input.Scan() {
+	// 	messages <- u.Name + ": " + input.Text()
+	// }
 
-	if input.Err() != nil {
-		fmt.Println("input handler failed")
-	}
+	// if input.Err() != nil {
+	// 	fmt.Println("input handler failed")
+	// }
 }
