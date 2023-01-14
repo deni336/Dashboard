@@ -28,3 +28,5 @@
     - [] who, when, what
 - [] Dynamic Transfer rate
     - Starting at 1024 increase bytes transfered based on time to transfer
+
+python -m grpc_tools.protoc -IC:/projects/dashboard/protos --python_out=. --grpc_python_out=. C:/projects/dashboard/protos/kasugaipy.proto
