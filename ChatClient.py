@@ -3,22 +3,22 @@ import protos.kasugai_pb2
 import protos.kasugai_pb2_grpc
 
 class ChatClient():
-    def __init__(self) -> None:
-        with grpc.insecure_channel('localhost:6969') as channel:
-            self.connection(channel)
-
-    def connection(self, channel):
-        self.conn = protos.kasugai_pb2_grpc.BroadcastStub(channel)
+    
+    channel = grpc.insecure_channel('localhost:6969')
+    conn = protos.kasugai_pb2_grpc.BroadcastStub(channel)
+    iterator = 0
 
     def sendMessage(self, message):
+        
         n = protos.kasugai_pb2.MessageResponse()
         n.message = message
         n.timestamp = ""
-        response = self.conn.ChatService(n)
+        response = self.conn.ChatService(n, self.iterator)
+        self.iterator += 1
         print(response)
 
 
     def recMessage(self):
-        for msg in self.conn.ChatService(protos.kasugai_pb2.MessageResponse()):
-            print(msg)
+        msg = self.conn.ChatService(protos.kasugai_pb2.MessageResponse())
+        print(msg)
         
