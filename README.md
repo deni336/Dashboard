@@ -3,8 +3,8 @@
 ## TODO:
 
 - [] Chat Server
-    - [] Listener
-    - [] Broadcaster
+    - [X] Listener
+    - [X] Broadcaster
     - [] List of connected users (Via ip)
     - [] Timestamps and History
     - [] SSL certificate

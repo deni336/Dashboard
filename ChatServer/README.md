@@ -1,2 +1,3 @@
-# ChatServer
-A simple chat server for quick boiler plating
+# kasugai server
+
+the `chat` package is easy to use.

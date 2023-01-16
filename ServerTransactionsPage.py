@@ -7,7 +7,7 @@ import webbrowser
 
 import ChatClient
 from ConfigHandler import *
-# import ServerTransactionHandler as STH
+#import ServerTransactionHandler as STH
 
 class ServTransF(Frame):
     configDict = getConfig()

@@ -1,37 +1,75 @@
 import os, socket
-import grpc
 import threading, sys
 from tkinter import *
 from tkinter import filedialog, ttk
-
+import protos.kasugaipy_pb2 as kasugaipy_pb2
+import protos.kasugaipy_pb2_grpc as kasugaipy_pb2_grpc
 
 import ChatClient
 import ChatHistory
 import ChatPopOut
 from ConfigHandler import *
 import FileManager
-import protos.kasugai_pb2
-import protos.kasugai_pb2_grpc
-import Server
-
+from ServerCommunicationHandler import run
 
 
 class ChatF(Frame):
     configDict = getConfig()
     chatBool = True
     idList = []
-
+    
     def __init__(self, parent):
         self.user = loadUser()
-        
+        self.connection = ChatClient.ChatClient()
+        self.broadcast = ""
+        self.msg_response = "test"
         Frame.__init__(self, parent)
         self.parent = parent
         self.configure(background=self.configDict['frameBackground'])
+        self.servConn()
         self.widgets()
         self.treeLoop()
 
     def widgets(self):
-        pass
+        inputUser1 = StringVar()
+        
+
+        self.nameInputFrame = Frame(
+            self, 
+            background=self.configDict["frameBackground"]
+        )
+        self.nameInputFrame.pack()
+
+        self.nameInputBox = Entry(
+            self.nameInputFrame, 
+            textvariable=inputUser1, 
+            background=self.configDict["frameBackground"], 
+            foreground=self.configDict['buttonForeground'], 
+            font=('American typewriter', 12, 'bold')
+        )
+        self.nameInputBox.pack(anchor='n', side='left', pady=5)
+
+        self.submitBtn = ttk.Button(
+            self.nameInputFrame, 
+            text="Submit", 
+            style="W.TButton", 
+            cursor="hand2", 
+            command= lambda: enterPressed1(self)
+        ).pack(anchor='n', side='right', padx=5, pady=5)
+
+        def enterPressed1(self):
+            self.user = inputUser1.get()
+            self.nameInputBox.config(state=DISABLED)
+            update("user", self.user)
+
+        if self.configDict.get('user') != "":
+            self.user = self.configDict.get('user')
+            self.nameInputBox.config(state=DISABLED)
+            inputUser1.set(self.user)
+        else:
+            self.nameInputBox.config(state=NORMAL)
+            inputUser1.set('Enter your name')
+
 
     def treeLoop(self):
         messageInput = StringVar()
@@ -91,6 +129,12 @@ class ChatF(Frame):
 
         self.scroll.configure(command=messages.yview)
 
+        if self.connection != '':
+            messages.config(state=NORMAL)
+            messages.insert(END, self.connection.addr)
+            messages.config(state=DISABLED)
+
+
         self.inputField = Entry(
             self, 
             textvariable=messageInput, 
@@ -102,9 +146,9 @@ class ChatF(Frame):
         )
         self.inputField.pack(fill="x", padx=5, pady=2)
 
-        def enterPressed(self):
+        def enterPressed():
             inputGet = messageInput.get()
-            ChatClient.ChatClient.sendMessage(ChatClient.ChatClient, inputGet)
+            run(protoDict[0], inputGet)
             messageInput.set('')
             messages.see("end")
 
@@ -112,7 +156,7 @@ class ChatF(Frame):
 
         def messageUpdater():
             try:
-                response = ChatClient.ChatClient.recMessage(ChatClient.ChatClient)
+                response = self.broadcast
                 print(response)
                 messages.config(state=NORMAL)
                 messages.insert(END, response)
@@ -234,10 +278,27 @@ class ChatF(Frame):
                 self.tv1.delete(i)
 
         tv1LoadData(self)
-
-    
-
-
+        
+    def make_message(self, message):
+        return kasugaipy_pb2.MessageResponse(
+            message=message
+        )
+        
+    def recv_messages(self):
+        messages = [self.make_message(self.msg_response),]       
+        for msg in messages:
+            print("Sending message to server %s" % msg.message)
+            self.broadcast = msg.message
+            yield msg
+                   
+    # Example to get server connection working
+    def servConn(self):
+            self.connection.stub = kasugaipy_pb2_grpc.BroadcastStub(self.connection.channel)
+            messages = self.connection.stub.ChatService(self.recv_messages())
+            for msg in messages:
+                print("R[{}] {}".format(msg.message, msg.timestamp))
+        
+        
     def ToggleChat(self):
         if self.chatBool:
             self.pack(side="right", anchor='ne')
@@ -245,3 +306,7 @@ class ChatF(Frame):
         else:
             self.pack_forget()
             self.chatBool = True
+
+ #Connecting to the server
+# Get-Process -Id (Get-NetTCPConnection -LocalPort 6969).OwningProcess
+
