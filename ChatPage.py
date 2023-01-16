@@ -2,7 +2,6 @@ import os, socket
 import threading, sys
 from tkinter import *
 from tkinter import filedialog, ttk
-import grpc
 import protos.kasugaipy_pb2 as kasugaipy_pb2
 import protos.kasugaipy_pb2_grpc as kasugaipy_pb2_grpc
 
