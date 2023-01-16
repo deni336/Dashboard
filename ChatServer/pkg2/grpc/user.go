@@ -1,29 +1,31 @@
-package clienthandler
+package grpc
 
 import (
-	pb "chat/kasugai"
+	"fmt"
 	"io"
 )
 
-type User struct {
-	conn        pb.Broadcast_ChatServiceServer
-	send        chan *pb.MessageResponse
+type UserObj struct {
+	user        *User
+	conn        Broadcast_ChatStreamClient
+	send        chan *MessageResponse
 	quit        chan struct{}
 	IsConnected bool
 	WorkingDir  string
 }
 
-func NewUser(conn pb.Broadcast_ChatServiceServer) *User {
-	u := &User{
+func NewUser(conn Broadcast_ChatStreamClient, usr *User) *UserObj {
+	u := &UserObj{
+		user: usr,
 		conn: conn,
-		send: make(chan *pb.MessageResponse),
+		send: make(chan *MessageResponse),
 		quit: make(chan struct{}),
 	}
 	go u.start()
 	return u
 }
 
-func (u *User) SendMsg(msg *pb.MessageResponse) {
+func (u *UserObj) SendMsg(msg *MessageResponse) {
 	defer func() {
 		// Ignore any errors about sending on a closed channel
 		recover()
@@ -31,25 +33,25 @@ func (u *User) SendMsg(msg *pb.MessageResponse) {
 	u.send <- msg
 }
 
-func (u *User) start() {
+func (u *UserObj) start() {
 	running := true
 	for running {
 		select {
 		case msg := <-u.send:
-			u.conn.Send(msg) // Ignoring the error, they just don't get this message.
+			u.conn.SendMsg(msg) // Ignoring the error, they just don't get this message.
 		case <-u.quit:
 			running = false
 		}
 	}
 }
 
-func (u *User) Close() error {
+func (u *UserObj) Close() error {
 	close(u.quit)
 	close(u.send)
 	return nil
 }
 
-func (u *User) GetMessages(broadcast chan<- *pb.MessageResponse) error {
+func (u *UserObj) GetMessages(broadcast chan<- *MessageResponse) error {
 	for {
 		msg, err := u.conn.Recv()
 		if err == io.EOF {
@@ -59,9 +61,10 @@ func (u *User) GetMessages(broadcast chan<- *pb.MessageResponse) error {
 			u.Close()
 			return err
 		}
-		go func(msg *pb.MessageResponse) {
+		go func(msg *MessageResponse) {
 			select {
 			case broadcast <- msg:
+				fmt.Println(msg)
 			case <-u.quit:
 			}
 		}(msg)

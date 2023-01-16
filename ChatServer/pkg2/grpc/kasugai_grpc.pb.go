@@ -4,7 +4,7 @@
 // - protoc             v3.20.0
 // source: kasugai.proto
 
-package kasugai
+package grpc
 
 import (
 	context "context"
@@ -22,7 +22,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type BroadcastClient interface {
-	ChatService(ctx context.Context, opts ...grpc.CallOption) (Broadcast_ChatServiceClient, error)
+	ChatStream(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Broadcast_ChatStreamClient, error)
+	SendMessage(ctx context.Context, in *MessageResponse, opts ...grpc.CallOption) (*Empty, error)
 	ActiveUsers(ctx context.Context, in *ActiveUsersRequest, opts ...grpc.CallOption) (*ActiveUsersList, error)
 }
 
@@ -34,35 +35,45 @@ func NewBroadcastClient(cc grpc.ClientConnInterface) BroadcastClient {
 	return &broadcastClient{cc}
 }
 
-func (c *broadcastClient) ChatService(ctx context.Context, opts ...grpc.CallOption) (Broadcast_ChatServiceClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Broadcast_ServiceDesc.Streams[0], "/kasugai.Broadcast/ChatService", opts...)
+func (c *broadcastClient) ChatStream(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Broadcast_ChatStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Broadcast_ServiceDesc.Streams[0], "/kasugai.Broadcast/ChatStream", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &broadcastChatServiceClient{stream}
+	x := &broadcastChatStreamClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
 	return x, nil
 }
 
-type Broadcast_ChatServiceClient interface {
-	Send(*MessageResponse) error
+type Broadcast_ChatStreamClient interface {
 	Recv() (*MessageResponse, error)
 	grpc.ClientStream
 }
 
-type broadcastChatServiceClient struct {
+type broadcastChatStreamClient struct {
 	grpc.ClientStream
 }
 
-func (x *broadcastChatServiceClient) Send(m *MessageResponse) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *broadcastChatServiceClient) Recv() (*MessageResponse, error) {
+func (x *broadcastChatStreamClient) Recv() (*MessageResponse, error) {
 	m := new(MessageResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
+}
+
+func (c *broadcastClient) SendMessage(ctx context.Context, in *MessageResponse, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/kasugai.Broadcast/SendMessage", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *broadcastClient) ActiveUsers(ctx context.Context, in *ActiveUsersRequest, opts ...grpc.CallOption) (*ActiveUsersList, error) {
@@ -78,7 +89,8 @@ func (c *broadcastClient) ActiveUsers(ctx context.Context, in *ActiveUsersReques
 // All implementations must embed UnimplementedBroadcastServer
 // for forward compatibility
 type BroadcastServer interface {
-	ChatService(Broadcast_ChatServiceServer) error
+	ChatStream(*Empty, Broadcast_ChatStreamServer) error
+	SendMessage(context.Context, *MessageResponse) (*Empty, error)
 	ActiveUsers(context.Context, *ActiveUsersRequest) (*ActiveUsersList, error)
 	mustEmbedUnimplementedBroadcastServer()
 }
@@ -87,8 +99,11 @@ type BroadcastServer interface {
 type UnimplementedBroadcastServer struct {
 }
 
-func (UnimplementedBroadcastServer) ChatService(Broadcast_ChatServiceServer) error {
-	return status.Errorf(codes.Unimplemented, "method ChatService not implemented")
+func (UnimplementedBroadcastServer) ChatStream(*Empty, Broadcast_ChatStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method ChatStream not implemented")
+}
+func (UnimplementedBroadcastServer) SendMessage(context.Context, *MessageResponse) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendMessage not implemented")
 }
 func (UnimplementedBroadcastServer) ActiveUsers(context.Context, *ActiveUsersRequest) (*ActiveUsersList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ActiveUsers not implemented")
@@ -106,30 +121,43 @@ func RegisterBroadcastServer(s grpc.ServiceRegistrar, srv BroadcastServer) {
 	s.RegisterService(&Broadcast_ServiceDesc, srv)
 }
 
-func _Broadcast_ChatService_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(BroadcastServer).ChatService(&broadcastChatServiceServer{stream})
+func _Broadcast_ChatStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(BroadcastServer).ChatStream(m, &broadcastChatStreamServer{stream})
 }
 
-type Broadcast_ChatServiceServer interface {
+type Broadcast_ChatStreamServer interface {
 	Send(*MessageResponse) error
-	Recv() (*MessageResponse, error)
 	grpc.ServerStream
 }
 
-type broadcastChatServiceServer struct {
+type broadcastChatStreamServer struct {
 	grpc.ServerStream
 }
 
-func (x *broadcastChatServiceServer) Send(m *MessageResponse) error {
+func (x *broadcastChatStreamServer) Send(m *MessageResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *broadcastChatServiceServer) Recv() (*MessageResponse, error) {
-	m := new(MessageResponse)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
+func _Broadcast_SendMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MessageResponse)
+	if err := dec(in); err != nil {
 		return nil, err
 	}
-	return m, nil
+	if interceptor == nil {
+		return srv.(BroadcastServer).SendMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/kasugai.Broadcast/SendMessage",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BroadcastServer).SendMessage(ctx, req.(*MessageResponse))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Broadcast_ActiveUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -158,16 +186,19 @@ var Broadcast_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*BroadcastServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "SendMessage",
+			Handler:    _Broadcast_SendMessage_Handler,
+		},
+		{
 			MethodName: "ActiveUsers",
 			Handler:    _Broadcast_ActiveUsers_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "ChatService",
-			Handler:       _Broadcast_ChatService_Handler,
+			StreamName:    "ChatStream",
+			Handler:       _Broadcast_ChatStream_Handler,
 			ServerStreams: true,
-			ClientStreams: true,
 		},
 	},
 	Metadata: "kasugai.proto",

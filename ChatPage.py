@@ -2,7 +2,9 @@ import os, socket
 import threading, sys
 from tkinter import *
 from tkinter import filedialog, ttk
-
+import grpc
+import protos.kasugaipy_pb2 as kasugaipy_pb2
+import protos.kasugaipy_pb2_grpc as kasugaipy_pb2_grpc
 
 import ChatClient
 import ChatHistory
@@ -16,11 +18,12 @@ class ChatF(Frame):
     configDict = getConfig()
     chatBool = True
     idList = []
-
+    
     def __init__(self, parent):
         self.user = loadUser()
-        self.connection = []
-        
+        self.connection = ChatClient.ChatClient()
+        self.broadcast = ""
+        self.msg_response = "test"
         Frame.__init__(self, parent)
         self.parent = parent
         self.configure(background=self.configDict['frameBackground'])
@@ -129,7 +132,7 @@ class ChatF(Frame):
 
         if self.connection != '':
             messages.config(state=NORMAL)
-            messages.insert(END, self.connection[1])
+            messages.insert(END, self.connection.addr)
             messages.config(state=DISABLED)
 
 
@@ -144,7 +147,7 @@ class ChatF(Frame):
         )
         self.inputField.pack(fill="x", padx=5, pady=2)
 
-        def enterPressed(self):
+        def enterPressed():
             inputGet = messageInput.get()
             run(protoDict[0], inputGet)
             messageInput.set('')
@@ -154,7 +157,7 @@ class ChatF(Frame):
 
         def messageUpdater():
             try:
-                response = ChatClient.ChatClient.recMessage(ChatClient.ChatClient)
+                response = self.broadcast
                 print(response)
                 messages.config(state=NORMAL)
                 messages.insert(END, response)
@@ -276,12 +279,27 @@ class ChatF(Frame):
                 self.tv1.delete(i)
 
         tv1LoadData(self)
-
-    def servConn(self):
-        self.connection = ChatClient.ChatClient.ServerConnection(self.user)
-        # ServerTransactionHandler.ServerTransactionHandler.checkIp(ServerTransactionHandler)
         
-
+    def make_message(self, message):
+        return kasugaipy_pb2.MessageResponse(
+            message=message
+        )
+        
+    def recv_messages(self):
+        messages = [self.make_message(self.msg_response),]       
+        for msg in messages:
+            print("Sending message to server %s" % msg.message)
+            self.broadcast = msg.message
+            yield msg
+                   
+    # Example to get server connection working
+    def servConn(self):
+            self.connection.stub = kasugaipy_pb2_grpc.BroadcastStub(self.connection.channel)
+            messages = self.connection.stub.ChatService(self.recv_messages())
+            for msg in messages:
+                print("R[{}] {}".format(msg.message, msg.timestamp))
+        
+        
     def ToggleChat(self):
         if self.chatBool:
             self.pack(side="right", anchor='ne')
@@ -292,3 +310,4 @@ class ChatF(Frame):
 
  #Connecting to the server
 # Get-Process -Id (Get-NetTCPConnection -LocalPort 6969).OwningProcess
+
