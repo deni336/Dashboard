@@ -2,15 +2,15 @@ import os, socket
 import threading, sys
 from tkinter import *
 from tkinter import filedialog, ttk
-import protos.kasugaipy_pb2 as kasugaipy_pb2
-import protos.kasugaipy_pb2_grpc as kasugaipy_pb2_grpc
+import protos.kasugai_pb2 as kasugaipy_pb2
+import protos.kasugai_pb2_grpc as kasugaipy_pb2_grpc
 
 import ChatClient
 import ChatHistory
 import ChatPopOut
 from ConfigHandler import *
 import FileManager
-from ServerCommunicationHandler import run
+
 
 
 class ChatF(Frame):
@@ -27,50 +27,8 @@ class ChatF(Frame):
         self.parent = parent
         self.configure(background=self.configDict['frameBackground'])
         self.servConn()
-        self.widgets()
         self.treeLoop()
-
-    def widgets(self):
-        inputUser1 = StringVar()
-        
-
-        self.nameInputFrame = Frame(
-            self, 
-            background=self.configDict["frameBackground"]
-        )
-        self.nameInputFrame.pack()
-
-        self.nameInputBox = Entry(
-            self.nameInputFrame, 
-            textvariable=inputUser1, 
-            background=self.configDict["frameBackground"], 
-            foreground=self.configDict['buttonForeground'], 
-            font=('American typewriter', 12, 'bold')
-        )
-        self.nameInputBox.pack(anchor='n', side='left', pady=5)
-
-        self.submitBtn = ttk.Button(
-            self.nameInputFrame, 
-            text="Submit", 
-            style="W.TButton", 
-            cursor="hand2", 
-            command= lambda: enterPressed1(self)
-        ).pack(anchor='n', side='right', padx=5, pady=5)
-
-        def enterPressed1(self):
-            self.user = inputUser1.get()
-            self.nameInputBox.config(state=DISABLED)
-            update("user", self.user)
-
-        if self.configDict.get('user') != "":
-            self.user = self.configDict.get('user')
-            self.nameInputBox.config(state=DISABLED)
-            inputUser1.set(self.user)
-        else:
-            self.nameInputBox.config(state=NORMAL)
-            inputUser1.set('Enter your name')
-
-
+       
     def treeLoop(self):
         messageInput = StringVar()
         self.additionalButtons = Frame(
@@ -148,7 +106,7 @@ class ChatF(Frame):
 
         def enterPressed():
             inputGet = messageInput.get()
-            run(protoDict[0], inputGet)
+            # run(protoDict[0], inputGet)
             messageInput.set('')
             messages.see("end")
 
@@ -168,7 +126,7 @@ class ChatF(Frame):
 
         try:
             messageUpdateThread = threading.Thread(target=messageUpdater)
-            messageUpdateThread.start() 
+            messageUpdateThread.start()
             a = os.getpid()
             self.idList.append(a)
         except (KeyboardInterrupt, SystemExit):
