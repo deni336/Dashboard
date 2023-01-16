@@ -1,17 +1,15 @@
-import asyncio
 import os, socket
 import threading, sys
 from tkinter import *
 from tkinter import filedialog, ttk
-import protos.kasugaipy_pb2 as kasugaipy_pb2
-import protos.kasugaipy_pb2_grpc as kasugaipy_pb2_grpc
+import protos.kasugai_pb2 as kasugaipy_pb2
+import protos.kasugai_pb2_grpc as kasugaipy_pb2_grpc
 
 import ChatClient
 import ChatHistory
 import ChatPopOut
 from ConfigHandler import *
 import FileManager
-from ServerCommunicationHandler import run
 
 
 class ChatF(Frame):
@@ -21,60 +19,13 @@ class ChatF(Frame):
     
     def __init__(self, parent):
         self.user = loadUser()
-        self.client = ChatClient.ChatClient()
-        
         Frame.__init__(self, parent)
         self.parent = parent
         self.configure(background=self.configDict['frameBackground'])
-        self.widgets()
-        self.treeLoop()
-
-    def update_messages(self, m=""):
-        self.client.msg.message = m
-    
-    def widgets(self):
-        inputUser1 = StringVar()
         
-
-        self.nameInputFrame = Frame(
-            self, 
-            background=self.configDict["frameBackground"]
-        )
-        self.nameInputFrame.pack()
-
-        self.nameInputBox = Entry(
-            self.nameInputFrame, 
-            textvariable=inputUser1, 
-            background=self.configDict["frameBackground"], 
-            foreground=self.configDict['buttonForeground'], 
-            font=('American typewriter', 12, 'bold')
-        )
-        self.nameInputBox.pack(anchor='n', side='left', pady=5)
-
-        self.submitBtn = ttk.Button(
-            self.nameInputFrame, 
-            text="Submit", 
-            style="W.TButton", 
-            cursor="hand2", 
-            command= lambda: enterPressed1(self)
-        ).pack(anchor='n', side='right', padx=5, pady=5)
-
-        def enterPressed1(self):
-            self.user = inputUser1.get()
-            self.nameInputBox.config(state=DISABLED)
-            update("user", self.user)
-
-        if self.configDict.get('user') != "":
-            self.user = self.configDict.get('user')
-            self.nameInputBox.config(state=DISABLED)
-            inputUser1.set(self.user)
-        else:
-            self.nameInputBox.config(state=NORMAL)
-            inputUser1.set('Enter your name')
-
-
+        self.treeLoop()
+       
     def treeLoop(self):
-        st = ""
         messageInput = StringVar()
         self.additionalButtons = Frame(
             self,
@@ -132,6 +83,7 @@ class ChatF(Frame):
 
         self.scroll.configure(command=messages.yview)
 
+
         self.inputField = Entry(
             self, 
             textvariable=messageInput, 
@@ -139,19 +91,21 @@ class ChatF(Frame):
             insertbackground="red", 
             background=self.configDict["frameBackground"], 
             foreground=self.configDict['buttonForeground'], 
-            font=('American typewriter', 12, 'bold'),
+            font=('American typewriter', 12, 'bold')
         )
         self.inputField.pack(fill="x", padx=5, pady=2)
 
         def enterPressed(self):
-            self.client.msg.message = messageInput.get()
+            inputGet = messageInput.get()
+            ChatClient.ChatClient.sendMessage(ChatClient.ChatClient,inputGet)
             messageInput.set('')
             messages.see("end")
 
         self.inputField.bind("<Return>", enterPressed)
+
         def messageUpdater():
             try:
-                response = self.client.msg.message
+                response = ChatClient.ChatClient.msg
                 print(response)
                 messages.config(state=NORMAL)
                 messages.insert(END, response)
@@ -163,10 +117,7 @@ class ChatF(Frame):
 
         try:
             messageUpdateThread = threading.Thread(target=messageUpdater)
-            messageUpdateThread.start() 
-            
-            messageThread = threading.Thread(target=self.client.servConn)
-            messageThread.start()  
+            messageUpdateThread.start()
             a = os.getpid()
             self.idList.append(a)
         except (KeyboardInterrupt, SystemExit):
@@ -220,7 +171,7 @@ class ChatF(Frame):
             text="Download", 
             style="W.TButton", 
             cursor="hand2", 
-            command= lambda: download(self)
+            command= lambda: "",
         ).pack(side='left', anchor='ne', padx=5, pady=5)
 
         def delMeth(self):
@@ -237,15 +188,6 @@ class ChatF(Frame):
             ip = socket.socket.getsockname(ChatClient.server)
             FileManager.FileManager.stage(FileManager.FileManager, filename, ip[0], size)
             tv1LoadData(self)
-
-        def download(self):
-            focusItem = self.tv1.focus()
-        #     fItem = self.tv1.item(focusItem)
-        #     getItem = fItem.get('values')
-        #     ip = ChatClient.ChatClient.dictOfUsers()
-        #     FileClient.FileSender.connection(FileClient.FileSender, ip)
-        #     FileClient.FileSender.sendingFile(getItem[0], getItem[2], getItem[3])
-
 
         def tv1LoadData(self):
             configDi = getConfig()
