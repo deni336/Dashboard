@@ -12,7 +12,6 @@ from ConfigHandler import *
 import FileManager
 
 
-
 class ChatF(Frame):
     configDict = getConfig()
     chatBool = True
@@ -20,13 +19,10 @@ class ChatF(Frame):
     
     def __init__(self, parent):
         self.user = loadUser()
-        self.connection = ChatClient.ChatClient()
-        self.broadcast = ""
-        self.msg_response = "test"
         Frame.__init__(self, parent)
         self.parent = parent
         self.configure(background=self.configDict['frameBackground'])
-        self.servConn()
+        
         self.treeLoop()
        
     def treeLoop(self):
@@ -87,11 +83,6 @@ class ChatF(Frame):
 
         self.scroll.configure(command=messages.yview)
 
-        if self.connection != '':
-            messages.config(state=NORMAL)
-            messages.insert(END, self.connection.addr)
-            messages.config(state=DISABLED)
-
 
         self.inputField = Entry(
             self, 
@@ -106,7 +97,7 @@ class ChatF(Frame):
 
         def enterPressed():
             inputGet = messageInput.get()
-            # run(protoDict[0], inputGet)
+            ChatClient.ChatClient.sendMessage(inputGet)
             messageInput.set('')
             messages.see("end")
 
@@ -114,7 +105,7 @@ class ChatF(Frame):
 
         def messageUpdater():
             try:
-                response = self.broadcast
+                response = ChatClient.ChatClient.msg
                 print(response)
                 messages.config(state=NORMAL)
                 messages.insert(END, response)
@@ -180,7 +171,7 @@ class ChatF(Frame):
             text="Download", 
             style="W.TButton", 
             cursor="hand2", 
-            command= lambda: download(self)
+            command= lambda: "",
         ).pack(side='left', anchor='ne', padx=5, pady=5)
 
         def delMeth(self):
@@ -197,15 +188,6 @@ class ChatF(Frame):
             ip = socket.socket.getsockname(ChatClient.server)
             FileManager.FileManager.stage(FileManager.FileManager, filename, ip[0], size)
             tv1LoadData(self)
-
-        def download(self):
-            focusItem = self.tv1.focus()
-        #     fItem = self.tv1.item(focusItem)
-        #     getItem = fItem.get('values')
-        #     ip = ChatClient.ChatClient.dictOfUsers()
-        #     FileClient.FileSender.connection(FileClient.FileSender, ip)
-        #     FileClient.FileSender.sendingFile(getItem[0], getItem[2], getItem[3])
-
 
         def tv1LoadData(self):
             configDi = getConfig()
@@ -236,26 +218,6 @@ class ChatF(Frame):
                 self.tv1.delete(i)
 
         tv1LoadData(self)
-        
-    def make_message(self, message):
-        return kasugaipy_pb2.MessageResponse(
-            message=message
-        )
-        
-    def recv_messages(self):
-        messages = [self.make_message(self.msg_response),]       
-        for msg in messages:
-            print("Sending message to server %s" % msg.message)
-            self.broadcast = msg.message
-            yield msg
-                   
-    # Example to get server connection working
-    def servConn(self):
-            self.connection.stub = kasugaipy_pb2_grpc.BroadcastStub(self.connection.channel)
-            messages = self.connection.stub.ChatService(self.recv_messages())
-            for msg in messages:
-                print("R[{}] {}".format(msg.message, msg.timestamp))
-        
         
     def ToggleChat(self):
         if self.chatBool:
