@@ -95,9 +95,9 @@ class ChatF(Frame):
         )
         self.inputField.pack(fill="x", padx=5, pady=2)
 
-        def enterPressed():
+        def enterPressed(self):
             inputGet = messageInput.get()
-            ChatClient.ChatClient.sendMessage(inputGet)
+            ChatClient.ChatClient.sendMessage(ChatClient.ChatClient,inputGet)
             messageInput.set('')
             messages.see("end")
 

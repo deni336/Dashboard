@@ -5,6 +5,8 @@ import protos.kasugai_pb2 as kasugaipy_pb2
 import protos.kasugai_pb2_grpc as kasugaipy_pb2_grpc
              
 class ChatClient():
+    def __init__(self) -> None:
+        self.runThread()
     
     addr = "localhost:6969"
     channel = grpc.insecure_channel(addr)
@@ -33,7 +35,7 @@ class ChatClient():
         except (KeyboardInterrupt, SystemExit):
             sys.exit()
     
-ChatClient.runThread(ChatClient)                   
+# ChatClient.runThread(ChatClient)                   
     # Example to get server connection working
     # def servConn(self):
     #         self.connection.stub = kasugaipy_pb2_grpc.BroadcastStub(self.connection.channel)
