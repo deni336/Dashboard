@@ -28,15 +28,6 @@ import SettingsPage as SP
 # refresh bg image
 # get screen res from system
 
-
-## Desmond
-'''
-- [] Setup endpoints for p2p file transfer
-- [] Refine server storage
-- [] **Bug screen share crashes and wont restart with no user on other end
-- [] Handle if screen share is closed by browser
-'''
-
 ## gRPC
 
 # connected users list
@@ -74,6 +65,7 @@ class Events(object):
         self.ToggleOpen = Event()
         self.ToggleServTrans = Event()
         self.UpdateBackground = Event()
+        # self.UpdateMessages = Event()
        
 
     def FireEvent(self):
@@ -86,6 +78,7 @@ class Events(object):
         self.OnShutDown()
         self.ToggleOpen()
         self.ToggleServTrans()
+        # self.UpdateMessages()
 
 
     def AddSubscribersForLockBrokenEvent(self, objMethod):
@@ -135,6 +128,12 @@ class Events(object):
 
     def RemoveSubscribersForUpdateBackgroundEvent(self, objMethod):
         self.UpdateBackground -= objMethod
+        
+    # def AddSubscribersForUpdateMessagesEvent(self, objMethod):
+    #     self.UpdateMessages += objMethod
+
+    # def RemoveSubscribersForUpdateMessagesEvent(self, objMethod):
+    #     self.UpdateMessages -= objMethod
 
 
 class MainApp(Frame):

@@ -1,3 +1,4 @@
+import asyncio
 import os, socket
 import threading, sys
 from tkinter import *
@@ -20,16 +21,17 @@ class ChatF(Frame):
     
     def __init__(self, parent):
         self.user = loadUser()
-        self.connection = ChatClient.ChatClient()
-        self.broadcast = ""
-        self.msg_response = "test"
+        self.client = ChatClient.ChatClient()
+        
         Frame.__init__(self, parent)
         self.parent = parent
         self.configure(background=self.configDict['frameBackground'])
-        self.servConn()
         self.widgets()
         self.treeLoop()
 
+    def update_messages(self, m=""):
+        self.client.msg.message = m
+    
     def widgets(self):
         inputUser1 = StringVar()
         
@@ -72,6 +74,7 @@ class ChatF(Frame):
 
 
     def treeLoop(self):
+        st = ""
         messageInput = StringVar()
         self.additionalButtons = Frame(
             self,
@@ -129,12 +132,6 @@ class ChatF(Frame):
 
         self.scroll.configure(command=messages.yview)
 
-        if self.connection != '':
-            messages.config(state=NORMAL)
-            messages.insert(END, self.connection.addr)
-            messages.config(state=DISABLED)
-
-
         self.inputField = Entry(
             self, 
             textvariable=messageInput, 
@@ -142,21 +139,19 @@ class ChatF(Frame):
             insertbackground="red", 
             background=self.configDict["frameBackground"], 
             foreground=self.configDict['buttonForeground'], 
-            font=('American typewriter', 12, 'bold')
+            font=('American typewriter', 12, 'bold'),
         )
         self.inputField.pack(fill="x", padx=5, pady=2)
 
-        def enterPressed():
-            inputGet = messageInput.get()
-            run(protoDict[0], inputGet)
+        def enterPressed(self):
+            self.client.msg.message = messageInput.get()
             messageInput.set('')
             messages.see("end")
 
         self.inputField.bind("<Return>", enterPressed)
-
         def messageUpdater():
             try:
-                response = self.broadcast
+                response = self.client.msg.message
                 print(response)
                 messages.config(state=NORMAL)
                 messages.insert(END, response)
@@ -169,6 +164,9 @@ class ChatF(Frame):
         try:
             messageUpdateThread = threading.Thread(target=messageUpdater)
             messageUpdateThread.start() 
+            
+            messageThread = threading.Thread(target=self.client.servConn)
+            messageThread.start()  
             a = os.getpid()
             self.idList.append(a)
         except (KeyboardInterrupt, SystemExit):
@@ -278,26 +276,6 @@ class ChatF(Frame):
                 self.tv1.delete(i)
 
         tv1LoadData(self)
-        
-    def make_message(self, message):
-        return kasugaipy_pb2.MessageResponse(
-            message=message
-        )
-        
-    def recv_messages(self):
-        messages = [self.make_message(self.msg_response),]       
-        for msg in messages:
-            print("Sending message to server %s" % msg.message)
-            self.broadcast = msg.message
-            yield msg
-                   
-    # Example to get server connection working
-    def servConn(self):
-            self.connection.stub = kasugaipy_pb2_grpc.BroadcastStub(self.connection.channel)
-            messages = self.connection.stub.ChatService(self.recv_messages())
-            for msg in messages:
-                print("R[{}] {}".format(msg.message, msg.timestamp))
-        
         
     def ToggleChat(self):
         if self.chatBool:
