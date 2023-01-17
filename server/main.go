@@ -3,7 +3,7 @@ package main
 import (
 	"chat/internal/screenshare"
 	"chat/internal/storage"
-	"chat/pkg/clienthandler"
+	"chat/pkg/grpc"
 	"fmt"
 )
 
@@ -31,7 +31,7 @@ var (
 	FILEUPLOAD = "localhost:7777"
 )
 
-var atv_usrs = clienthandler.InitializeActiveUserList()
+var atv_usrs = grpc.InitializeActiveUserList()
 
 func main() {
 
@@ -42,7 +42,7 @@ func main() {
 	startChatServer(atv_usrs)
 }
 
-func startSupportingServers(au *clienthandler.ActiveUsers) {
+func startSupportingServers(au *grpc.ActiveUsers) {
 	fmt.Println("Initializing screen share server...")
 	go screenshare.InitScreenShareServer(SCRNSHR)
 
@@ -50,10 +50,10 @@ func startSupportingServers(au *clienthandler.ActiveUsers) {
 	go storage.HostUploadServer(FILEUPLOAD)
 }
 
-func startChatServer(atv_usrs *clienthandler.ActiveUsers) {
+func startChatServer(atv_usrs *grpc.ActiveUsers) {
 	fmt.Println("Initializing chat server...")
 
-	err := clienthandler.Run(CHAT)
+	err := grpc.Run(CHAT)
 	if err != nil {
 		fmt.Println("failed setting up chat server")
 	}

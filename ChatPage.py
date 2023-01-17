@@ -1,3 +1,4 @@
+import asyncio
 import os, socket
 import threading, sys
 from tkinter import *
@@ -19,6 +20,7 @@ class ChatF(Frame):
     
     def __init__(self, parent):
         self.user = loadUser()
+        self.client = ChatClient.ChatCl()
         Frame.__init__(self, parent)
         self.parent = parent
         self.configure(background=self.configDict['frameBackground'])
@@ -97,7 +99,7 @@ class ChatF(Frame):
 
         def enterPressed(self):
             inputGet = messageInput.get()
-            ChatClient.ChatClient.sendMessage(ChatClient.ChatClient,inputGet)
+            ChatClient.ChatCl.make_message(ChatClient.ChatCl, inputGet)
             messageInput.set('')
             messages.see("end")
 
@@ -105,7 +107,7 @@ class ChatF(Frame):
 
         def messageUpdater():
             try:
-                response = ChatClient.ChatClient.msg
+                response = ChatClient.ChatCl.msg
                 print(response)
                 messages.config(state=NORMAL)
                 messages.insert(END, response)
@@ -118,6 +120,8 @@ class ChatF(Frame):
         try:
             messageUpdateThread = threading.Thread(target=messageUpdater)
             messageUpdateThread.start()
+            # messageThread = threading.Thread(target=ChatClient.ChatCl.servConn(ChatClient.ChatCl))
+            # messageThread.start()
             a = os.getpid()
             self.idList.append(a)
         except (KeyboardInterrupt, SystemExit):

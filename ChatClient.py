@@ -1,44 +1,34 @@
 import grpc
 import threading
-import sys
+from datetime import datetime
 import protos.kasugai_pb2 as kasugaipy_pb2
 import protos.kasugai_pb2_grpc as kasugaipy_pb2_grpc
              
-class ChatClient():
-    def __init__(self) -> None:
-        self.runThread()
+class ChatCl():
+    def __init__(self):
+        self.addr = "localhost:6969"
+        self.channel = grpc.insecure_channel(self.addr)
+        self.stub = kasugaipy_pb2_grpc.BroadcastStub
+        self.resp = kasugaipy_pb2.MessageResponse(message="test")
+        self.msg = kasugaipy_pb2.MessageResponse(message=self.addr)
+        threading.Thread(target=self.servConn).start()
     
-    addr = "localhost:6969"
-    channel = grpc.insecure_channel(addr)
-    stub = kasugaipy_pb2_grpc.BroadcastStub
-    msg = kasugaipy_pb2.MessageResponse()
+    def make_message(self, message):
+        self.resp = kasugaipy_pb2.MessageResponse(
+            message=message,
+            timestamp=datetime.now().strftime("%H:%M:%S"),
+        )
     
-
-    def recvMessages(self):
-        self.stub = kasugaipy_pb2_grpc.BroadcastStub(self.channel)
-        messages = self.stub.ChatService(self.msg)
-        for msg in messages:
-            print("R[{}] {}".format(msg.message, msg.timestamp))
-            self.msg = msg
-        
-    def sendMessage(self, inputMessage):
-        messages = inputMessage
+    def send_messages(self):
+        messages = [self.resp]        
         for msg in messages:
             print("Sending message to server %s" % msg.message)
-            self.broadcast = msg.message
             yield msg
-
-    def runThread(self):
-        try:
-            messageThread = threading.Thread(target=self.recvMessages)
-            messageThread.start()
-        except (KeyboardInterrupt, SystemExit):
-            sys.exit()
-    
-# ChatClient.runThread(ChatClient)                   
-    # Example to get server connection working
-    # def servConn(self):
-    #         self.connection.stub = kasugaipy_pb2_grpc.BroadcastStub(self.connection.channel)
-    #         messages = self.connection.stub.ChatService(self.recvMessages())
-    #         for msg in messages:
-    #             print("R[{}] {}".format(msg.message, msg.timestamp))
+            
+    def servConn(self):
+        #with self.channel as channel:
+            self.stub = kasugaipy_pb2_grpc.BroadcastStub(self.channel)
+            messages = self.stub.ChatService(self.msg)
+            for msg in messages:
+                print("Response from server [{}] {}".format(msg.message, msg.timestamp))
+                self.msg = msg

@@ -1,4 +1,4 @@
-from ChatClient import ChatClient
+# from ChatClient import ChatCl
 import ConfigHandler
 
 class FileManager():
