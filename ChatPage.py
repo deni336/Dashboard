@@ -99,7 +99,7 @@ class ChatF(Frame):
 
         def enterPressed(self):
             inputGet = messageInput.get()
-            ChatClient.ChatCl.make_message(ChatClient.ChatCl, inputGet)
+            self.client.sendMsg(inputGet)
             messageInput.set('')
             messages.see("end")
 

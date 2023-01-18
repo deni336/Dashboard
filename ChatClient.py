@@ -3,25 +3,34 @@ import threading
 from datetime import datetime
 import protos.kasugai_pb2
 import protos.kasugai_pb2_grpc
-             
 
 class ChatCl():
     def __init__(self):
         self.addr = "localhost:6969"
-        self.channel = grpc.insecure_channel(self.addr)
-        self.stub = protos.kasugai_pb2_grpc.BroadcastStub
+        try:
+            self.channel = grpc.insecure_channel(self.addr)
+            self.stub = protos.kasugai_pb2_grpc.BroadcastStub
+        except grpc.RpcError as e:
+            print("Failed to connect to server", e)
         self.msg = protos.kasugai_pb2.MessageResponse(message=self.addr)
         threading.Thread(target=self.listener).start()
     
     def listener(self):
         self.stub = protos.kasugai_pb2_grpc.BroadcastStub(self.channel)
-        while True:
+        sub = self.channel.subscribe(callback=False)
+        while :
             messages = self.stub.ChatStream(self.msg)
             for msg in messages:
                 self.msg = msg.message
     
-    
-    
+    def sendMsg(self, inputMessage):
+        try:
+            self.msg = protos.kasugai_pb2.MessageResponse(message = inputMessage)
+            self.stub.SendMessage(self.msg)
+        except grpc.RpcError as e:
+            print("Failed to send message", e)
+
+
     # def make_message(self, message):
     #     self.resp = kasugaipy_pb2.MessageResponse(
     #         message=message,
