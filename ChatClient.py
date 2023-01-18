@@ -4,6 +4,7 @@ from datetime import datetime
 import protos.kasugai_pb2
 import protos.kasugai_pb2_grpc
              
+
 class ChatCl():
     def __init__(self):
         self.addr = "localhost:6969"
