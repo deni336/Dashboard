@@ -6,17 +6,21 @@ from PIL import Image as PILImage
 from tkinter import *
 from tkinter import TclError
 
-import BannerPage as BP
-import BottomPage as BotP
-import ButtonPage as ButP
-import ChatPage as CP
-from ConfigHandler import *
-from FileManager import FileManager
-import ScreenShareWindow as SSW
-import ServerTransactionsPage
-import SettingsPage as SP
+import client.BannerPage as BP
+import client.BottomPage as BotP
+import client.ButtonPage as ButP
+import client.ChatPage as CP
+from client.ConfigHandler import *
+from client.FileManager import FileManager
+import client.ScreenShareWindow as SSW
+import client.ServerTransactionsPage as ServerTransactionsPage
+import client.SettingsPage as SP
 
 ##### To Do's
+
+## BUGS
+# - config.json file does not update the config on my pc. It is somehow storing the old data and loading it over and over again.
+#   Also I deleted my config.json file and it is still loading in a config somehow but it doesn't create one.
 
 ## Deni
 # Server call for file list and broadcasting users list
@@ -154,7 +158,7 @@ class MainApp(Frame):
 
     def UpdateBackground(self):
         try:
-            bgImagePicked = self.configDict['bgImage']
+            bgImagePicked = "./client/Miku.jpg"
             img = PILImage.open(bgImagePicked)
             imgResized = img.resize((1920, 1080), PILImage.Resampling.LANCZOS)
             bgImage = ITK.PhotoImage(imgResized)
@@ -215,7 +219,7 @@ class MyApp(Tk):
 
 root = MyApp()
 
-icon = Path.cwd().joinpath("icon.ico")
+icon = Path.cwd().joinpath("./client/icon.ico")
 root.iconbitmap(icon)
 #root.state("zoomed")
 root.geometry("1920x1080+0+0")
