@@ -1,42 +1,33 @@
 syntax = "proto3";
 
-option go_package = "/;grpc";
 
-package grpc;
 
-// Service that houses the incoming ChatStream rpc, SendMessage rpc, and the ActiveUsers rpc.
+package kasugai;
+
+
+message ActiveUsersList {
+  repeated User users = 1;
+}
+
+message ActiveUsersRequest {}
+
+message User {
+  string name = 1;
+  MessageResponse message = 2;
+}
+
+message MessageResponse {
+  string message = 1;
+  string timestamp = 2;
+}
+
 service Broadcast {
-    // rpc that sends an empty message object to return the stream MessageResponse.
-    rpc ChatStream(Empty) returns (stream MessageResponse){}
-    // rpc that sends a MessageResponse object. Used to house the outgoing chat message.
-    rpc SendMessage(MessageResponse) returns (Empty){}
-    // rpc for retrieving a list of active users on the server. Sends a request and returns a list.
+    rpc ChatService(stream MessageResponse) returns (stream MessageResponse){}
     rpc ActiveUsers(ActiveUsersRequest) returns (ActiveUsersList) {}
   }
 
-  //Empty message object to be sent in order to return the MessageResponse Stream.
-  message Empty {}
   
-  //Returned by the ActiveUsersRequest as a list.
-  message ActiveUsersList {
-    repeated User users = 1;
-  }
 
-  //Request to retrieve the ActiveUsersList.
-  message ActiveUsersRequest {}
-
-  //User object that is housed inside the ActiveUsersList.
-  message User {
-    string name = 1;
-    MessageResponse message = 2;
-  }
-
-  //An object that is sent and received in the Broadcast service. On the ChatStream rpc, it is returned as a stream. On the SendMessage rpc, it is an object housing a name, message and timestamp.
-  message MessageResponse {
-    string name = 1;
-    string message = 2;
-    string timestamp = 3;
-  }
 
 
   

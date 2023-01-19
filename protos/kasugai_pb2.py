@@ -13,24 +13,21 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rkasugai.proto\x12\x04grpc\"\x07\n\x05\x45mpty\",\n\x0f\x41\x63tiveUsersList\x12\x19\n\x05users\x18\x01 \x03(\x0b\x32\n.grpc.User\"\x14\n\x12\x41\x63tiveUsersRequest\"<\n\x04User\x12\x0c\n\x04name\x18\x01 \x01(\t\x12&\n\x07message\x18\x02 \x01(\x0b\x32\x15.grpc.MessageResponse\"C\n\x0fMessageResponse\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\x11\n\ttimestamp\x18\x03 \x01(\t2\xb8\x01\n\tBroadcast\x12\x34\n\nChatStream\x12\x0b.grpc.Empty\x1a\x15.grpc.MessageResponse\"\x00\x30\x01\x12\x33\n\x0bSendMessage\x12\x15.grpc.MessageResponse\x1a\x0b.grpc.Empty\"\x00\x12@\n\x0b\x41\x63tiveUsers\x12\x18.grpc.ActiveUsersRequest\x1a\x15.grpc.ActiveUsersList\"\x00\x42\x08Z\x06/;grpcb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rkasugai.proto\x12\x07kasugai\"/\n\x0f\x41\x63tiveUsersList\x12\x1c\n\x05users\x18\x01 \x03(\x0b\x32\r.kasugai.User\"\x14\n\x12\x41\x63tiveUsersRequest\"?\n\x04User\x12\x0c\n\x04name\x18\x01 \x01(\t\x12)\n\x07message\x18\x02 \x01(\x0b\x32\x18.kasugai.MessageResponse\"5\n\x0fMessageResponse\x12\x0f\n\x07message\x18\x01 \x01(\t\x12\x11\n\ttimestamp\x18\x02 \x01(\t2\x9c\x01\n\tBroadcast\x12G\n\x0b\x43hatService\x12\x18.kasugai.MessageResponse\x1a\x18.kasugai.MessageResponse\"\x00(\x01\x30\x01\x12\x46\n\x0b\x41\x63tiveUsers\x12\x1b.kasugai.ActiveUsersRequest\x1a\x18.kasugai.ActiveUsersList\"\x00\x62\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'kasugai_pb2', globals())
 if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
-  DESCRIPTOR._serialized_options = b'Z\006/;grpc'
-  _EMPTY._serialized_start=23
-  _EMPTY._serialized_end=30
-  _ACTIVEUSERSLIST._serialized_start=32
-  _ACTIVEUSERSLIST._serialized_end=76
-  _ACTIVEUSERSREQUEST._serialized_start=78
-  _ACTIVEUSERSREQUEST._serialized_end=98
-  _USER._serialized_start=100
+  _ACTIVEUSERSLIST._serialized_start=26
+  _ACTIVEUSERSLIST._serialized_end=73
+  _ACTIVEUSERSREQUEST._serialized_start=75
+  _ACTIVEUSERSREQUEST._serialized_end=95
+  _USER._serialized_start=97
   _USER._serialized_end=160
   _MESSAGERESPONSE._serialized_start=162
-  _MESSAGERESPONSE._serialized_end=229
-  _BROADCAST._serialized_start=232
-  _BROADCAST._serialized_end=416
+  _MESSAGERESPONSE._serialized_end=215
+  _BROADCAST._serialized_start=218
+  _BROADCAST._serialized_end=374
 # @@protoc_insertion_point(module_scope)

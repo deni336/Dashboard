@@ -2,12 +2,11 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import protos.kasugai_pb2 as kasugai__pb2
+import kasugai_pb2 as kasugai__pb2
 
 
 class BroadcastStub(object):
-    """Service that houses the incoming ChatStream rpc, SendMessage rpc, and the ActiveUsers rpc.
-    """
+    """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
         """Constructor.
@@ -15,44 +14,29 @@ class BroadcastStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.ChatStream = channel.unary_stream(
-                '/grpc.Broadcast/ChatStream',
-                request_serializer=kasugai__pb2.Empty.SerializeToString,
+        self.ChatService = channel.stream_stream(
+                '/kasugai.Broadcast/ChatService',
+                request_serializer=kasugai__pb2.MessageResponse.SerializeToString,
                 response_deserializer=kasugai__pb2.MessageResponse.FromString,
                 )
-        self.SendMessage = channel.unary_unary(
-                '/grpc.Broadcast/SendMessage',
-                request_serializer=kasugai__pb2.MessageResponse.SerializeToString,
-                response_deserializer=kasugai__pb2.Empty.FromString,
-                )
         self.ActiveUsers = channel.unary_unary(
-                '/grpc.Broadcast/ActiveUsers',
+                '/kasugai.Broadcast/ActiveUsers',
                 request_serializer=kasugai__pb2.ActiveUsersRequest.SerializeToString,
                 response_deserializer=kasugai__pb2.ActiveUsersList.FromString,
                 )
 
 
 class BroadcastServicer(object):
-    """Service that houses the incoming ChatStream rpc, SendMessage rpc, and the ActiveUsers rpc.
-    """
+    """Missing associated documentation comment in .proto file."""
 
-    def ChatStream(self, request, context):
-        """rpc that sends an empty message object to return the stream MessageResponse.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def SendMessage(self, request, context):
-        """rpc that sends a MessageResponse object. Used to house the outgoing chat message.
-        """
+    def ChatService(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ActiveUsers(self, request, context):
-        """rpc for retrieving a list of active users on the server. Sends a request and returns a list.
-        """
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -60,15 +44,10 @@ class BroadcastServicer(object):
 
 def add_BroadcastServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'ChatStream': grpc.unary_stream_rpc_method_handler(
-                    servicer.ChatStream,
-                    request_deserializer=kasugai__pb2.Empty.FromString,
-                    response_serializer=kasugai__pb2.MessageResponse.SerializeToString,
-            ),
-            'SendMessage': grpc.unary_unary_rpc_method_handler(
-                    servicer.SendMessage,
+            'ChatService': grpc.stream_stream_rpc_method_handler(
+                    servicer.ChatService,
                     request_deserializer=kasugai__pb2.MessageResponse.FromString,
-                    response_serializer=kasugai__pb2.Empty.SerializeToString,
+                    response_serializer=kasugai__pb2.MessageResponse.SerializeToString,
             ),
             'ActiveUsers': grpc.unary_unary_rpc_method_handler(
                     servicer.ActiveUsers,
@@ -77,17 +56,16 @@ def add_BroadcastServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'grpc.Broadcast', rpc_method_handlers)
+            'kasugai.Broadcast', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
  # This class is part of an EXPERIMENTAL API.
 class Broadcast(object):
-    """Service that houses the incoming ChatStream rpc, SendMessage rpc, and the ActiveUsers rpc.
-    """
+    """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def ChatStream(request,
+    def ChatService(request_iterator,
             target,
             options=(),
             channel_credentials=None,
@@ -97,26 +75,9 @@ class Broadcast(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_stream(request, target, '/grpc.Broadcast/ChatStream',
-            kasugai__pb2.Empty.SerializeToString,
-            kasugai__pb2.MessageResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def SendMessage(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/grpc.Broadcast/SendMessage',
+        return grpc.experimental.stream_stream(request_iterator, target, '/kasugai.Broadcast/ChatService',
             kasugai__pb2.MessageResponse.SerializeToString,
-            kasugai__pb2.Empty.FromString,
+            kasugai__pb2.MessageResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -131,7 +92,7 @@ class Broadcast(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/grpc.Broadcast/ActiveUsers',
+        return grpc.experimental.unary_unary(request, target, '/kasugai.Broadcast/ActiveUsers',
             kasugai__pb2.ActiveUsersRequest.SerializeToString,
             kasugai__pb2.ActiveUsersList.FromString,
             options, channel_credentials,
