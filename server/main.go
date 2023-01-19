@@ -1,9 +1,8 @@
 package main
 
 import (
-	"chat/internal/screenshare"
-	"chat/internal/storage"
-	"chat/pkg/grpc"
+	clienthdlr "chat/pkg/clienthandler"
+	"flag"
 	"fmt"
 )
 
@@ -13,47 +12,19 @@ import (
 - [] Add file manager to setup storage and screen share support
 - [] Write test for this code
 - [] Add ability to save snapshot to screen share
-- [] Add gRPC for API for deni
-
-
-# ScreenShare API:
-- [] List of all users
-
-
-# File Upload API:
-- [X] endpoint for uploading
-
+- [X] Add gRPC for API for deni
 */
 
 var (
-	CHAT       = "localhost:6969"
-	SCRNSHR    = "localhost:7070"
-	FILEUPLOAD = "localhost:7777"
+	CHAT = flag.String("addr", "localhost:6969", "the address to connect to")
 )
 
-var atv_usrs = grpc.InitializeActiveUserList()
-
 func main() {
-
-	fmt.Println("Created active user list")
-
-	startSupportingServers(atv_usrs)
-
-	startChatServer(atv_usrs)
+	startChatServer()
 }
 
-func startSupportingServers(au *grpc.ActiveUsers) {
-	fmt.Println("Initializing screen share server...")
-	go screenshare.InitScreenShareServer(SCRNSHR)
-
-	fmt.Println("Initializing file upload server...")
-	go storage.HostUploadServer(FILEUPLOAD)
-}
-
-func startChatServer(atv_usrs *grpc.ActiveUsers) {
-	fmt.Println("Initializing chat server...")
-
-	err := grpc.Run(CHAT)
+func startChatServer() {
+	err := clienthdlr.Run(CHAT)
 	if err != nil {
 		fmt.Println("failed setting up chat server")
 	}
