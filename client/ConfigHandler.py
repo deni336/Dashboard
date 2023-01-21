@@ -12,7 +12,7 @@ protoDict = {}
 # def getConfig() -> cfg.Config:
 #     return load_config()
     
-def generate_config():
+def generateConfig():
     return {
             "user": "",
             "buttonBackground": "#000000",
@@ -48,7 +48,7 @@ def getConfig():
                 configDict = json.loads(fileContent)
                 return configDict            
     except:
-        return generate_config()
+        return generateConfig()
         
     
 def saveConfig(configD):
