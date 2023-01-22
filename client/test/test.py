@@ -12,6 +12,15 @@ async def chatSub():
 
     async with stub.ChatService.open() as stream:
             await stream.ChatService()
+            while True:
+                task = await taskQue
+                if task is None:
+                    await stream.end()
+                    break
+                else:
+                    await stream.sendMessage(task)
+                    result = await stream.recvMessage()
+                    await resultQue.add(task)
 
 def que(self, inp):
     taskQue.append(inp)
