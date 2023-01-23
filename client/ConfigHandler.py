@@ -1,7 +1,7 @@
 import json
 import os
 from pathlib import Path
-from client.config import Config
+from config import Config
 
 user = os.getlogin()
 configPath = Path().home().joinpath("dashconfig.json")
