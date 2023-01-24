@@ -5,8 +5,7 @@ import socket
 import subprocess
 import webbrowser
 
-import ChatClient as ChatClient
-from ConfigHandler import *
+from client.ConfigHandler import *
 #import ServerTransactionHandler as STH
 
 class ServTransF(Frame):

@@ -6,11 +6,9 @@ from tkinter import filedialog, ttk
 import client.protos.kasugai_pb2 as kasugaipy_pb2
 import client.protos.kasugai_pb2_grpc as kasugaipy_pb2_grpc
 
-import client.ChatClient as ChatClient
-import client.ChatHistory as ChatHistory
-import client.ChatPopOut as ChatPopOut
+from client import ChatClient, ChatHistory, ChatPopOut, FileManager
 from client.ConfigHandler import *
-import client.FileManager as FileManager
+
 
 
 class ChatF(Frame):

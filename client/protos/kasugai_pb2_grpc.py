@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import protos.kasugai_pb2 as kasugai__pb2
+import client.protos.kasugai_pb2 as kasugai__pb2
 
 
 class BroadcastStub(object):

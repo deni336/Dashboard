@@ -2,23 +2,24 @@ import asyncio
 from grpc import *
 import threading
 from datetime import datetime
-import protos.kasugai_pb2 as chat
-import protos.kasugai_pb2_grpc as rpc
-from protos.kasugai_pb2 import MessageResponse
-from protos.kasugai_pb2_grpc import BroadcastStub
+import client.protos.kasugai_pb2 as chat
+import client.protos.kasugai_pb2_grpc as rpc
+from client.protos.kasugai_pb2 import MessageResponse
+from client.protos.kasugai_pb2_grpc import BroadcastStub
 
 class ChatCl():
     def __init__(self):
-        self.addr = "localhost:6969"
-        try:
-            self.channel = Channel()
-            self.stub = BroadcastStub
-        except RpcError as e:
-            print("Failed to connect to server", e)
+        pass
+    #     self.addr = "localhost:6969"
+    #     try:
+    #         self.channel = Channel()
+    #         self.stub = BroadcastStub
+    #     except RpcError as e:
+    #         print("Failed to connect to server", e)
         
-    async def chatSub(self, msg):
-        messages = [MessageResponse(message = msg, timestamp = datetime.now()), MessageResponse(message = msg, timestamp = datetime.now())]
-        print(await self.stub.ChatService)
+    # async def chatSub(self, msg):
+    #     messages = [MessageResponse(message = msg, timestamp = datetime.now()), MessageResponse(message = msg, timestamp = datetime.now())]
+    #     print(await self.stub.ChatService)
     
     
     

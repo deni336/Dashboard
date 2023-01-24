@@ -11,8 +11,7 @@ import client.BottomPage as BotP
 import client.ButtonPage as ButP
 import client.ChatPage as CP
 from client.ConfigHandler import *
-from client.FileManager import FileManager
-import client.ScreenShareWindow as SSW
+from client import FileManager
 import client.ServerTransactionsPage as ServerTransactionsPage
 import client.SettingsPage as SP
 
@@ -158,8 +157,7 @@ class MainApp(Frame):
 
     def UpdateBackground(self):
         try:
-            bgImagePicked = "./client/Miku.jpg"
-            img = PILImage.open(bgImagePicked)
+            img = PILImage.open(self.configDict["bgImage"])
             imgResized = img.resize((1920, 1080), PILImage.Resampling.LANCZOS)
             bgImage = ITK.PhotoImage(imgResized)
             bgImageLabel = Label(
@@ -178,7 +176,7 @@ class MyApp(Tk):
     def __init__(self, *args, **kwargs):
         self.idList = []
         self.configDict = getConfig()
-        FileManager.whatsAvail(FileManager)
+        FileManager.FileManager.whatsAvail(FileManager)
         Tk.__init__(self, *args, **kwargs)
         self.widgets()
 
