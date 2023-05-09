@@ -23,7 +23,7 @@ def generateConfig():
             "labelFont": "('helvetica', 16, 'bold italic')",
             "labelForeground": "#ff0000",
             "frameBackground": "#000000",
-            "bgImage": "Miku.jpg",
+            "bgImage": "bg.jpg",
             "windowMode": "True",
             "download": [],
             "workDir": "",
