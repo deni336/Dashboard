@@ -1,33 +1,30 @@
+import asyncio
 import os, socket
 import threading, sys
 from tkinter import *
 from tkinter import filedialog, ttk
+import client.protos.kasugai_pb2 as kasugaipy_pb2
+import client.protos.kasugai_pb2_grpc as kasugaipy_pb2_grpc
 
-import client.ChatClient as ChatClient
-import client.ChatHistory as ChatHistory
-from client.ConfigHandler import *
-import client.FileManager as FileManager
-import client.StylingPage as StylingPage
+from client import File_Manager, chat_client, chat_history, chat_pop_out
+from client.config_handler import *
 
 
-class ChatF(Tk):
+
+class ChatF(Frame):
     configDict = getConfig()
-    idList = []
-
-    def __init__(self):
+    chatBool = True
+    id_list = []
+    
+    def __init__(self, parent):
         self.user = loadUser()
-        self.connection = []
-        self.style = StylingPage.styler()
-        
-        Tk.__init__(self)
+        self.client = chat_client.ChatCl()
+        Frame.__init__(self, parent)
+        self.parent = parent
         self.configure(background=self.configDict['frameBackground'])
-        self.servConn()
-        self.widgets()
+        
         self.treeLoop()
-
-    def widgets(self):
-        self.title('Dashboard')
-
+       
     def treeLoop(self):
         messageInput = StringVar()
         self.additionalButtons = Frame(
@@ -50,15 +47,15 @@ class ChatF(Tk):
             style="W.TButton",
             cursor="hand2",
             command= lambda: self.tv1LoadHist()
+        ).pack(side='left')
+
+        self.popOut = ttk.Button(
+            self.additionalButtons,
+            text="Pop out",
+            style="W.TButton",
+            cursor="hand2",
+            command= lambda: chat_pop_out.ChatF()
         ).pack(side='right')
-
-        # self.popOut = ttk.Button(
-        #     self.additionalButtons,
-        #     text="Pop out",
-        #     style="W.TButton",
-        #     cursor="hand2"
-
-        # ).pack(side='right')
 
         self.messagesFrame = Frame(
             self, 
@@ -86,11 +83,6 @@ class ChatF(Tk):
 
         self.scroll.configure(command=messages.yview)
 
-        if self.connection != '':
-            messages.config(state=NORMAL)
-            messages.insert(END, self.connection[1])
-            messages.config(state=DISABLED)
-
 
         self.inputField = Entry(
             self, 
@@ -105,7 +97,7 @@ class ChatF(Tk):
 
         def enterPressed(self):
             inputGet = messageInput.get()
-            #run(protoDict[0], inputGet)
+            self.client.sendMsg(inputGet)
             messageInput.set('')
             messages.see("end")
 
@@ -113,20 +105,21 @@ class ChatF(Tk):
 
         def messageUpdater():
             try:
-                response = ChatClient.ChatClient.recMessage(ChatClient.ChatClient)
+                response = chat_client.ChatCl.msg
                 print(response)
                 messages.config(state=NORMAL)
                 messages.insert(END, response)
                 messages.config(state=DISABLED)
+                chat_history.DatabaseManipulation.add_message(response)
                 messageUpdater()
             except:
                 pass
 
         try:
             messageUpdateThread = threading.Thread(target=messageUpdater)
-            messageUpdateThread.start() 
+            messageUpdateThread.start()
             a = os.getpid()
-            self.idList.append(a)
+            self.id_list.append(a)
         except (KeyboardInterrupt, SystemExit):
             sys.exit()
 
@@ -178,32 +171,23 @@ class ChatF(Tk):
             text="Download", 
             style="W.TButton", 
             cursor="hand2", 
-            command= lambda: download(self)
+            command= lambda: "",
         ).pack(side='left', anchor='ne', padx=5, pady=5)
 
         def delMeth(self):
             focusItem = self.tv1.focus()
             fItem = self.tv1.item(focusItem)
             delItem = fItem.get('values')
-            ip = socket.socket.getsockname(ChatClient.server)
-            FileManager.FileManager.delete(FileManager.FileManager, [delItem[3], ip[0], delItem[2] ])
+            ip = socket.socket.getsockname(chat_client.server)
+            File_Manager.FileManager.delete(File_Manager.FileManager, [delItem[3], ip[0], delItem[2] ])
             tv1LoadData(self)
 
         def stageMeth(self):
             filename = filedialog.askdirectory()
             size = os.path.getsize(filename)
-            ip = socket.socket.getsockname(ChatClient.server)
-            FileManager.FileManager.stage(FileManager.FileManager, filename, ip[0], size)
+            ip = socket.socket.getsockname(chat_client.server)
+            File_Manager.FileManager.stage(File_Manager.FileManager, filename, ip[0], size)
             tv1LoadData(self)
-
-        def download(self):
-            focusItem = self.tv1.focus()
-        #     fItem = self.tv1.item(focusItem)
-        #     getItem = fItem.get('values')
-        #     ip = ChatClient.ChatClient.dictOfUsers()
-        #     FileClient.FileSender.connection(FileClient.FileSender, ip)
-        #     FileClient.FileSender.sendingFile(getItem[0], getItem[2], getItem[3])
-
 
         def tv1LoadData(self):
             configDi = getConfig()
@@ -223,7 +207,7 @@ class ChatF(Tk):
 
         def tv1LoadHist(self):
             tv1ClearData()
-            messageList = ChatHistory.DatabaseManipulation.viewMessages()
+            messageList = chat_history.DatabaseManipulation.view_messages()
             for message in messageList:
                 self.tv1.insert("", "end", values=message)
 
@@ -234,10 +218,15 @@ class ChatF(Tk):
                 self.tv1.delete(i)
 
         tv1LoadData(self)
-
-    def servConn(self):
-        self.connection = ChatClient.ChatClient.ServerConnection(self.user)
-        # ServerTransactionHandler.ServerTransactionHandler.checkIp(ServerTransactionHandler)
+                
+    def ToggleChat(self):
+        if self.chatBool:
+            self.pack(side="right", anchor='ne')
+            self.chatBool = False
+        else:
+            self.pack_forget()
+            self.chatBool = True
 
  #Connecting to the server
 # Get-Process -Id (Get-NetTCPConnection -LocalPort 6969).OwningProcess
+

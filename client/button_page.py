@@ -2,14 +2,14 @@ import os, subprocess, webbrowser
 from tkinter import *
 from tkinter import ttk
 
-from client.ConfigHandler import *
-import client.StylingPage as StylingPage
+from client.config_handler import *
+import client.styling_page as styling_page
 
 class ButtonF(Frame):
     configDict = getConfig()
     def __init__(self, parent):
         self.user = os.getlogin()
-        self.style = StylingPage.styler()
+        self.style = styling_page.styler()
         Frame.__init__(self, parent)
         self.parent = parent
         self.configure(background=self.configDict['frameBackground'])

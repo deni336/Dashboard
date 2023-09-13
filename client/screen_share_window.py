@@ -1,8 +1,8 @@
 from tkinter import *
 from tkinter import ttk
 
-from client.ConfigHandler import *
-from client.ServerTransactionsPage import *
+from client.config_handler import *
+from client.server_transactions_page import *
 
 class ScreenShareW(Toplevel):
     configDict = getConfig()

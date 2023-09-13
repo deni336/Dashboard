@@ -2,7 +2,7 @@ from tkinter import *
 from tkinter import ttk
 from time import strftime
 
-from client.ConfigHandler import *
+from client.config_handler import *
 
 class BottomF(Frame):
     configDict = getConfig()

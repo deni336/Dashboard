@@ -5,7 +5,7 @@ import socket
 import subprocess
 import webbrowser
 
-from client.ConfigHandler import *
+from client.config_handler import *
 #import ServerTransactionHandler as STH
 
 class ServTransF(Frame):

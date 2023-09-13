@@ -1,7 +1,7 @@
 from tkinter import *
 from tkinter import ttk, colorchooser, filedialog
-from client.ConfigHandler import getConfig, saveConfig, update
-import client.StylingPage as StylP
+from client.config_handler import getConfig, saveConfig, update
+import client.styling_page as StylP
 
 class SettingsW(Frame):
     configDict = getConfig()

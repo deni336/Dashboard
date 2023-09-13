@@ -1,19 +1,18 @@
-import os, signal
+import os
+import signal
+import tkinter as tk
 from pathlib import Path
-import tkinter
-from PIL import ImageTk as ITK
 from PIL import Image as PILImage
-from tkinter import *
-from tkinter import TclError
+from PIL import ImageTk as ITK
 
-import client.BannerPage as BP
-import client.BottomPage as BotP
-import client.ButtonPage as ButP
-import client.ChatPage as CP
-from client.ConfigHandler import *
-from client import FileManager
-import client.ServerTransactionsPage as ServerTransactionsPage
-import client.SettingsPage as SP
+import client.banner_page as BP
+import client.bottom_page as BotP
+import client.button_page as ButP
+import client.chat_page as CP
+from client.config_handler import get_config
+from client import File_Manager
+import client.server_transactions_page as STP
+import client.settings_page as SP
 
 ##### To Do's
 
@@ -37,7 +36,7 @@ import client.SettingsPage as SP
 # 
 
 
-class Event(object):
+class Event:
  
     def __init__(self):
         self.__eventhandlers = []
@@ -57,161 +56,157 @@ class Event(object):
     def StartAlarm(self):
         print ("Alarm has started")
 
-class Events(object):
+class Events:
 
     def __init__(self):
-        self.DownSize = Event()
-        self.FullScreen = Event()
-        self.Minimize = Event()
-        self.OnLockBroken = Event()
-        self.OnShutDown = Event()
-        self.ToggleOpen = Event()
-        self.ToggleServTrans = Event()
-        self.UpdateBackground = Event()
-        # self.UpdateMessages = Event()
+        self.down_size = Event()
+        self.fullscreen = Event()
+        self.minimize = Event()
+        self.on_lock_broken = Event()
+        self.on_shutdown = Event()
+        self.toggle_open = Event()
+        self.toggle_serv_trans = Event()
+        self.update_background = Event()
+        # self.update_messages = Event()
        
 
     def FireEvent(self):
         # This function will be executed once a lock is broken and will
         # raise an event
-        self.DownSize()
-        self.FullScreen()
-        self.Minimize()
-        self.OnLockBroken()
-        self.OnShutDown()
-        self.ToggleOpen()
-        self.ToggleServTrans()
+        self.down_size()
+        self.fullscreen()
+        self.minimize()
+        self.on_lock_broken()
+        self.on_shutdown()
+        self.toggle_open()
+        self.toggle_serv_trans()
         # self.UpdateMessages()
 
 
-    def AddSubscribersForLockBrokenEvent(self, objMethod):
-        self.OnLockBroken += objMethod
+    def add_subscribers_for_lock_broken_event(self, obj_method):
+        self.on_lock_broken += obj_method
 
-    def RemoveSubscribersForLockBrokenEvent(self, objMethod):
-        self.OnLockBroken -= objMethod
+    def remove_subscribers_for_lock_broken_event(self, obj_method):
+        self.on_lock_broken -= obj_method
 
-    def AddSubscribersForShutDownEvent(self, objMethod):
-        self.OnShutDown += objMethod
+    def add_subscribers_for_shutdown_event(self, obj_method):
+        self.on_shutdown += obj_method
 
-    def RemoveSubscribersForShutDownEvent(self, objMethod):
-        self.OnShutDown -= objMethod
+    def remove_subscribers_for_shutdown_event(self, obj_method):
+        self.on_shutdown -= obj_method
 
-    def AddSubscribersForToggleOpenEvent(self, objMethod):
-        self.ToggleOpen += objMethod
+    def add_subscribers_for_toggle_open_event(self, obj_method):
+        self.toggle_open += obj_method
 
-    def RemoveSubscribersForToggleOpenEvent(self, objMethod):
-        self.ToggleOpen -= objMethod
+    def remove_subscribers_for_toggle_open_event(self, obj_method):
+        self.toggle_open -= obj_method
 
-    def AddSubscribersForToggleServTransEvent(self, objMethod):
-        self.ToggleServTrans += objMethod
+    def add_subscribers_for_toggle_serv_trans_event(self, obj_method):
+        self.toggle_serv_trans += obj_method
 
-    def RemoveSubscribersForToggleServTransEvent(self, objMethod):
-        self.ToggleServTrans -= objMethod
+    def remove_subscribers_for_toggle_serv_trans_event(self, obj_method):
+        self.toggle_serv_trans -= obj_method
 
-    def AddSubscribersForMinimizeEvent(self, objMethod):
-        self.Minimize += objMethod
+    def add_subscribers_for_minimize_event(self, obj_method):
+        self.minimize += obj_method
 
-    def RemoveSubscribersForMinimizeEvent(self, objMethod):
-        self.Minimize -= objMethod
+    def remove_subscribers_for_minimize_event(self, obj_method):
+        self.minimize -= obj_method
 
-    def AddSubscribersForDownSizeEvent(self,objMethod):
-        self.DownSize += objMethod
+    def add_subscribers_for_down_size_event(self,obj_method):
+        self.down_size += obj_method
 
-    def RemoveSubscribersForDownSizeEvent(self,objMethod):
-        self.DownSize -= objMethod
+    def remove_subscribers_for_down_size_event(self,obj_method):
+        self.down_size -= obj_method
 
-    def AddSubscribersForFullScreenEvent(self,objMethod):
-        self.FullScreen += objMethod
+    def add_subscribers_for_fullscreen_event(self,obj_method):
+        self.fullscreen += obj_method
 
-    def RemoveSubscribersForFullScreenEvent(self,objMethod):
-        self.FullScreen -= objMethod
+    def remove_subscribers_for_fullscreen_event(self,obj_method):
+        self.fullscreen -= obj_method
 
-    def AddSubscribersForUpdateBackgroundEvent(self, objMethod):
-        self.UpdateBackground += objMethod
+    def add_subscribers_for_update_background_event(self, obj_method):
+        self.update_background += obj_method
 
-    def RemoveSubscribersForUpdateBackgroundEvent(self, objMethod):
-        self.UpdateBackground -= objMethod
-        
-    # def AddSubscribersForUpdateMessagesEvent(self, objMethod):
-    #     self.UpdateMessages += objMethod
-
-    # def RemoveSubscribersForUpdateMessagesEvent(self, objMethod):
-    #     self.UpdateMessages -= objMethod
+    def remove_subscribers_for_update_background_event(self, obj_method):
+        self.update_background -= obj_method
 
 
-class MainApp(Frame):
+class MainApp(tk.Frame):
     def __init__(self, parent, config):
-        self.configDict = config
-        self.chatUser = ''
-        self.settingsShow = False
-        self.chatShow = False
-        self.servTransShow = False
-        Frame.__init__(self, parent)
+        super().__init__(parent)
+        self.config_dict = config
+        self.chat_user = ''
+        self.settings_show = False
+        self.chat_show = False
+        self.serv_trans_show = False
+        tk.Frame.__init__(self, parent)
         self.parent = parent
-        self.configure(background=self.configDict['frameBackground'])
-        self.mainWidgets()
-        self.UpdateBackground()
+        self.configure(background=self.config_dict['frameBackground'])
+        self.main_widgets()
+        self.update_background()
 
-    def mainWidgets(self):
+    def main_widgets(self):
         self.pack(expand="true", fill="both")
 
-    def UpdateBackground(self):
+    def update_background(self):
         try:
-            img = PILImage.open(self.configDict["bgImage"])
-            imgResized = img.resize((1920, 1080), PILImage.Resampling.LANCZOS)
-            bgImage = ITK.PhotoImage(imgResized)
-            bgImageLabel = Label(
+            img = PILImage.open(self.config_dict["bgImage"])
+            img_resized = img.resize((1920, 1080), PILImage.Resampling.LANCZOS)
+            bg_image = ITK.PhotoImage(img_resized)
+            bg_image_label = tk.Label(
                 self, 
-                image=bgImage, 
-                background=self.configDict["frameBackground"]
+                image=bg_image, 
+                background=self.config_dict["frameBackground"]
             )
-            bgImageLabel.place(x=0, y=0)
-            bgImageLabel.image = bgImage
+            bg_image_label.place(x=0, y=0)
+            bg_image_label.image = bg_image
             MyApp.update(self)
-        except tkinter.TclError as e:
+        except tk.TclError as e:
             print(e)
 
-class MyApp(Tk):
+class MyApp(tk):
 
     def __init__(self, *args, **kwargs):
-        self.idList = []
-        self.configDict = getConfig()
-        FileManager.FileManager.whatsAvail(FileManager)
-        Tk.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
+        self.id_list = []
+        self.config_dict = get_config()
+        File_Manager.FileManager.whats_avail(File_Manager)
+        tk.__init__(self, *args, **kwargs)
         self.widgets()
 
-    def widgets(self):
-        eventHandler = Events()
+    def initialize_widgets(self):
+        event_handler = Events()
 
-        self.mainFrame = MainApp(self, self.configDict)
-        self.bannerFrame = BP.BannerF(self.mainFrame, eventHandler)
-        self.bottomFrame = BotP.BottomF(self.mainFrame)
-        self.buttonFrame = ButP.ButtonF(self.mainFrame)
-        self.settingsFrame = SP.SettingsW(self.mainFrame, eventHandler)
-        self.chatFrame = CP.ChatF(self.mainFrame)
-        self.servFrame = ServerTransactionsPage.ServTransF(self.mainFrame)
+        self.main_frame = MainApp(self, self.config_dict)
+        self.banner_frame = BP.Banner(self.main_frame, event_handler)
+        self.bottom_frame = BotP.BottomF(self.main_frame)
+        self.button_frame = ButP.ButtonF(self.main_frame)
+        self.settings_frame = SP.SettingsW(self.main_frame, event_handler)
+        self.chat_frame = CP.ChatF(self.main_frame)
+        self.serv_frame = STP.ServTransF(self.main_frame)
 
-        eventHandler.AddSubscribersForDownSizeEvent(self.DownSize)
-        eventHandler.AddSubscribersForFullScreenEvent(self.FullScreen)
-        eventHandler.AddSubscribersForMinimizeEvent(self.Minimize)
-        eventHandler.AddSubscribersForToggleOpenEvent(self.chatFrame.ToggleChat)
-        eventHandler.AddSubscribersForShutDownEvent(self.shutdown)
-        eventHandler.AddSubscribersForLockBrokenEvent(self.settingsFrame.ToggleSettings)
-        eventHandler.AddSubscribersForToggleServTransEvent(self.servFrame.ToggleServ)
-        eventHandler.AddSubscribersForUpdateBackgroundEvent(MainApp.UpdateBackground)
+        event_handler.add_subscribers_for_down_size_event(self.down_size)
+        event_handler.add_subscribers_for_fullscreen_event(self.fullscreen)
+        event_handler.add_subscribers_for_minimize_event(self.minimize)
+        event_handler.add_subscribers_for_toggle_open_event(self.chat_frame.ToggleChat)
+        event_handler.add_subscribers_for_shutdown_event(self.shutdown)
+        event_handler.add_subscribers_for_lock_broken_event(self.settings_frame.ToggleSettings)
+        event_handler.add_subscribers_for_toggle_serv_trans_event(self.serv_frame.ToggleServ)
+        event_handler.add_subscribers_for_update_background_event(MainApp.update_background)
 
 
-    def Minimize(self): 
+    def minimize(self): 
         self.state("icon")
 
-    def FullScreen(self):
+    def fullscreen(self):
         self.wm_attributes("-fullscreen", True)
 
-    def DownSize(self):
+    def down_size(self):
         self.wm_attributes("-fullscreen", False)
 
     def shutdown(self):
-        for i in CP.ChatF.idList:
+        for i in CP.ChatF.id_list:
             os.kill(i, signal.SIGTERM)
         root.destroy()
 

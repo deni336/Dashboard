@@ -1,11 +1,11 @@
 # from ChatClient import ChatCl
-import client.ConfigHandler as ConfigHandler
+import client.config_handler as config_handler
 
 class FileManager():
-    configDict = ConfigHandler.getConfig()
+    configDict = config_handler.getConfig()
     
-    def whatsAvail(self):
-        self.configDict = ConfigHandler.getConfig()
+    def whats_avail(self):
+        self.configDict = config_handler.getConfig()
         self.listOfAvailFiles = self.configDict.get('download')
         return self.listOfAvailFiles
 
@@ -14,12 +14,12 @@ class FileManager():
 
     def delete(self, filename):
         self.listOfAvailFiles.remove(filename)
-        ConfigHandler.update('download', self.listOfAvailFiles)
+        config_handler.update('download', self.listOfAvailFiles)
 
 
     def stage(self, ip, size, path):
         self.listOfAvailFiles.append([ip, size, path])
-        ConfigHandler.update('download', self.listOfAvailFiles)
+        config_handler.update('download', self.listOfAvailFiles)
         # ChatClient.sendStage(ChatClient[ip, size, path])
     
     
