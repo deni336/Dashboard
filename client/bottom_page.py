@@ -5,29 +5,29 @@ from time import strftime
 from client.config_handler import *
 
 class BottomF(Frame):
-    configDict = getConfig()
+    config_dict = get_config()
     def __init__(self, parent):
         Frame.__init__(self, parent)
         self.parent = parent
-        self.configure(background=self.configDict.get('frameBackground'))
+        self.configure(background=self.config_dict.get('frameBackground'))
         self.widgets()
         
     def widgets(self):
         self.pack(side="bottom", fill="x")
 
-        self.timeLabel = Label(
+        self.time_label = Label(
             self, 
             font=('helvetica', 16, "bold italic"), 
-            background=self.configDict.get("frameBackground"), 
-            foreground=self.configDict.get("labelForeground")
+            background=self.config_dict.get("frameBackground"), 
+            foreground=self.config_dict.get("labelForeground")
         )
-        self.timeLabel.pack(side="bottom")
+        self.time_label.pack(side="bottom")
 
-        self.myTime()
+        self.my_time()
         
-    def myTime(self):
-        timeString = strftime('%d %b %y @ %H:%M:%S %p')
-        self.timeLabel.config(text=timeString)
-        self.timeLabel.after(1000, self.myTime)
+    def my_time(self):
+        time_string = strftime('%d %b %y @ %H:%M:%S %p')
+        self.time_label.config(text=time_string)
+        self.time_label.after(1000, self.my_time)
         
         

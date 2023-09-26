@@ -1,8 +1,8 @@
 from tkinter import *
 from tkinter import ttk
 
-from ConfigHandler import *
-from ServerTransactionsPage import *
+from config_handler import *
+from server_transactions_page import *
 
 class GenWindow(Tk):
     def __init__(self) -> None:
@@ -12,10 +12,10 @@ class GenWindow(Tk):
         self.widgets()
 
     def widgets(self):
-        newFrame = Frame(self)
-        newFrame.pack_propagate(0)
+        new_frame = Frame(self)
+        new_frame.pack_propagate(0)
         # newFrame.pack(fill='both', expand='true')
-        newFrame.grid_rowconfigure(0, weight=1)
-        newFrame.grid_columnconfigure(0, weight=1)
+        new_frame.grid_rowconfigure(0, weight=1)
+        new_frame.grid_columnconfigure(0, weight=1)
         
         self.resizable(True, True)

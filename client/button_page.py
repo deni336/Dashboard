@@ -6,7 +6,7 @@ from client.config_handler import *
 import client.styling_page as styling_page
 
 class ButtonF(Frame):
-    configDict = getConfig()
+    configDict = get_config()
     def __init__(self, parent):
         self.user = os.getlogin()
         self.style = styling_page.styler()

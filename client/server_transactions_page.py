@@ -9,77 +9,77 @@ from client.config_handler import *
 #import ServerTransactionHandler as STH
 
 class ServTransF(Frame):
-    configDict = getConfig()
-    servTransBool = True
-    getItem = []
+    config_dict = get_config()
+    serv_trans_bool = True
+    get_item = []
     def __init__(self, parent):
-        self.user = loadUser()
+        self.user = load_user()
         
         Frame.__init__(self, parent)
         self.parent = parent
-        self.configure(background=self.configDict['frameBackground'])
+        self.configure(background=self.config_dict['frameBackground'])
         self.widgets()
 
     def widgets(self):
-        self.transFrame = Frame(
+        self.trans_frame = Frame(
             self, 
-            background=self.configDict['frameBackground']
+            background=self.config_dict['frameBackground']
         )
-        self.transFrame.pack()
+        self.trans_frame.pack()
 
-        screenShareLabel = Label(
-            self.transFrame,
+        screen_share_label = Label(
+            self.trans_frame,
             text="Screen Sharing",
-            background=self.configDict["frameBackground"], 
-            foreground=self.configDict["labelForeground"], 
+            background=self.config_dict["frameBackground"], 
+            foreground=self.config_dict["labelForeground"], 
             font=("American typewriter", 20)
         ).pack()
 
         columns = ('Users')
-        self.shareTree = ttk.Treeview(
-            self.transFrame,
+        self.share_tree = ttk.Treeview(
+            self.trans_frame,
             columns=columns,
             show='headings'
         )
-        self.shareTree.heading('Users', text="Users")
-        self.shareTree.pack(fill='x')
+        self.share_tree.heading('Users', text="Users")
+        self.share_tree.pack(fill='x')
 
-        refreshBtn = ttk.Button(
-            self.transFrame,
+        refresh_btn = ttk.Button(
+            self.trans_frame,
             text="Refresh",
             style="W.TButton",
-            command= lambda: self.updateShareTree()
+            command= lambda: self.update_share_tree()
         ).pack(side='right')
 
-        disconnectBtn = ttk.Button(
-            self.transFrame,
+        disconnect_btn = ttk.Button(
+            self.trans_frame,
             text="Disco",
             style="W.TButton",
-            command= lambda: self.killShareScreen()
+            command= lambda: self.kill_share_screen()
         ).pack(side='right')
 
-        shareScreenBtn = ttk.Button(
-            self.transFrame,
+        share_screen_btn = ttk.Button(
+            self.trans_frame,
             text="Share",
             style="W.TButton",
-            command= lambda: self.fireScreenShare()
+            command= lambda: self.fire_screen_share()
         ).pack(side='right')
 
-        viewBtn = ttk.Button(
-            self.transFrame,
+        view_btn = ttk.Button(
+            self.trans_frame,
             text="View",
             style="W.TButton", 
             cursor="hand2", 
-            command= lambda: self.viewSelectedScreen()
+            command= lambda: self.view_selected_screen()
         ).pack(side='right')
 
-    def updateShareTree(self):
-        x = self.shareTree.get_children()
+    def update_share_tree(self):
+        x = self.share_tree.get_children()
         for i in x:
-            self.shareTree.delete(i)
-        self.shareTree.insert()
+            self.share_tree.delete(i)
+        self.share_tree.insert()
 
-    def killShareScreen(self):
+    def kill_share_screen(self):
         subprocess.Popen(
                 [
                     'C:\Program Files\Google\Chrome\Application\chrome.exe', 
@@ -87,15 +87,15 @@ class ServTransF(Frame):
                 ]
             )
         
-    def viewSelectedScreen(self):
-        focusItem = self.shareTree.focus()
-        fItem = self.shareTree.item(focusItem)
-        self.getItem = fItem.get('values')
-        self.event.OpenScreenShare()
+    def view_selected_screen(self):
+        focus_item = self.share_tree.focus()
+        f_item = self.share_tree.item(focus_item)
+        self.get_item = f_item.get('values')
+        self.event.open_screen_share()
 
 
-    def fireScreenShare(self):
-        self.myIp = self.configDict['clientIp']
+    def fire_screen_share(self):
+        self.myIp = self.config_dict['clientIp']
         try:
             subprocess.Popen(
                 [
@@ -112,9 +112,9 @@ class ServTransF(Frame):
             )
 
     def ToggleServ(self):
-        if self.servTransBool:
+        if self.serv_trans_bool:
             self.pack(side="right", anchor='ne')
-            self.servTransBool = False
+            self.serv_trans_bool = False
         else:
             self.pack_forget()
-            self.servTransBool = True
+            self.serv_trans_bool = True

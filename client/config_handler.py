@@ -4,15 +4,15 @@ from pathlib import Path
 from client.config import Config
 
 user = os.getlogin()
-configPath = Path().home().joinpath("dashconfig.json")
+config_path = Path().home().joinpath("dashconfig.json")
 #config_file = cfg.Config
-protoDict = {}
+proto_dict = {}
    
 # # This needs to be self.config_file   
 # def getConfig() -> cfg.Config:
 #     return load_config()
     
-def generateConfig():
+def generate_config():
     return {
             "user": "",
             "buttonBackground": "#000000",
@@ -41,30 +41,30 @@ def generateConfig():
 #     except:
 #         return cfg.Config(**generate_config())
 
-def getConfig():
+def get_config():
     try:
-        with open(configPath, "r") as configFile:
-                fileContent = configFile.read()
-                configDict = json.loads(fileContent)
-                return configDict            
+        with open(config_path, "r") as config_file:
+                file_content = config_file.read()
+                config_dict = json.loads(file_content)
+                return config_dict            
     except:
-        return generateConfig()
+        return generate_config()
         
     
-def saveConfig(configD):
-    with open(configPath, "w") as f:
+def save_config(configD):
+    with open(config_path, "w") as f:
         dumped = json.dumps(configD, indent=4)
         f.write(dumped)
         
 def update(key, value):
-    configDict = getConfig()
-    configDict.update({key: value})
-    saveConfig(configDict)
+    config_dict = get_config()
+    config_dict.update({key: value})
+    save_config(config_dict)
 
-def loadUser():
-    configDict = getConfig()
-    if configDict.get('user') == None:
+def load_user():
+    config_dict = get_config()
+    if config_dict.get('user') == None:
         return None
     else:
-        user = configDict.get('user')
+        user = config_dict.get('user')
         return user

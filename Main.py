@@ -189,9 +189,9 @@ class MyApp(tk):
         event_handler.add_subscribers_for_down_size_event(self.down_size)
         event_handler.add_subscribers_for_fullscreen_event(self.fullscreen)
         event_handler.add_subscribers_for_minimize_event(self.minimize)
-        event_handler.add_subscribers_for_toggle_open_event(self.chat_frame.ToggleChat)
+        event_handler.add_subscribers_for_toggle_open_event(self.chat_frame.toggle_chat)
         event_handler.add_subscribers_for_shutdown_event(self.shutdown)
-        event_handler.add_subscribers_for_lock_broken_event(self.settings_frame.ToggleSettings)
+        event_handler.add_subscribers_for_lock_broken_event(self.settings_frame.toggle_settings)
         event_handler.add_subscribers_for_toggle_serv_trans_event(self.serv_frame.ToggleServ)
         event_handler.add_subscribers_for_update_background_event(MainApp.update_background)
 

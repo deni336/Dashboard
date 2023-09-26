@@ -1,10 +1,10 @@
 from tkinter import Tk, Label, ttk
-from client.config_handler import getConfig, saveConfig, update
+from client.config_handler import get_config, save_config, update
 
 class BindWindow(Tk):
     """Class for key binding window."""
     
-    config_dict = getConfig()
+    config_dict = get_config()
 
     def __init__(self, *args, **kwargs):
         """Initialize the window."""
