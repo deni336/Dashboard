@@ -2,8 +2,6 @@ package server
 
 import (
 	"context"
-	"dirtyRAT/pkg/c2"
-	"dirtyRAT/pkg/command"
 	"fmt"
 	"io"
 	"log"
@@ -11,6 +9,9 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"chat/pkg/command"
+	"chat/pkg/kasugai"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/ratelimit"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
@@ -31,10 +32,15 @@ type AgentInfo struct {
 }
 
 type Server struct {
-	c2.UnimplementedCommandAndControlServer
-	mu           sync.Mutex
-	Agents       map[string]*AgentInfo
-	agentTimeout time.Duration
+	kasugai.UnimplementedChatServiceServer
+	kasugai.UnimplementedFileTransferServiceServer
+	mu            sync.Mutex
+	Agents        map[string]*AgentInfo
+	videoStreams  map[string][]*kasugai.VideoStream
+	screenShares  map[string][]*kasugai.ScreenShareChunk
+	fileMetadatas map[string]*kasugai.FileMetadata
+	fileChunks    map[string][]*kasugai.FileChunk
+	agentTimeout  time.Duration
 }
 
 type rateLimiter struct {
@@ -56,6 +62,8 @@ func StartServer(address string) error {
 	server := &Server{
 		Agents:       make(map[string]*AgentInfo),
 		agentTimeout: 2 * time.Minute,
+		videoStreams: make(map[string][]*kasugai.VideoStream),
+		screenShares: make(map[string][]*kasugai.ScreenShareChunk),
 	}
 
 	logger := log.New(os.Stderr, "", log.Ldate|log.Ltime|log.Lshortfile)
@@ -85,8 +93,9 @@ func StartServer(address string) error {
 			logging.StreamServerInterceptor(InterceptorLogger(logger), opts...),
 		),
 	)
-	//s := grpc.NewServer()
-	c2.RegisterCommandAndControlServer(s, server)
+
+	kasugai.RegisterChatServiceServer(s, server)
+	kasugai.RegisterFileTransferServiceServer(s, server)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 		return err
@@ -110,6 +119,8 @@ func StartServerWithTLS(address string) error {
 	server := &Server{
 		Agents:       make(map[string]*AgentInfo),
 		agentTimeout: 2 * time.Minute,
+		videoStreams: make(map[string][]*kasugai.VideoStream),
+		screenShares: make(map[string][]*kasugai.ScreenShareChunk),
 	}
 
 	logger := log.New(os.Stderr, "", log.Ldate|log.Ltime|log.Lshortfile)
@@ -145,8 +156,8 @@ func StartServerWithTLS(address string) error {
 		),
 	)
 
-	//s := grpc.NewServer(grpc.Creds(creds)) // Use the TLS credentials
-	c2.RegisterCommandAndControlServer(s, server)
+	kasugai.RegisterChatServiceServer(s, server)
+	kasugai.RegisterFileTransferServiceServer(s, server)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 		return err
@@ -190,105 +201,143 @@ func authFunc(ctx context.Context) (context.Context, error) {
 	return ctx, nil
 }
 
-func (s *Server) RegisterAgent(ctx context.Context, req *c2.RegistrationRequest) (*c2.RegistrationResponse, error) {
+func (s *Server) SendMessage(ctx context.Context, message *kasugai.Message) (*kasugai.Ack, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	agentID := fmt.Sprintf("%d", len(s.Agents)+1)
-
-	newAgentInfo := &AgentInfo{
-		Agent: &c2.Agent{
-			AgentID:   agentID,
-			AgentName: req.AgentName,
-		},
-		Chan:     make(chan bool),
-		Commands: make([]*command.Command, 0),
-	}
-
-	s.Agents[agentID] = newAgentInfo
-
-	go s.monitorAgentHeartbeat(agentID)
-
-	log.Printf("Registered agent with ID: %s, Name: %s", agentID, req.AgentName)
-	return &c2.RegistrationResponse{AgentID: agentID, Status: "Registered Successfully"}, nil
+	s.messages = append(s.messages, message)
+	return &kasugai.Ack{Success: true}, nil
 }
 
-func (s *Server) ListAgents(ctx context.Context, _ *c2.Empty) (*c2.AgentListResponse, error) {
+func (s *Server) ReceiveMessages(req *kasugai.Id, stream kasugai.ChatService_ReceiveMessagesServer) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	var agents []*c2.Agent
-	for _, agent := range s.Agents {
-		agents = append(agents, agent.Agent)
-	}
-
-	return &c2.AgentListResponse{Agents: agents}, nil
-}
-
-func (s *Server) SendCommandToServer(ctx context.Context, req *c2.CommandRequest) (*c2.CommandResponse, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	command := *command.NewCommand(req)
-	if req.Broadcast {
-		log.Printf("Broadcast command: %s", command.Cmd)
-		for _, agentInfo := range s.Agents {
-			agentInfo.Commands = append(agentInfo.Commands, &command)
-		}
-	} else {
-		if agentInfo, exists := s.Agents[req.AgentID]; exists {
-			agentInfo.Commands = append(agentInfo.Commands, &command)
-			log.Printf("Sent command: %s to agent ID: %s", command.Cmd, req.AgentID)
-		}
-	}
-
-	return &c2.CommandResponse{Status: "Received"}, nil
-}
-
-func (s *Server) FetchCommandFromServer(ctx context.Context, req *c2.AgentFetchRequest) (*c2.CommandResponse, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	agentInfo, exists := s.Agents[req.AgentID]
-	if !exists || len(agentInfo.Commands) == 0 {
-		return &c2.CommandResponse{Status: "No commands"}, nil
-	}
-
-	nextCommand := agentInfo.Commands[0]
-	agentInfo.Commands = agentInfo.Commands[1:]
-
-	log.Printf("Agent ID: %s fetched command: %s", req.AgentID, nextCommand.Cmd)
-
-	return &c2.CommandResponse{
-		Command:   nextCommand.Cmd,
-		Arguments: nextCommand.Arguments,
-		Status:    "Success",
-	}, nil
-}
-
-func (s *Server) DownloadFile(req *c2.FileRequest, stream c2.CommandAndControl_DownloadFileServer) error {
-	log.Printf("Initiated file download for: %s", req.Filename)
-	filePath := "files/" + req.Filename
-	file, err := os.Open(filePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	buf := make([]byte, chunkSize)
-	for {
-		n, err := file.Read(buf)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
+	for _, msg := range s.messages {
+		if err := stream.Send(msg); err != nil {
 			return err
 		}
-		if err := stream.Send(&c2.FileChunk{Data: buf[:n]}); err != nil {
+	}
+	return nil
+}
+
+func (s *Server) StartVideoStream(stream kasugai.ChatService_StartVideoStreamServer) error {
+	var streamData []*kasugai.VideoStream
+
+	for {
+		chunk, err := stream.Recv()
+		if err == io.EOF {
+			streamID := fmt.Sprintf("stream%d", len(s.videoStreams)+1)
+			s.mu.Lock()
+			s.videoStreams[streamID] = streamData
+			s.mu.Unlock()
+			return stream.SendAndClose(&kasugai.Ack{Success: true})
+		}
+		if err != nil {
+			return err
+		}
+		streamData = append(streamData, chunk)
+	}
+}
+
+func (s *Server) WatchVideoStream(req *kasugai.Id, stream kasugai.ChatService_WatchVideoStreamServer) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	streamData, ok := s.videoStreams[req.Uuid]
+	if !ok {
+		return status.Errorf(codes.NotFound, "Stream Not Found")
+	}
+
+	for _, chunk := range streamData {
+		if err := stream.Send(chunk); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (s *Server) StartScreenShare(stream kasugai.ChatService_StartScreenShareServer) error {
+	var screenData []*kasugai.ScreenShareChunk
+
+	for {
+		chunk, err := stream.Recv()
+		if err == io.EOF {
+			shareID := fmt.Sprintf("share%d", len(s.screenShares)+1)
+			s.mu.Lock()
+			s.screenShares[shareID] = screenData
+			s.mu.Unlock()
+			return stream.SendAndClose(&kasugai.Ack{Success: true})
+		}
+		if err != nil {
+			return err
+		}
+		screenData = append(screenData, chunk)
+	}
+}
+
+func (s *Server) WatchScreenShare(req *kasugai.Id, stream kasugai.ChatService_WatchScreenShareServer) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	screenData, ok := s.screenShares[req.Uuid]
+	if !ok {
+		return status.Errorf(codes.NotFound, "Screen Share Not Found")
+	}
+
+	for _, chunk := range screenData {
+		if err := stream.Send(chunk); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Server) ReceiveFileMetadata(ctx context.Context, id *kasugai.Id) (*kasugai.FileMetadata, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	metadata, ok := s.fileMetadatas[id.Uuid]
+	if !ok {
+		return nil, status.Errorf(codes.NotFound, "Metadata Not Found")
+	}
+	return metadata, nil
+}
+
+func (s *Server) ReceiveFileChunk(req *kasugai.Id, stream kasugai.FileTransferService_ReceiveFileChunkServer) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	chunks, ok := s.fileChunks[req.Uuid]
+	if !ok {
+		return status.Errorf(codes.NotFound, "File Not Found")
+	}
+	for _, chunk := range chunks {
+		if err := stream.Send(chunk); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Server) SendFileMetadata(ctx context.Context, metadata *kasugai.FileMetadata) (*kasugai.Ack, error) {
+	s.mu.Lock()
+	s.fileMetadatas[metadata.Uuid] = metadata
+	s.mu.Unlock()
+	return &kasugai.Ack{Success: true}, nil
+}
+
+func (s *Server) SendFileChunk(ctx context.Context, chunk *kasugai.FileChunk) (*kasugai.Ack, error) {
+	s.mu.Lock()
+	s.fileChunks[chunk.Uuid] = append(s.fileChunks[chunk.Uuid], chunk)
+	s.mu.Unlock()
+	return &kasugai.Ack{Success: true}, nil
+}
+
+func (s *Server) UploadFileToServer(ctx context.Context, chunk *kasugai.FileChunk) (*kasugai.Ack, error) {
+	return s.SendFileChunk(ctx, chunk)
+}
+
+func (s *Server) DownloadFileFromServer(req *kasugai.Id, stream kasugai.FileTransferService_DownloadFileFromServerServer) error {
+	return s.ReceiveFileChunk(req, stream)
 }
 
 func (s *Server) Heartbeat(ctx context.Context, req *c2.HeartbeatRequest) (*c2.HeartbeatResponse, error) {

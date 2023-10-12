@@ -18,7 +18,5 @@ func (l *LoggerAdapter) Errorf(msg string, args ...interface{}) {
 }
 
 func (l *LoggerAdapter) Debugf(msg string, args ...interface{}) {
-	// For simplicity, map Debug level to standard log.Println
-	// You might want to skip or enhance this depending on your needs
 	log.Printf("[DEBUG] "+msg, args...)
 }
