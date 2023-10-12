@@ -1,106 +1,106 @@
 from tkinter import *
 from tkinter import ttk, colorchooser, filedialog
-from client.ConfigHandler import getConfig, saveConfig, update
-import client.StylingPage as StylP
+from client.config_handler import get_config, save_config, update
+import client.styling_page as StylP
 
 class SettingsW(Frame):
-    configDict = getConfig()
-    settingsBool = False
+    config_dict = get_config()
+    settings_bool = False
 
     def __init__(self, parent, e):
         self.event = e
         Frame.__init__(self, parent)
         self.parent = parent
-        self.configure(background=self.configDict["frameBackground"])
+        self.configure(background=self.config_dict["frameBackground"])
         self.widgets()
 
     def widgets(self):
-        self.settingsBtnLabel = Label(
+        self.settings_btn_label = Label(
             self, 
             text="Button Colors", 
             font=('helvetica', 16, "bold italic"), 
-            background=self.configDict.get('frameBackground'), 
-            foreground=self.configDict.get('labelForeground')
+            background=self.config_dict.get('frameBackground'), 
+            foreground=self.config_dict.get('labelForeground')
         ).pack()
 
-        self.settingsBtnFontColor = ttk.Button(
+        self.settings_btn_font_color = ttk.Button(
             self, 
             text="Font Color", 
             style="W.TButton", 
             cursor="hand2", 
-            command= lambda: self.chooseColor("buttonForeground")
+            command= lambda: self.choose_color("buttonForeground")
         ).pack()
 
-        self.settingsBtnBgColor = ttk.Button(
+        self.settings_btn_bg_color = ttk.Button(
             self, 
             text="Button BG", 
             style="W.TButton", 
             cursor="hand2", 
-            command= lambda: self.chooseColor("buttonBackground")
+            command= lambda: self.choose_color("buttonBackground")
         ).pack()
 
-        self.settingsLabelsLabel = Label(
+        self.settings_labels_label = Label(
             self, 
             text="Label Colors", 
             font=('helvetica', 16, "bold italic"), 
-            background=self.configDict["frameBackground"], 
-            foreground=self.configDict["labelForeground"]
+            background=self.config_dict["frameBackground"], 
+            foreground=self.config_dict["labelForeground"]
         ).pack()
 
-        self.settingsLabelColor = ttk.Button(
+        self.settings_label_color = ttk.Button(
             self, 
             text="FG Color", 
             style="W.TButton", 
             cursor="hand2", 
-            command= lambda: self.chooseColor("labelForeground")
+            command= lambda: self.choose_color("labelForeground")
         ).pack()
 
-        self.settingsBkgLabel = Label(
+        self.settings_bkg_label = Label(
             self, 
             text="Background Color", 
             font=('helvetica', 16, "bold italic"), 
-            background=self.configDict["frameBackground"], 
-            foreground=self.configDict["labelForeground"]
+            background=self.config_dict["frameBackground"], 
+            foreground=self.config_dict["labelForeground"]
         ).pack()
 
-        self.settingsBgColor = ttk.Button(
+        self.settings_bg_color = ttk.Button(
             self, 
             text="Frame BG Color", 
             style="W.TButton", 
             cursor="hand2", 
-            command= lambda: self.chooseColor("frameBackground")
+            command= lambda: self.choose_color("frameBackground")
         ).pack()
 
-        self.changeBgImageLabel = Label(
+        self.change_bg_image_label = Label(
             self, 
             text="BG Image", 
             font=('helvetica', 16, "bold italic"), 
-            background=self.configDict["frameBackground"], 
-            foreground=self.configDict["labelForeground"]
+            background=self.config_dict["frameBackground"], 
+            foreground=self.config_dict["labelForeground"]
         ).pack()
 
-        self.settingsBgImage = ttk.Button(
+        self.settings_bg_image = ttk.Button(
             self, 
             text="Upload", 
             style="W.TButton", 
             cursor="hand2",
-            command= lambda: self.chooseBgImage()
+            command= lambda: self.choose_bg_image()
         ).pack()
 
-        self.workDirLabel = Label(
+        self.work_dir_label = Label(
             self, 
             text="DL Dir", 
             font=('helvetica', 16, "bold italic"), 
-            background=self.configDict["frameBackground"], 
-            foreground=self.configDict["labelForeground"]
+            background=self.config_dict["frameBackground"], 
+            foreground=self.config_dict["labelForeground"]
         ).pack()
 
-        self.workDirBtn = ttk.Button(
+        self.work_dir_btn = ttk.Button(
             self, 
             text="Dir", 
             style="W.TButton", 
             cursor="hand2", 
-            command= lambda: self.setWorkDir()
+            command= lambda: self.set_work_dir()
         ).pack()
 
         # self.bindLabel = Label(
@@ -118,32 +118,32 @@ class SettingsW(Frame):
         #     cursor="hand2", 
         #     command= lambda: self.setKeyBinds()
         # ).pack()
-    def chooseBgImage(self):
-        bgImageFile = filedialog.askopenfilename()
-        if bgImageFile == '':
+    def choose_bg_image(self):
+        bg_image_file = filedialog.askopenfilename()
+        if bg_image_file == '':
             pass
         else:
-            update('bgImage', bgImageFile)
-            self.event.UpdateBackground(self)
+            update('bgImage', bg_image_file)
+            self.event.update_background(self)
 
-    def setWorkDir(self):
+    def set_work_dir(self):
         filename = filedialog.askdirectory()
         if filename == '':
             pass
         else:
             update('workDir', filename)
 
-    def ToggleSettings(self):
-        if self.settingsBool:
+    def toggle_settings(self):
+        if self.settings_bool:
             self.pack_forget()
-            self.settingsBool = False
+            self.settings_bool = False
         else:
             self.pack(side="right", anchor="ne")
-            self.settingsBool = True
+            self.settings_bool = True
 
-    def chooseColor(self, item):
+    def choose_color(self, item):
         colorCode = colorchooser.askcolor(title ="Choose color")
         colorCodes = colorCode[1]
-        configDict = getConfig()
-        configDict.update({item: colorCodes})
-        saveConfig(configDict)
+        config_dict = get_config()
+        config_dict.update({item: colorCodes})
+        save_config(config_dict)
