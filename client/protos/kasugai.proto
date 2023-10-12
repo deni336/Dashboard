@@ -1,8 +1,25 @@
 syntax = "proto3";
 
-option go_package = "/;kasugai";
+
 
 package kasugai;
+
+
+message ActiveUsersList {
+  repeated User users = 1;
+}
+
+message ActiveUsersRequest {}
+
+message User {
+  string name = 1;
+  MessageResponse message = 2;
+}
+
+message MessageResponse {
+  string message = 1;
+  string timestamp = 2;
+}
 
 service Broadcast {
     rpc ChatService(stream MessageResponse) returns (stream MessageResponse){}
@@ -10,21 +27,7 @@ service Broadcast {
   }
 
   
-  message ActiveUsersList {
-    repeated User users = 1;
-  }
 
-  message ActiveUsersRequest {}
-
-  message User {
-    string name = 1;
-    MessageResponse message = 2;
-  }
-
-  message MessageResponse {
-    string message = 1;
-    string timestamp = 2;
-  }
 
 
   

@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import client.protos.kasugai_pb2 as kasugaipy_pb2
+import client.protos.kasugai_pb2 as kasugai__pb2
 
 
 class BroadcastStub(object):
@@ -16,13 +16,13 @@ class BroadcastStub(object):
         """
         self.ChatService = channel.stream_stream(
                 '/kasugai.Broadcast/ChatService',
-                request_serializer=kasugaipy_pb2.MessageResponse.SerializeToString,
-                response_deserializer=kasugaipy_pb2.MessageResponse.FromString,
+                request_serializer=kasugai__pb2.MessageResponse.SerializeToString,
+                response_deserializer=kasugai__pb2.MessageResponse.FromString,
                 )
         self.ActiveUsers = channel.unary_unary(
                 '/kasugai.Broadcast/ActiveUsers',
-                request_serializer=kasugaipy_pb2.ActiveUsersRequest.SerializeToString,
-                response_deserializer=kasugaipy_pb2.ActiveUsersList.FromString,
+                request_serializer=kasugai__pb2.ActiveUsersRequest.SerializeToString,
+                response_deserializer=kasugai__pb2.ActiveUsersList.FromString,
                 )
 
 
@@ -46,13 +46,13 @@ def add_BroadcastServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'ChatService': grpc.stream_stream_rpc_method_handler(
                     servicer.ChatService,
-                    request_deserializer=kasugaipy_pb2.MessageResponse.FromString,
-                    response_serializer=kasugaipy_pb2.MessageResponse.SerializeToString,
+                    request_deserializer=kasugai__pb2.MessageResponse.FromString,
+                    response_serializer=kasugai__pb2.MessageResponse.SerializeToString,
             ),
             'ActiveUsers': grpc.unary_unary_rpc_method_handler(
                     servicer.ActiveUsers,
-                    request_deserializer=kasugaipy_pb2.ActiveUsersRequest.FromString,
-                    response_serializer=kasugaipy_pb2.ActiveUsersList.SerializeToString,
+                    request_deserializer=kasugai__pb2.ActiveUsersRequest.FromString,
+                    response_serializer=kasugai__pb2.ActiveUsersList.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -76,8 +76,8 @@ class Broadcast(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.stream_stream(request_iterator, target, '/kasugai.Broadcast/ChatService',
-            kasugaipy_pb2.MessageResponse.SerializeToString,
-            kasugaipy_pb2.MessageResponse.FromString,
+            kasugai__pb2.MessageResponse.SerializeToString,
+            kasugai__pb2.MessageResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -93,7 +93,7 @@ class Broadcast(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/kasugai.Broadcast/ActiveUsers',
-            kasugaipy_pb2.ActiveUsersRequest.SerializeToString,
-            kasugaipy_pb2.ActiveUsersList.FromString,
+            kasugai__pb2.ActiveUsersRequest.SerializeToString,
+            kasugai__pb2.ActiveUsersList.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

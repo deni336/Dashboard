@@ -2,10 +2,10 @@ import sqlite3
 from sqlite3 import Error, Cursor
 import os
 
-defaultUser = os.getlogin()
-db = r"C:/users/"+ defaultUser +"/ChatHistory.db"
+default_user = os.getlogin()
+db = r"C:/users/"+ default_user +"/ChatHistory.db"
 
-def createConnection(db_file):
+def create_connection(db_file):
     conn = None
     try:
         conn = sqlite3.connect(db_file)
@@ -14,11 +14,11 @@ def createConnection(db_file):
         print(e)
 
 class DatabaseCreation():
-    def __init__(self, createTable) -> None:
-        self.createTable = createTable
+    def __init__(self, create_table) -> None:
+        self.create_table = create_table
 
-    def createTable(self):
-        conn = createConnection(db)
+    def create_table(self):
+        conn = create_connection(db)
         sql = '''
         CREATE TABLE IF NOT EXISTS HIST (
             NAME TEXT NOT NULL
@@ -31,8 +31,8 @@ class DatabaseCreation():
         conn.close()
     
 class DatabaseManipulation():
-    def addMessage(self, message):
-        conn = createConnection(db)
+    def add_message(self, message):
+        conn = create_connection(db)
         sql = '''INSERT INTO HIST (NAME, MESSAGE, TIME) VALUES (?,?,?)
         '''
         cur = conn.cursor()
@@ -40,14 +40,14 @@ class DatabaseManipulation():
         conn.commit()
         conn.close()
 
-    def viewMessages(self):
-        messageHistory = []
-        conn = createConnection(db)
+    def view_messages(self):
+        message_history = []
+        conn = create_connection(db)
         sql = '''SELECT * FORM HIST'''
         cur = conn.cursor()
         read = cur.execute(sql)
         for i in read:
-            messageHistory.append(i)
-        return messageHistory
+            message_history.append(i)
+        return message_history
         
 
