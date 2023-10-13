@@ -11,6 +11,9 @@ import (
 - [] Add file manager to setup storage and screen share support
 - [] Write test for this code
 - [] Add ability to save snapshot to screen share
+- [] fix screen sharing
+- [] add video streaming
+- [] database
 */
 
 func main() {
