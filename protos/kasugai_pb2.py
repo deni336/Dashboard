@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rkasugai.proto\x12\x07kasugai\"\x12\n\x02Id\x12\x0c\n\x04uuid\x18\x01 \x01(\t\"t\n\x07Message\x12\x1e\n\tmessageId\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12\x10\n\x08senderId\x18\x02 \x01(\t\x12\x13\n\x0brecipientId\x18\x03 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x04 \x01(\t\x12\x11\n\ttimestamp\x18\x05 \x01(\x03\":\n\x0bVideoStream\x12\x1d\n\x08streamId\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\":\n\x0bScreenShare\x12\x1d\n\x08streamId\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"U\n\x0c\x46ileMetadata\x12\x1b\n\x06\x66ileId\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0c\n\x04size\x18\x03 \x01(\x05\x12\x0c\n\x04type\x18\x04 \x01(\t\"6\n\tFileChunk\x12\x1b\n\x06\x66ileId\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"\'\n\x03\x41\x63k\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t2\xd2\x02\n\x0b\x43hatService\x12-\n\x0bSendMessage\x12\x10.kasugai.Message\x1a\x0c.kasugai.Ack\x12\x32\n\x0fReceiveMessages\x12\x0b.kasugai.Id\x1a\x10.kasugai.Message0\x01\x12\x36\n\x10StartVideoStream\x12\x14.kasugai.VideoStream\x1a\x0c.kasugai.Ack\x12\x37\n\x10WatchVideoStream\x12\x0b.kasugai.Id\x1a\x14.kasugai.VideoStream0\x01\x12\x36\n\x10StartScreenShare\x12\x14.kasugai.ScreenShare\x1a\x0c.kasugai.Ack\x12\x37\n\x10WatchScreenShare\x12\x0b.kasugai.Id\x1a\x14.kasugai.ScreenShare0\x01\x32\xe8\x02\n\x13\x46ileTransferService\x12\x37\n\x10SendFileMetadata\x12\x15.kasugai.FileMetadata\x1a\x0c.kasugai.Ack\x12\x31\n\rSendFileChunk\x12\x12.kasugai.FileChunk\x1a\x0c.kasugai.Ack\x12\x39\n\x13ReceiveFileMetadata\x12\x0b.kasugai.Id\x1a\x15.kasugai.FileMetadata\x12\x35\n\x10ReceiveFileChunk\x12\x0b.kasugai.Id\x1a\x12.kasugai.FileChunk0\x01\x12\x36\n\x12UploadFileToServer\x12\x12.kasugai.FileChunk\x1a\x0c.kasugai.Ack\x12;\n\x16\x44ownloadFileFromServer\x12\x0b.kasugai.Id\x1a\x12.kasugai.FileChunk0\x01\x42\nZ\x08/kasugaib\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rkasugai.proto\x12\x07kasugai\"g\n\x07Message\x12\x10\n\x08senderId\x18\x01 \x01(\t\x12\x13\n\x0brecipientId\x18\x02 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x03 \x01(\t\x12\x11\n\ttimestamp\x18\x04 \x01(\x03\x12\x11\n\tbroadcast\x18\x05 \x01(\x08\"-\n\x0bVideoStream\x12\x10\n\x08\x63lientId\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"-\n\x0bScreenShare\x12\x10\n\x08\x63lientId\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"J\n\x0c\x46ileMetadata\x12\x10\n\x08\x63lientId\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0c\n\x04size\x18\x03 \x01(\x05\x12\x0c\n\x04type\x18\x04 \x01(\t\"+\n\tFileChunk\x12\x10\n\x08\x63lientId\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"3\n\x12ListClientsRequest\x12\r\n\x05limit\x18\x01 \x01(\x05\x12\x0e\n\x06offset\x18\x02 \x01(\x05\";\n\x13ListClientsResponse\x12$\n\x07\x63lients\x18\x01 \x03(\x0b\x32\x13.kasugai.ClientInfo\"0\n\tHeartbeat\x12\x10\n\x08\x63lientId\x18\x01 \x01(\t\x12\x11\n\ttimestamp\x18\x02 \x01(\x03\"2\n\nClientInfo\x12\x10\n\x08\x63lientId\x18\x01 \x01(\t\x12\x12\n\nclientName\x18\x02 \x01(\t\"\'\n\x03\x41\x63k\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t2\xe3\x04\n\x0b\x43hatService\x12\x33\n\x0eRegisterClient\x12\x13.kasugai.ClientInfo\x1a\x0c.kasugai.Ack\x12\x31\n\rSendHeartbeat\x12\x12.kasugai.Heartbeat\x1a\x0c.kasugai.Ack\x12\x37\n\x11ReceiveHeartbeats\x12\x12.kasugai.Heartbeat\x1a\x0c.kasugai.Ack(\x01\x12-\n\x0bSendMessage\x12\x10.kasugai.Message\x1a\x0c.kasugai.Ack\x12:\n\x0fReceiveMessages\x12\x13.kasugai.ClientInfo\x1a\x10.kasugai.Message0\x01\x12\x38\n\x10StartVideoStream\x12\x14.kasugai.VideoStream\x1a\x0c.kasugai.Ack(\x01\x12?\n\x10WatchVideoStream\x12\x13.kasugai.ClientInfo\x1a\x14.kasugai.VideoStream0\x01\x12\x38\n\x10StartScreenShare\x12\x14.kasugai.ScreenShare\x1a\x0c.kasugai.Ack(\x01\x12?\n\x10WatchScreenShare\x12\x13.kasugai.ClientInfo\x1a\x14.kasugai.ScreenShare0\x01\x12R\n\x15ListRegisteredClients\x12\x1b.kasugai.ListClientsRequest\x1a\x1c.kasugai.ListClientsResponse2\x80\x03\n\x13\x46ileTransferService\x12\x37\n\x10SendFileMetadata\x12\x15.kasugai.FileMetadata\x1a\x0c.kasugai.Ack\x12\x31\n\rSendFileChunk\x12\x12.kasugai.FileChunk\x1a\x0c.kasugai.Ack\x12\x41\n\x13ReceiveFileMetadata\x12\x13.kasugai.ClientInfo\x1a\x15.kasugai.FileMetadata\x12=\n\x10ReceiveFileChunk\x12\x13.kasugai.ClientInfo\x1a\x12.kasugai.FileChunk0\x01\x12\x36\n\x12UploadFileToServer\x12\x12.kasugai.FileChunk\x1a\x0c.kasugai.Ack\x12\x43\n\x16\x44ownloadFileFromServer\x12\x13.kasugai.ClientInfo\x1a\x12.kasugai.FileChunk0\x01\x42\nZ\x08/kasugaib\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -21,22 +21,28 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'kasugai_pb2', _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
   DESCRIPTOR._serialized_options = b'Z\010/kasugai'
-  _globals['_ID']._serialized_start=26
-  _globals['_ID']._serialized_end=44
-  _globals['_MESSAGE']._serialized_start=46
-  _globals['_MESSAGE']._serialized_end=162
-  _globals['_VIDEOSTREAM']._serialized_start=164
-  _globals['_VIDEOSTREAM']._serialized_end=222
-  _globals['_SCREENSHARE']._serialized_start=224
-  _globals['_SCREENSHARE']._serialized_end=282
-  _globals['_FILEMETADATA']._serialized_start=284
-  _globals['_FILEMETADATA']._serialized_end=369
-  _globals['_FILECHUNK']._serialized_start=371
-  _globals['_FILECHUNK']._serialized_end=425
-  _globals['_ACK']._serialized_start=427
-  _globals['_ACK']._serialized_end=466
-  _globals['_CHATSERVICE']._serialized_start=469
-  _globals['_CHATSERVICE']._serialized_end=807
-  _globals['_FILETRANSFERSERVICE']._serialized_start=810
-  _globals['_FILETRANSFERSERVICE']._serialized_end=1170
+  _globals['_MESSAGE']._serialized_start=26
+  _globals['_MESSAGE']._serialized_end=129
+  _globals['_VIDEOSTREAM']._serialized_start=131
+  _globals['_VIDEOSTREAM']._serialized_end=176
+  _globals['_SCREENSHARE']._serialized_start=178
+  _globals['_SCREENSHARE']._serialized_end=223
+  _globals['_FILEMETADATA']._serialized_start=225
+  _globals['_FILEMETADATA']._serialized_end=299
+  _globals['_FILECHUNK']._serialized_start=301
+  _globals['_FILECHUNK']._serialized_end=344
+  _globals['_LISTCLIENTSREQUEST']._serialized_start=346
+  _globals['_LISTCLIENTSREQUEST']._serialized_end=397
+  _globals['_LISTCLIENTSRESPONSE']._serialized_start=399
+  _globals['_LISTCLIENTSRESPONSE']._serialized_end=458
+  _globals['_HEARTBEAT']._serialized_start=460
+  _globals['_HEARTBEAT']._serialized_end=508
+  _globals['_CLIENTINFO']._serialized_start=510
+  _globals['_CLIENTINFO']._serialized_end=560
+  _globals['_ACK']._serialized_start=562
+  _globals['_ACK']._serialized_end=601
+  _globals['_CHATSERVICE']._serialized_start=604
+  _globals['_CHATSERVICE']._serialized_end=1215
+  _globals['_FILETRANSFERSERVICE']._serialized_start=1218
+  _globals['_FILETRANSFERSERVICE']._serialized_end=1602
 # @@protoc_insertion_point(module_scope)

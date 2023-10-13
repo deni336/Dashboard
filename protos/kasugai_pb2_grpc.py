@@ -15,6 +15,21 @@ class ChatServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
+        self.RegisterClient = channel.unary_unary(
+                '/kasugai.ChatService/RegisterClient',
+                request_serializer=kasugai__pb2.ClientInfo.SerializeToString,
+                response_deserializer=kasugai__pb2.Ack.FromString,
+                )
+        self.SendHeartbeat = channel.unary_unary(
+                '/kasugai.ChatService/SendHeartbeat',
+                request_serializer=kasugai__pb2.Heartbeat.SerializeToString,
+                response_deserializer=kasugai__pb2.Ack.FromString,
+                )
+        self.ReceiveHeartbeats = channel.stream_unary(
+                '/kasugai.ChatService/ReceiveHeartbeats',
+                request_serializer=kasugai__pb2.Heartbeat.SerializeToString,
+                response_deserializer=kasugai__pb2.Ack.FromString,
+                )
         self.SendMessage = channel.unary_unary(
                 '/kasugai.ChatService/SendMessage',
                 request_serializer=kasugai__pb2.Message.SerializeToString,
@@ -22,34 +37,58 @@ class ChatServiceStub(object):
                 )
         self.ReceiveMessages = channel.unary_stream(
                 '/kasugai.ChatService/ReceiveMessages',
-                request_serializer=kasugai__pb2.Id.SerializeToString,
+                request_serializer=kasugai__pb2.ClientInfo.SerializeToString,
                 response_deserializer=kasugai__pb2.Message.FromString,
                 )
-        self.StartVideoStream = channel.unary_unary(
+        self.StartVideoStream = channel.stream_unary(
                 '/kasugai.ChatService/StartVideoStream',
                 request_serializer=kasugai__pb2.VideoStream.SerializeToString,
                 response_deserializer=kasugai__pb2.Ack.FromString,
                 )
         self.WatchVideoStream = channel.unary_stream(
                 '/kasugai.ChatService/WatchVideoStream',
-                request_serializer=kasugai__pb2.Id.SerializeToString,
+                request_serializer=kasugai__pb2.ClientInfo.SerializeToString,
                 response_deserializer=kasugai__pb2.VideoStream.FromString,
                 )
-        self.StartScreenShare = channel.unary_unary(
+        self.StartScreenShare = channel.stream_unary(
                 '/kasugai.ChatService/StartScreenShare',
                 request_serializer=kasugai__pb2.ScreenShare.SerializeToString,
                 response_deserializer=kasugai__pb2.Ack.FromString,
                 )
         self.WatchScreenShare = channel.unary_stream(
                 '/kasugai.ChatService/WatchScreenShare',
-                request_serializer=kasugai__pb2.Id.SerializeToString,
+                request_serializer=kasugai__pb2.ClientInfo.SerializeToString,
                 response_deserializer=kasugai__pb2.ScreenShare.FromString,
+                )
+        self.ListRegisteredClients = channel.unary_unary(
+                '/kasugai.ChatService/ListRegisteredClients',
+                request_serializer=kasugai__pb2.ListClientsRequest.SerializeToString,
+                response_deserializer=kasugai__pb2.ListClientsResponse.FromString,
                 )
 
 
 class ChatServiceServicer(object):
     """Service definitions
     """
+
+    def RegisterClient(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SendHeartbeat(self, request, context):
+        """Heartbeat
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ReceiveHeartbeats(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def SendMessage(self, request, context):
         """Text messaging
@@ -64,7 +103,7 @@ class ChatServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def StartVideoStream(self, request, context):
+    def StartVideoStream(self, request_iterator, context):
         """Video streaming
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -77,7 +116,7 @@ class ChatServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def StartScreenShare(self, request, context):
+    def StartScreenShare(self, request_iterator, context):
         """Screen sharing
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -90,9 +129,31 @@ class ChatServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ListRegisteredClients(self, request, context):
+        """List clients
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ChatServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
+            'RegisterClient': grpc.unary_unary_rpc_method_handler(
+                    servicer.RegisterClient,
+                    request_deserializer=kasugai__pb2.ClientInfo.FromString,
+                    response_serializer=kasugai__pb2.Ack.SerializeToString,
+            ),
+            'SendHeartbeat': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendHeartbeat,
+                    request_deserializer=kasugai__pb2.Heartbeat.FromString,
+                    response_serializer=kasugai__pb2.Ack.SerializeToString,
+            ),
+            'ReceiveHeartbeats': grpc.stream_unary_rpc_method_handler(
+                    servicer.ReceiveHeartbeats,
+                    request_deserializer=kasugai__pb2.Heartbeat.FromString,
+                    response_serializer=kasugai__pb2.Ack.SerializeToString,
+            ),
             'SendMessage': grpc.unary_unary_rpc_method_handler(
                     servicer.SendMessage,
                     request_deserializer=kasugai__pb2.Message.FromString,
@@ -100,28 +161,33 @@ def add_ChatServiceServicer_to_server(servicer, server):
             ),
             'ReceiveMessages': grpc.unary_stream_rpc_method_handler(
                     servicer.ReceiveMessages,
-                    request_deserializer=kasugai__pb2.Id.FromString,
+                    request_deserializer=kasugai__pb2.ClientInfo.FromString,
                     response_serializer=kasugai__pb2.Message.SerializeToString,
             ),
-            'StartVideoStream': grpc.unary_unary_rpc_method_handler(
+            'StartVideoStream': grpc.stream_unary_rpc_method_handler(
                     servicer.StartVideoStream,
                     request_deserializer=kasugai__pb2.VideoStream.FromString,
                     response_serializer=kasugai__pb2.Ack.SerializeToString,
             ),
             'WatchVideoStream': grpc.unary_stream_rpc_method_handler(
                     servicer.WatchVideoStream,
-                    request_deserializer=kasugai__pb2.Id.FromString,
+                    request_deserializer=kasugai__pb2.ClientInfo.FromString,
                     response_serializer=kasugai__pb2.VideoStream.SerializeToString,
             ),
-            'StartScreenShare': grpc.unary_unary_rpc_method_handler(
+            'StartScreenShare': grpc.stream_unary_rpc_method_handler(
                     servicer.StartScreenShare,
                     request_deserializer=kasugai__pb2.ScreenShare.FromString,
                     response_serializer=kasugai__pb2.Ack.SerializeToString,
             ),
             'WatchScreenShare': grpc.unary_stream_rpc_method_handler(
                     servicer.WatchScreenShare,
-                    request_deserializer=kasugai__pb2.Id.FromString,
+                    request_deserializer=kasugai__pb2.ClientInfo.FromString,
                     response_serializer=kasugai__pb2.ScreenShare.SerializeToString,
+            ),
+            'ListRegisteredClients': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListRegisteredClients,
+                    request_deserializer=kasugai__pb2.ListClientsRequest.FromString,
+                    response_serializer=kasugai__pb2.ListClientsResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -133,6 +199,57 @@ def add_ChatServiceServicer_to_server(servicer, server):
 class ChatService(object):
     """Service definitions
     """
+
+    @staticmethod
+    def RegisterClient(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/kasugai.ChatService/RegisterClient',
+            kasugai__pb2.ClientInfo.SerializeToString,
+            kasugai__pb2.Ack.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def SendHeartbeat(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/kasugai.ChatService/SendHeartbeat',
+            kasugai__pb2.Heartbeat.SerializeToString,
+            kasugai__pb2.Ack.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ReceiveHeartbeats(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_unary(request_iterator, target, '/kasugai.ChatService/ReceiveHeartbeats',
+            kasugai__pb2.Heartbeat.SerializeToString,
+            kasugai__pb2.Ack.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def SendMessage(request,
@@ -163,13 +280,13 @@ class ChatService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_stream(request, target, '/kasugai.ChatService/ReceiveMessages',
-            kasugai__pb2.Id.SerializeToString,
+            kasugai__pb2.ClientInfo.SerializeToString,
             kasugai__pb2.Message.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def StartVideoStream(request,
+    def StartVideoStream(request_iterator,
             target,
             options=(),
             channel_credentials=None,
@@ -179,7 +296,7 @@ class ChatService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/kasugai.ChatService/StartVideoStream',
+        return grpc.experimental.stream_unary(request_iterator, target, '/kasugai.ChatService/StartVideoStream',
             kasugai__pb2.VideoStream.SerializeToString,
             kasugai__pb2.Ack.FromString,
             options, channel_credentials,
@@ -197,13 +314,13 @@ class ChatService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_stream(request, target, '/kasugai.ChatService/WatchVideoStream',
-            kasugai__pb2.Id.SerializeToString,
+            kasugai__pb2.ClientInfo.SerializeToString,
             kasugai__pb2.VideoStream.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def StartScreenShare(request,
+    def StartScreenShare(request_iterator,
             target,
             options=(),
             channel_credentials=None,
@@ -213,7 +330,7 @@ class ChatService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/kasugai.ChatService/StartScreenShare',
+        return grpc.experimental.stream_unary(request_iterator, target, '/kasugai.ChatService/StartScreenShare',
             kasugai__pb2.ScreenShare.SerializeToString,
             kasugai__pb2.Ack.FromString,
             options, channel_credentials,
@@ -231,8 +348,25 @@ class ChatService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_stream(request, target, '/kasugai.ChatService/WatchScreenShare',
-            kasugai__pb2.Id.SerializeToString,
+            kasugai__pb2.ClientInfo.SerializeToString,
             kasugai__pb2.ScreenShare.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ListRegisteredClients(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/kasugai.ChatService/ListRegisteredClients',
+            kasugai__pb2.ListClientsRequest.SerializeToString,
+            kasugai__pb2.ListClientsResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -258,12 +392,12 @@ class FileTransferServiceStub(object):
                 )
         self.ReceiveFileMetadata = channel.unary_unary(
                 '/kasugai.FileTransferService/ReceiveFileMetadata',
-                request_serializer=kasugai__pb2.Id.SerializeToString,
+                request_serializer=kasugai__pb2.ClientInfo.SerializeToString,
                 response_deserializer=kasugai__pb2.FileMetadata.FromString,
                 )
         self.ReceiveFileChunk = channel.unary_stream(
                 '/kasugai.FileTransferService/ReceiveFileChunk',
-                request_serializer=kasugai__pb2.Id.SerializeToString,
+                request_serializer=kasugai__pb2.ClientInfo.SerializeToString,
                 response_deserializer=kasugai__pb2.FileChunk.FromString,
                 )
         self.UploadFileToServer = channel.unary_unary(
@@ -273,7 +407,7 @@ class FileTransferServiceStub(object):
                 )
         self.DownloadFileFromServer = channel.unary_stream(
                 '/kasugai.FileTransferService/DownloadFileFromServer',
-                request_serializer=kasugai__pb2.Id.SerializeToString,
+                request_serializer=kasugai__pb2.ClientInfo.SerializeToString,
                 response_deserializer=kasugai__pb2.FileChunk.FromString,
                 )
 
@@ -334,12 +468,12 @@ def add_FileTransferServiceServicer_to_server(servicer, server):
             ),
             'ReceiveFileMetadata': grpc.unary_unary_rpc_method_handler(
                     servicer.ReceiveFileMetadata,
-                    request_deserializer=kasugai__pb2.Id.FromString,
+                    request_deserializer=kasugai__pb2.ClientInfo.FromString,
                     response_serializer=kasugai__pb2.FileMetadata.SerializeToString,
             ),
             'ReceiveFileChunk': grpc.unary_stream_rpc_method_handler(
                     servicer.ReceiveFileChunk,
-                    request_deserializer=kasugai__pb2.Id.FromString,
+                    request_deserializer=kasugai__pb2.ClientInfo.FromString,
                     response_serializer=kasugai__pb2.FileChunk.SerializeToString,
             ),
             'UploadFileToServer': grpc.unary_unary_rpc_method_handler(
@@ -349,7 +483,7 @@ def add_FileTransferServiceServicer_to_server(servicer, server):
             ),
             'DownloadFileFromServer': grpc.unary_stream_rpc_method_handler(
                     servicer.DownloadFileFromServer,
-                    request_deserializer=kasugai__pb2.Id.FromString,
+                    request_deserializer=kasugai__pb2.ClientInfo.FromString,
                     response_serializer=kasugai__pb2.FileChunk.SerializeToString,
             ),
     }
@@ -408,7 +542,7 @@ class FileTransferService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/kasugai.FileTransferService/ReceiveFileMetadata',
-            kasugai__pb2.Id.SerializeToString,
+            kasugai__pb2.ClientInfo.SerializeToString,
             kasugai__pb2.FileMetadata.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
@@ -425,7 +559,7 @@ class FileTransferService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_stream(request, target, '/kasugai.FileTransferService/ReceiveFileChunk',
-            kasugai__pb2.Id.SerializeToString,
+            kasugai__pb2.ClientInfo.SerializeToString,
             kasugai__pb2.FileChunk.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
@@ -459,7 +593,7 @@ class FileTransferService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_stream(request, target, '/kasugai.FileTransferService/DownloadFileFromServer',
-            kasugai__pb2.Id.SerializeToString,
+            kasugai__pb2.ClientInfo.SerializeToString,
             kasugai__pb2.FileChunk.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

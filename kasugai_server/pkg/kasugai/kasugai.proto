@@ -1,0 +1,98 @@
+syntax = "proto3";
+
+option go_package = "/kasugai";
+
+package kasugai;
+
+// Service definitions
+service ChatService {
+    rpc RegisterClient(ClientInfo) returns (Ack);
+
+    // Heartbeat
+    rpc SendHeartbeat(Heartbeat) returns (Ack);
+    rpc ReceiveHeartbeats(stream Heartbeat) returns (Ack);
+
+    // Text messaging
+    rpc SendMessage(Message) returns (Ack);
+    rpc ReceiveMessages(ClientInfo) returns (stream Message);
+
+    // Video streaming
+    rpc StartVideoStream(stream VideoStream) returns (Ack);
+    rpc WatchVideoStream(ClientInfo) returns (stream VideoStream);
+
+    // Screen sharing
+    rpc StartScreenShare(stream ScreenShare) returns (Ack);
+    rpc WatchScreenShare(ClientInfo) returns (stream ScreenShare);
+
+    // List clients
+    rpc ListRegisteredClients(ListClientsRequest) returns (ListClientsResponse);
+}
+
+service FileTransferService {
+    // P2P file transfer
+    rpc SendFileMetadata(FileMetadata) returns (Ack);
+    rpc SendFileChunk(FileChunk) returns (Ack);
+    rpc ReceiveFileMetadata(ClientInfo) returns (FileMetadata);
+    rpc ReceiveFileChunk(ClientInfo) returns (stream FileChunk);
+
+    // Server to user file transfer
+    rpc UploadFileToServer(FileChunk) returns (Ack);
+    rpc DownloadFileFromServer(ClientInfo) returns (stream FileChunk);
+}
+
+message Message {
+    string senderId = 1;
+    string recipientId = 2;
+    string content = 3;
+    int64 timestamp = 4; // Unix timestamp
+    bool broadcast = 5;  // Set to true if the message should be broadcast to all clients
+}
+
+message VideoStream {
+    string clientId = 1;
+    bytes data = 2; // video data
+}
+
+message ScreenShare {
+    string clientId = 1;
+    bytes data = 2; // screenshare data
+}
+
+// Message types for file transfers
+message FileMetadata {
+    string clientId = 1;
+    string name = 2;
+    int32 size = 3; // File size in bytes
+    string type = 4; // MIME type or file extension
+}
+
+message FileChunk {
+    string clientId = 1;
+    bytes data = 2; // Chunk of file data
+}
+
+message ListClientsRequest {
+    int32 limit = 1; // Maximum number of clients to retrieve
+    int32 offset = 2; // Number of clients to skip
+}
+
+message ListClientsResponse {
+    repeated ClientInfo clients = 1;
+}
+
+// Heartbeat message for checking client's connectivity and status
+message Heartbeat {
+    string clientId = 1;
+    int64 timestamp = 2; // Unix timestamp
+}
+
+message ClientInfo {
+    string clientId = 1;
+    string clientName = 2; // Or any other relevant fields.
+}
+
+// Acknowledgement message
+message Ack {
+    bool success = 1;
+    string message = 2; // Optional error or success message
+}
