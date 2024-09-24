@@ -3,6 +3,7 @@ config.json
 *.json
 *.jpg
 *.png
+*.log
 demo.py
 demo_helper.py
 actions.py
