@@ -3,6 +3,7 @@
 import grpc
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 import kasugai_pb2 as kasugai__pb2
 
 
@@ -374,10 +375,15 @@ class ChatService(object):
 
 class FileTransferServiceStub(object):
 =======
+=======
+>>>>>>> Stashed changes
 import client.protos.kasugai_pb2 as kasugaipy_pb2
 
 
 class BroadcastStub(object):
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     """Missing associated documentation comment in .proto file."""
 
@@ -387,6 +393,7 @@ class BroadcastStub(object):
         Args:
             channel: A grpc.Channel.
         """
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
         self.SendFileMetadata = channel.unary_unary(
                 '/kasugai.FileTransferService/SendFileMetadata',
@@ -432,6 +439,8 @@ class FileTransferServiceServicer(object):
 
     def SendFileChunk(self, request, context):
 =======
+=======
+>>>>>>> Stashed changes
         self.ChatService = channel.stream_stream(
                 '/kasugai.Broadcast/ChatService',
                 request_serializer=kasugaipy_pb2.MessageResponse.SerializeToString,
@@ -448,12 +457,16 @@ class BroadcastServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def ChatService(self, request_iterator, context):
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
     def ReceiveFileMetadata(self, request, context):
         """Missing associated documentation comment in .proto file."""
@@ -478,12 +491,16 @@ class BroadcastServicer(object):
 =======
     def ActiveUsers(self, request, context):
 >>>>>>> Stashed changes
+=======
+    def ActiveUsers(self, request, context):
+>>>>>>> Stashed changes
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 def add_FileTransferServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -521,6 +538,8 @@ def add_FileTransferServiceServicer_to_server(servicer, server):
     generic_handler = grpc.method_handlers_generic_handler(
             'kasugai.FileTransferService', rpc_method_handlers)
 =======
+=======
+>>>>>>> Stashed changes
 def add_BroadcastServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'ChatService': grpc.stream_stream_rpc_method_handler(
@@ -536,11 +555,15 @@ def add_BroadcastServicer_to_server(servicer, server):
     }
     generic_handler = grpc.method_handlers_generic_handler(
             'kasugai.Broadcast', rpc_method_handlers)
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     server.add_generic_rpc_handlers((generic_handler,))
 
 
  # This class is part of an EXPERIMENTAL API.
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 class FileTransferService(object):
     """Missing associated documentation comment in .proto file."""
@@ -548,11 +571,16 @@ class FileTransferService(object):
     @staticmethod
     def SendFileMetadata(request,
 =======
+=======
+>>>>>>> Stashed changes
 class Broadcast(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
     def ChatService(request_iterator,
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
             target,
             options=(),
@@ -564,9 +592,15 @@ class Broadcast(object):
             timeout=None,
             metadata=None):
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         return grpc.experimental.unary_unary(request, target, '/kasugai.FileTransferService/SendFileMetadata',
             kasugai__pb2.FileMetadata.SerializeToString,
             kasugai__pb2.Ack.FromString,
+=======
+        return grpc.experimental.stream_stream(request_iterator, target, '/kasugai.Broadcast/ChatService',
+            kasugaipy_pb2.MessageResponse.SerializeToString,
+            kasugaipy_pb2.MessageResponse.FromString,
+>>>>>>> Stashed changes
 =======
         return grpc.experimental.stream_stream(request_iterator, target, '/kasugai.Broadcast/ChatService',
             kasugaipy_pb2.MessageResponse.SerializeToString,
@@ -577,7 +611,11 @@ class Broadcast(object):
 
     @staticmethod
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     def SendFileChunk(request,
+=======
+    def ActiveUsers(request,
+>>>>>>> Stashed changes
 =======
     def ActiveUsers(request,
 >>>>>>> Stashed changes
@@ -590,6 +628,7 @@ class Broadcast(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
         return grpc.experimental.unary_unary(request, target, '/kasugai.FileTransferService/SendFileChunk',
             kasugai__pb2.FileChunk.SerializeToString,
@@ -662,6 +701,11 @@ class Broadcast(object):
         return grpc.experimental.unary_stream(request, target, '/kasugai.FileTransferService/DownloadFileFromServer',
             kasugai__pb2.ClientInfo.SerializeToString,
             kasugai__pb2.FileChunk.FromString,
+=======
+        return grpc.experimental.unary_unary(request, target, '/kasugai.Broadcast/ActiveUsers',
+            kasugaipy_pb2.ActiveUsersRequest.SerializeToString,
+            kasugaipy_pb2.ActiveUsersList.FromString,
+>>>>>>> Stashed changes
 =======
         return grpc.experimental.unary_unary(request, target, '/kasugai.Broadcast/ActiveUsers',
             kasugaipy_pb2.ActiveUsersRequest.SerializeToString,

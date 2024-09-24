@@ -1,0 +1,58 @@
+2024-09-24 00:01:45,958 [INFO] [MyApp] Starting Kasugai version v0.1...
+2024-09-24 00:01:45,962 [INFO] [EventHandler] Event received: PID=26016, database
+2024-09-24 00:01:45,970 [INFO] [EventHandler] Event received: PID=26016, WebServer
+2024-09-24 00:01:45,971 [INFO] [WebServer] Starting WebServer using Waitress on port: 8000
+2024-09-24 00:02:10,643 [INFO] [MyApp] Starting Kasugai version v0.1...
+2024-09-24 00:02:10,648 [INFO] [EventHandler] Event received: PID=20132, database
+2024-09-24 00:02:10,656 [INFO] [EventHandler] Event received: PID=20132, WebServer
+2024-09-24 00:02:10,656 [INFO] [WebServer] Starting WebServer using Waitress on port: 8000
+2024-09-24 00:02:51,395 [INFO] [MyApp] Starting Kasugai version v0.1...
+2024-09-24 00:02:51,399 [INFO] [EventHandler] Event received: PID=3392, database
+2024-09-24 00:02:51,407 [INFO] [EventHandler] Event received: PID=3392, WebServer
+2024-09-24 00:02:51,407 [INFO] [WebServer] Starting WebServer using Waitress on port: 8000
+2024-09-24 00:04:25,439 [INFO] [MyApp] Starting Kasugai version v0.1...
+2024-09-24 00:04:25,443 [INFO] [EventHandler] Event received: PID=25556, database
+2024-09-24 00:04:25,450 [INFO] [EventHandler] Event received: PID=25556, WebServer
+2024-09-24 00:04:25,451 [INFO] [WebServer] Starting WebServer using Waitress on port: 8000
+2024-09-24 00:05:28,675 [INFO] [MyApp] Starting Kasugai version v0.1...
+2024-09-24 00:05:28,679 [INFO] [EventHandler] Event received: PID=22504, database
+2024-09-24 00:05:28,687 [INFO] [EventHandler] Event received: PID=22504, WebServer
+2024-09-24 00:05:28,688 [INFO] [WebServer] Starting WebServer using Waitress on port: 8000
+2024-09-24 00:11:38,740 [INFO] [MyApp] Starting Kasugai version v0.1...
+2024-09-24 00:11:38,745 [INFO] [EventHandler] Event received: PID=25712, database
+2024-09-24 00:11:59,381 [INFO] [MyApp] Starting Kasugai version v0.1...
+2024-09-24 00:11:59,386 [INFO] [EventHandler] Event received: PID=18940, database
+2024-09-24 00:11:59,395 [INFO] [EventHandler] Event received: PID=18940, WebServer
+2024-09-24 00:11:59,396 [INFO] [WebServer] Starting WebServer using Waitress on port: 8000
+2024-09-24 00:20:49,387 [INFO] [MyApp] Starting Kasugai version v0.1...
+2024-09-24 00:20:49,392 [INFO] [EventHandler] Event received: PID=24052, database
+2024-09-24 00:20:49,402 [INFO] [EventHandler] Event received: PID=24052, WebServer
+2024-09-24 00:20:49,403 [INFO] [WebServer] Starting WebServer using Waitress on port: 8000
+2024-09-24 00:21:50,463 [INFO] [MyApp] Starting Kasugai version v0.1...
+2024-09-24 00:21:50,472 [INFO] [EventHandler] Event received: PID=22212, database
+2024-09-24 00:21:50,478 [INFO] [EventHandler] Event received: PID=22212, WebServer
+2024-09-24 00:21:50,480 [INFO] [WebServer] Starting WebServer using Waitress on port: 8000
+2024-09-24 00:22:06,770 [INFO] [MyApp] Starting Kasugai version v0.1...
+2024-09-24 00:22:06,774 [INFO] [EventHandler] Event received: PID=24284, database
+2024-09-24 00:22:06,783 [INFO] [EventHandler] Event received: PID=24284, WebServer
+2024-09-24 00:22:06,784 [INFO] [WebServer] Starting WebServer using Waitress on port: 8000
+2024-09-24 00:25:53,237 [INFO] [MyApp] Starting Kasugai version v0.1...
+2024-09-24 00:25:53,242 [INFO] [EventHandler] Event received: PID=25888, database
+2024-09-24 00:25:53,252 [INFO] [EventHandler] Event received: PID=25888, WebServer
+2024-09-24 00:25:53,252 [INFO] [WebServer] Starting WebServer using Waitress on port: 8000
+2024-09-24 00:28:16,512 [INFO] [MyApp] Starting Kasugai version v0.1...
+2024-09-24 00:28:16,516 [INFO] [EventHandler] Event received: PID=16100, database
+2024-09-24 00:28:33,215 [INFO] [EventHandler] Event received: PID=16100, WebServer
+2024-09-24 00:28:33,216 [INFO] [WebServer] Starting WebServer using Waitress on port: 8000
+2024-09-24 00:58:54,881 [INFO] [MyApp] Starting Kasugai version v0.1...
+2024-09-24 00:58:54,887 [INFO] [EventHandler] Event received: PID=25812, database
+2024-09-24 00:58:54,897 [INFO] [EventHandler] Event received: PID=25812, WebServer
+2024-09-24 00:58:54,898 [INFO] [WebServer] Starting WebServer using Waitress on port: 8000
+2024-09-24 00:59:26,753 [INFO] [MyApp] Starting Kasugai version v0.1...
+2024-09-24 00:59:26,758 [INFO] [EventHandler] Event received: PID=14916, database
+2024-09-24 00:59:26,768 [INFO] [EventHandler] Event received: PID=14916, WebServer
+2024-09-24 00:59:26,769 [INFO] [WebServer] Starting WebServer using Waitress on port: 8000
+2024-09-24 01:01:44,768 [INFO] [MyApp] Starting Kasugai version v0.1...
+2024-09-24 01:01:44,773 [INFO] [EventHandler] Event received: PID=22260, database
+2024-09-24 01:01:44,783 [INFO] [EventHandler] Event received: PID=22260, WebServer
+2024-09-24 01:01:44,784 [INFO] [WebServer] Starting WebServer using Waitress on port: 8000

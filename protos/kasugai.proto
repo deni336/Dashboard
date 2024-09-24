@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 option go_package = "/kasugai";
 
 package kasugai;
@@ -76,6 +77,8 @@ message Ack {
     string message = 2; // Optional error or success message
 }
 =======
+=======
+>>>>>>> Stashed changes
 option go_package = "/;kasugai";
 
 package kasugai;
@@ -104,4 +107,7 @@ service Broadcast {
 
 
   
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
