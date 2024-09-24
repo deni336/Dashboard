@@ -1,12 +1,13 @@
 # from ChatClient import ChatCl
-import ConfigHandler as ConfigHandler
+import config_manager as ConfigHandler
 
 class FileManager():
-    configDict = ConfigHandler.getConfig()
+    def __init__(self) -> None:
+        self.config = ConfigHandler()
     
     def whatsAvail(self):
-        self.configDict = ConfigHandler.getConfig()
-        self.listOfAvailFiles = self.configDict.get('download')
+        self.config = ConfigHandler()
+        self.listOfAvailFiles = self.config.get('FileTransfer', 'avail')
         return self.listOfAvailFiles
 
     def download():

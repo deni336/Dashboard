@@ -12,7 +12,7 @@ from webserver import WebServer
 class Main:
 
     def __init__(self):
-        self.logger = GlobalLogger.get_logger("MyApp")
+        self.logger = GlobalLogger().get_logger("Main")
         self.logger.info(f"Starting Kasugai version {__version__}...")
         self.config = ConfigManager()
         self.event_handler = EventHandler()

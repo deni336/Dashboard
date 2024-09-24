@@ -1,5 +1,6 @@
 import os
-
+import webbrowser
+import platform
 from flask import Flask,render_template, jsonify, request, redirect, url_for, send_file, abort
 from waitress import serve
 from config_manager import ConfigManager
@@ -62,11 +63,20 @@ class WebServer:
       def shutdown():
          self.shutdown_server()
          return "Server shutting down..."
+      
+   def open_browser(self):
+      self.config = ConfigManager()
+      port = self.config.getint('WebServer', 'port')
+      url = f"http://{self.config.get('WebServer', 'address')}:{port}"
+      browser = webbrowser.get('windows-default')  # Change 'windows-default' to your preferred browser if needed
+      browser.open(url)
     
    def run(self):
       self.config = ConfigManager()
       port = self.config.get('WebServer', 'port')
       self.logger.info(f'Starting WebServer using Waitress on port: {port}')
+      if platform.system() == "Windows":
+         self.open_browser()
       serve(self.app, host=self.config.get('WebServer', 'address'), port=port)
 
    def shutdown_server(self):
