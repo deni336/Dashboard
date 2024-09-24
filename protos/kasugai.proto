@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+<<<<<<< Updated upstream
 option go_package = "/kasugai";
 
 package kasugai;
@@ -74,3 +75,33 @@ message Ack {
     bool success = 1;
     string message = 2; // Optional error or success message
 }
+=======
+option go_package = "/;kasugai";
+
+package kasugai;
+
+service Broadcast {
+    rpc ChatService(stream MessageResponse) returns (stream MessageResponse){}
+    rpc ActiveUsers(ActiveUsersRequest) returns (ActiveUsersList) {}
+  }
+
+  
+  message ActiveUsersList {
+    repeated User users = 1;
+  }
+
+  message ActiveUsersRequest {}
+
+  message User {
+    string name = 1;
+    MessageResponse message = 2;
+  }
+
+  message MessageResponse {
+    string message = 1;
+    string timestamp = 2;
+  }
+
+
+  
+>>>>>>> Stashed changes

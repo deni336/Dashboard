@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>Kasugai</title>
+    
+    <!-- Link to custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Link to custom JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+</head>
+
+<body>
+    
+    <!-- Custom navigation bar -->
+    <nav>
+        <ul>
+            <li><a href="#" id="homeBtn">Home</a></li>
+            <li><a href="#" id="chatBtn">Chat</a></li>
+            <li><a href="#" id="fileTransferBtn">File Transfer</a></li>
+            <li><a href="#" id="screenShareBtn">Screen Share</a></li>
+            <li><a href="#" id="settingsBtn">Settings</a></li>
+        </ul>
+    </nav>
+
+    <!-- Modals -->
+    <div id="chatModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Chat</h2>
+            <p>Content for Chat Modal</p>
+        </div>
+    </div>
+
+    <div id="fileTransferModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>File Transfer</h2>
+            <p>Content for File Transfer Modal</p>
+        </div>
+    </div>
+
+    <div id="screenShareModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Screen Share</h2>
+            <p>Content for Screen Share Modal</p>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Settings</h2>
+            
+            <form id="settingsForm" method="POST" action="/save_buttons">
+                <label for="buttonName">Button Name:</label>
+                <input type="text" id="buttonName" name="buttonName" required>
+                
+                <label for="buttonLink">Button Link/Filepath:</label>
+                <input type="text" id="buttonLink" name="buttonLink" required>
+                
+                <button type="submit">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Button container on the left side -->
+    <div class="button-container">
+        {% for button in buttons %}
+            <!-- Link to the Flask route, triggering file serving when clicked -->
+            <a href="{{ button.link }}">
+                <button type="button">{{ button.name }}</button>
+            </a>
+        {% endfor %}
+    </div>
+
+</body>
+
+</html>
