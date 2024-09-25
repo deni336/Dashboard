@@ -129,13 +129,5 @@ closeBtns.forEach(function(btn) {
 function closeAllModals() {
     chatModal.style.display = "none";
     fileTransferModal.style.display = "none";
-    screenShareModal.style.display = "none";
     settingsModal.style.display = "none";
-}
-
-// Close modals if user clicks outside of the modal content
-window.onclick = function(event) {
-    if (event.target.classList.contains('modal')) {
-        closeAllModals();
-    }
 }

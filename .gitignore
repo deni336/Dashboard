@@ -1,7 +1,4 @@
-
-config.json
 *.json
-*.jpg
 *.png
 *.log
 demo.py

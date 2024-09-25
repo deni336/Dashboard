@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 from waitress import serve
 from config_manager import ConfigManager
 from global_logger import GlobalLogger
+from event_handler import EventHandler
 from const import UPLOAD_FOLDER
 
 class WebServer:
@@ -16,6 +17,7 @@ class WebServer:
       self.app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
       self.logger = GlobalLogger.get_logger("WebServer")
       self.config = ConfigManager()
+      self.event_handler = EventHandler()
       self.setup_routes()
 
    def setup_routes(self):
@@ -23,8 +25,8 @@ class WebServer:
       @self.app.route('/')
       def index():
          buttons_string = self.config.get('Application', 'buttons')
-         buttons = [item.split(':')[0].strip() for item in buttons_string.split(',')]
-         return render_template('index.html', buttons=buttons)
+         self.buttons = [item.split(':')[0].strip() for item in buttons_string.split(',')]
+         return render_template('index.html', buttons=self.buttons)
 
       # Route to dynamically save new buttons and return the updated button list as JSON
       @self.app.route('/save_buttons', methods=['POST'])
@@ -45,7 +47,7 @@ class WebServer:
 
          # Return updated button names to the frontend
          buttons = [item.split(':')[0].strip() for item in buttons_string.split(',')]
-         return jsonify(buttons)
+         return render_template('index.html', buttons=buttons)
 
       # Route to handle button click actions (either opening a URL or executing a file)
       @self.app.route('/button_click/<button_name>', methods=['POST'])
@@ -94,7 +96,7 @@ class WebServer:
       
       @self.app.route('/screenshare')
       def screen_share():
-         return render_template('screenshare.html')
+         return render_template('screenshare.html', buttons=self.buttons)
 
       # Route to shut down the server
       @self.app.route('/shutdown', methods=['POST'])
@@ -112,6 +114,7 @@ class WebServer:
     
    def run(self):
       # Start the web server using Waitress
+      self.event_handler.register_event([os.getpid(), "WebServer"])
       self.config = ConfigManager()
       port = self.config.get('WebServer', 'port')
       self.logger.info(f'Starting WebServer using Waitress on port: {port}')

@@ -17,13 +17,20 @@
     <!-- Navigation Bar (copy the same from the main page) -->
     <nav>
         <ul>
-            <li><a href="/index.html" id="homeBtn">Home</a></li>
-            <li><a href="/index.html#chat" id="chatBtn">Chat</a></li>
-            <li><a href="/index.html#fileTransfer" id="fileTransferBtn">File Transfer</a></li>
+            <li><a href="/" id="homeBtn">Home</a></li>
+            <li><a href="#" id="chatBtn">Chat</a></li>
+            <li><a href="#" id="fileTransferBtn">File Transfer</a></li>
             <li><a href="#" id="screenShareBtn" class="active">Screen Share</a></li>
-            <li><a href="/index.html#settings" id="settingsBtn">Settings</a></li>
+            <li><a href="#" id="settingsBtn">Settings</a></li>
         </ul>
     </nav>
+
+    <!-- Button container on the left side -->
+      <div class="button-container" id="buttonContainer">
+         {% for button in buttons %}
+            <button type="button" class="dynamic-button">{{ button }}</button>
+         {% endfor %}
+      </div>
 
     <!-- Screen Share Section -->
     <section id="screenShareSection">
@@ -33,6 +40,52 @@
             <video id="screenVideo" autoplay></video>
         </div>
     </section>
+
+    <!-- Modals -->
+      <div id="chatModal">
+         <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Chat</h2>
+            <div id="chatMessages"></div>
+            <!-- Chat Input Area -->
+            <textarea id="chatInput" placeholder="Type your message here..."></textarea>
+            <button id="sendChat">Send</button>
+         </div>
+      </div>
+
+      <div id="fileTransferModal" class="modal">
+         <div class="modal-content">
+             <span class="close">&times;</span>
+             <h2>File Transfer</h2>
+             <p>Content for File Transfer Modal</p>
+         </div>
+     </div>
+
+      <div id="settingsModal" class="modal">
+         <div class="modal-content">
+             <span class="close">&times;</span>
+             <h2>Settings</h2>
+     
+             <form id="settingsForm" method="POST" action="/save_buttons">
+                 <label for="buttonName">Button Name:</label>
+                 <input type="text" id="buttonName" name="buttonName" required>
+     
+                 <label for="buttonLink">Button Link/Filepath:</label>
+                 <input type="text" id="buttonLink" name="buttonLink" required>
+     
+                 <button type="submit">Save</button>
+             </form>
+     
+             <form id="backgroundForm" method="POST" action="/change_background" enctype="multipart/form-data">
+                 <!-- New form for background image -->
+                 <h3>Change Background Image</h3>
+                 <label for="backgroundImage">Upload Background Image:</label>
+                 <input type="file" id="backgroundImage" name="backgroundImage" accept="image/*" required>
+     
+                 <button type="submit">Change Background</button>
+             </form>
+         </div>
+     </div>
 
 </body>
 

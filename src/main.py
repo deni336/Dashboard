@@ -27,7 +27,6 @@ class Main:
     
     def start_webserver(self):
         self.webserver = WebServer()
-        self.event_handler.register_event([os.getpid(), "WebServer"])
         self.webserver.run()
 
     def start_server(self):

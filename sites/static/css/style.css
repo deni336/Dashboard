@@ -151,10 +151,10 @@ nav a:hover {
 
 /* Modal content box */
 .modal-content {
-   background-color: white;
+   background-color: #5e5e5e;
    margin: 10% auto;
    padding: 20px;
-   border: 1px solid #888;
+   border: 0px solid #888;
    width: 60%;
 }
 
@@ -196,7 +196,7 @@ nav a:hover {
    background-color: #000000; /* Keep the chat modal background black */
    padding: 10px;
    box-sizing: border-box;
-   color: #fff; /* White text for visibility */
+   color: #5e5e5e; /* White text for visibility */
 }
 
 /* Close button in Chat modal */
@@ -217,13 +217,13 @@ nav a:hover {
 /* Chat messages area */
 #chatMessages {
    flex-grow: 1;
-   border: 1px solid #ff0000;
+   border: 0px solid #ff0000;
    padding: 10px;
    margin-bottom: 10px;
    overflow-y: auto; /* Allows scrolling for messages */
-   background-color: #000000; /* Black background for chat area */
-   border-radius: 5px;
-   color: #fff; /* Ensure chat text is visible */
+   background-color: #0a0a0a; /* Black background for chat area */
+   border-radius: 1px;
+   color: #5e5e5e; /* Ensure chat text is visible */
 }
 
 /* Chat input area */
@@ -232,12 +232,12 @@ nav a:hover {
    height: 60px;
    resize: none;
    padding: 10px;
-   border: 1px solid #222222;
-   border-radius: 5px;
+   border: 0px solid #222222;
+   border-radius: 1px;
    box-sizing: border-box;
    font-size: 16px;
-   background-color: #000000;
-   color: #fff; /* White text */
+   background-color: #0a0a0a;
+   color: #5e5e5e; /* White text */
 }
 
 /* Send button styling */
@@ -248,7 +248,7 @@ nav a:hover {
    background-color: #000000;
    color: rgb(255, 0, 0); /* Red text for send button */
    border: none;
-   border-radius: 5px;
+   border-radius: 1px;
    cursor: pointer;
    font-size: 16px;
 }
@@ -262,11 +262,11 @@ nav a:hover {
 #chatMessages p {
    background-color: #000000;
    padding: 8px;
-   border-radius: 5px;
+   border-radius: 1px;
    margin: 5px 0;
    font-size: 14px;
    word-wrap: break-word; /* Ensure messages wrap correctly */
-   color: #fff; /* Ensure messages are visible */
+   color: #5e5e5e; /* Ensure messages are visible */
 }
 
 /* Screen Share Page Styles */
@@ -287,7 +287,7 @@ nav a:hover {
    justify-content: center;
    align-items: center;
    background-color: #000000; /* Black background for the video */
-   border: 2px solid #ff0000; /* Red border to match the chat modal style */
+   border: 0px solid #ff0000; /* Red border to match the chat modal style */
    border-radius: 8px;
    overflow: hidden;
 }
