@@ -21,8 +21,11 @@ class ConfigManager:
                     'address': 'localhost',
                 }
                 self.config['Logging'] = {
-                    'path': 'logs/',
+                    'path': 'kasugai/logs/',
                     'loglevel': 'INFO'
+                }
+                self.config['FileTransfer'] = {
+                    'avail': ''
                 }
                 with open(self.config_file, 'w') as configfile:
                     self.config.write(configfile)
