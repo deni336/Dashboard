@@ -1,6 +1,7 @@
 package main
 
 import (
+	"chat/internal/screenshare"
 	"chat/pkg/server"
 	"fmt"
 	"os"
@@ -18,12 +19,15 @@ import (
 
 func main() {
 	chataddr := "localhost:6969" // Default address
+	saddy := "localhost:7070"
 
 	if len(os.Args) > 1 {
 		chataddr = os.Args[1]
 	} else {
 		fmt.Println("No address provided, using default:", chataddr)
 	}
+
+	go screenshare.InitScreenShareServer(saddy)
 
 	startChatServer(chataddr)
 }
