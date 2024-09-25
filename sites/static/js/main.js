@@ -1,5 +1,8 @@
 document.addEventListener('DOMContentLoaded', function () {
-    // Add event listeners to all dynamically loaded buttons
+    // Update background first
+    updateBackgroundImage();
+
+    // Then attach event listeners to the buttons
     document.querySelectorAll('.dynamic-button').forEach(button => {
         button.addEventListener('click', function () {
             const buttonName = this.textContent;
@@ -14,28 +17,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 });
-
-// Function to populate buttons with only names (no links)
-function populateButtons(buttonNames) {
-    const container = document.getElementById('buttonContainer');
-    container.innerHTML = '';  // Clear existing buttons
-
-    buttonNames.forEach(buttonName => {
-        const buttonElement = document.createElement('button');
-        buttonElement.textContent = buttonName;
-        buttonElement.onclick = function () {
-            // Handle button click by sending the name to the server to resolve the link
-            fetch(`/button_click/${buttonName}`, { method: 'POST' })
-                .then(response => {
-                    if (!response.ok) {
-                        console.error('Failed to execute button action:', response.statusText);
-                    }
-                })
-                .catch(error => console.error('Error during button click:', error));
-        };
-        container.appendChild(buttonElement);
-    });
-}
 
 document.getElementById('backgroundForm').addEventListener('submit', function(event) {
     event.preventDefault();  // Prevent the default form submission
@@ -62,9 +43,11 @@ document.getElementById('backgroundForm').addEventListener('submit', function(ev
 });
 
 function updateBackgroundImage() {
-    // Force reload the background image by updating the URL with a timestamp to avoid caching
-    document.body.style.backgroundImage = `url('/static/img/bg.jpg?${new Date().getTime()}')`;
+    const imageUrl = `/resources/bg.jpg?${new Date().getTime()}`;
+    console.log("Setting background image to:", imageUrl);
+    document.body.style.backgroundImage = `url('${imageUrl}')`;
 }
+
 
 // Get modals
 const chatModal = document.getElementById("chatModal");

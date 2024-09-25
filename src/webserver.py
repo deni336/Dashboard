@@ -2,7 +2,7 @@ import os
 import webbrowser
 import platform
 import subprocess
-from flask import Flask, render_template, request, abort, jsonify, redirect, url_for
+from flask import Flask, render_template, request, abort, jsonify, redirect, url_for, send_from_directory
 from werkzeug.utils import secure_filename
 from waitress import serve
 from config_manager import ConfigManager
@@ -27,6 +27,11 @@ class WebServer:
          buttons_string = self.config.get('Application', 'buttons')
          self.buttons = [item.split(':')[0].strip() for item in buttons_string.split(',')]
          return render_template('index.html', buttons=self.buttons)
+      
+      @self.app.route('/resources/<path:filename>')
+      def serve_resources(filename):
+         full_path = f'/users/{os.getlogin()}/kasugai/resources'
+         return send_from_directory(full_path, filename)
 
       # Route to dynamically save new buttons and return the updated button list as JSON
       @self.app.route('/save_buttons', methods=['POST'])

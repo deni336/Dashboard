@@ -8,8 +8,12 @@ class GlobalLogger:
 
     @classmethod
     def get_logger(cls, name):
-        log_dir = cls.config.get('Logging', 'path')
+        user = os.getlogin()
+        file = fr"C:/Users/{user}/"
+        ldir = cls.config.get('Logging', 'path')
         log_level = cls.config.get('Logging', 'loglevel')
+
+        log_dir = file + ldir
 
         logger = logging.getLogger(name)
         logger.setLevel(getattr(logging, log_level.upper()))

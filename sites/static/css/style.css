@@ -16,7 +16,7 @@ html, body {
 
 /* Background image covering entire viewport */
 body {
-   background-image: url('../img/bg.jpg'); /* Update with correct path */
+   background-image: url('../bg.jpg'); /* Update with correct path */
    background-size: cover;
    background-position: center;
    background-attachment: fixed;

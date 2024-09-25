@@ -1,8 +1,11 @@
 import configparser
 import os
 
+default_user = os.getlogin()
+file = fr"C:/Users/{default_user}/Kasugai/config.ini"
+
 class ConfigManager:
-    def __init__(self, config_file='src/config.ini'):
+    def __init__(self, config_file=file):
         self.config_file = config_file
         self.config = configparser.ConfigParser()
         try:

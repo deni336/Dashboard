@@ -1,1 +1,6 @@
-UPLOAD_FOLDER = 'sites/static/img/'
+import os
+
+default_user = os.getlogin()
+file = fr"C:/Users/{default_user}/"
+
+UPLOAD_FOLDER = file + 'kasugai/resources/'
