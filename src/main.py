@@ -35,7 +35,6 @@ class Main:
     
     def run(self):
         """Main loop to monitor events, process statuses, and handle shutdown signals."""
-        self.event_handler.register_event([os.getpid(), "database"])
         try:
             while "Shutdown" not in self.event_handler.events:
                 self.process_events()
