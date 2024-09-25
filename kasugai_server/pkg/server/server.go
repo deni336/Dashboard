@@ -25,7 +25,7 @@ import (
 const chunkSize = 64 * 1024 // 64 KB, adjust as needed
 
 type Client struct {
-	ClientInfo    *kasugai.ClientInfo
+	ClientInfo    *kasugai.User
 	HeartbeatChan chan bool
 	Messages      []*kasugai.Message
 	VideoStreams  []*kasugai.VideoStream
@@ -43,7 +43,6 @@ type Server struct {
 }
 
 type rateLimiter struct {
-	// your internal rate limiter
 }
 
 func (rl *rateLimiter) Limit() bool {
@@ -199,19 +198,22 @@ func authFunc(ctx context.Context) (context.Context, error) {
 }
 
 // RegisterClient allows clients to register themselves with the server.
-func (s *Server) RegisterClient(ctx context.Context, req *kasugai.ClientInfo) (*kasugai.Ack, error) {
+func (s *Server) RegisterClient(ctx context.Context, req *kasugai.User) (*kasugai.Ack, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if _, exists := s.Clients[req.ClientId]; exists {
+	if _, exists := s.Clients[req.Uuid.Uuid]; exists { // Accessing the UUID from User
 		return &kasugai.Ack{
 			Success: false,
-			Message: fmt.Sprintf("Client with ID %s already exists", req.ClientId),
+			Message: fmt.Sprintf("Client with ID %s already exists", req.Uuid),
 		}, nil
 	}
 
 	client := Client{
-		ClientInfo:    req,
+		ClientInfo: &kasugai.User{ // Using User instead of ClientInfo
+			Uuid: req.Uuid,
+			Name: req.Name,
+		},
 		HeartbeatChan: make(chan bool),
 		Messages:      make([]*kasugai.Message, 0),
 		VideoStreams:  make([]*kasugai.VideoStream, 0),
@@ -219,24 +221,24 @@ func (s *Server) RegisterClient(ctx context.Context, req *kasugai.ClientInfo) (*
 		FileChunks:    make(map[string][]*kasugai.FileChunk),
 		FileMetadata:  make(map[string]*kasugai.FileMetadata),
 	}
-	s.Clients[req.ClientId] = client
+	s.Clients[req.Uuid.Uuid] = client
 
-	go s.monitorClientHeartbeat(req.ClientId)
+	go s.monitorClientHeartbeat(req.Uuid.Uuid)
 	return &kasugai.Ack{Success: true, Message: "Registered"}, nil
 }
 
-func (s *Server) SendHeartbeat(ctx context.Context, req *kasugai.Heartbeat) (*kasugai.Ack, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+// func (s *Server) SendHeartbeat(ctx context.Context, req *kasugai.Heartbeat) (*kasugai.Ack, error) {
+// 	s.mu.Lock()
+// 	defer s.mu.Unlock()
 
-	client, exists := s.Clients[req.ClientId]
-	if exists {
-		client.HeartbeatChan <- true
-		log.Printf("Received heartbeat from client ID: %s", req.ClientId)
-		return &kasugai.Ack{Success: true, Message: "OK"}, nil
-	}
-	return &kasugai.Ack{Success: false, Message: "Offline"}, nil
-}
+// 	client, exists := s.Clients[req.ClientId]
+// 	if exists {
+// 		client.HeartbeatChan <- true
+// 		log.Printf("Received heartbeat from client ID: %s", req.ClientId)
+// 		return &kasugai.Ack{Success: true, Message: "OK"}, nil
+// 	}
+// 	return &kasugai.Ack{Success: false, Message: "Offline"}, nil
+// }
 
 func (s *Server) monitorClientHeartbeat(clientID string) {
 	client, exists := s.Clients[clientID]
@@ -276,8 +278,8 @@ func (s *Server) SendMessage(ctx context.Context, req *kasugai.Message) (*kasuga
 	return &kasugai.Ack{Success: true, Message: "Message sent successfully"}, nil
 }
 
-func (s *Server) ReceiveMessages(req *kasugai.ClientInfo, stream kasugai.ChatService_ReceiveMessagesServer) error {
-	clientID := req.ClientId
+func (s *Server) ReceiveMessages(req *kasugai.Id, stream kasugai.ChatService_ReceiveMessagesServer) error {
+	clientID := req.Uuid
 
 	s.mu.Lock()
 	client, ok := s.Clients[clientID]
@@ -309,9 +311,9 @@ func (s *Server) StartVideoStream(stream kasugai.ChatService_StartVideoStreamSer
 			return err
 		}
 
-		clientID := videoStream.ClientId
+		clientID := videoStream.StreamId
 		s.mu.Lock()
-		client, ok := s.Clients[clientID]
+		client, ok := s.Clients[clientID.Uuid]
 		if !ok {
 			s.mu.Unlock()
 			return status.Errorf(codes.NotFound, "Client Not Found")
@@ -322,9 +324,9 @@ func (s *Server) StartVideoStream(stream kasugai.ChatService_StartVideoStreamSer
 	}
 }
 
-func (s *Server) WatchVideoStream(req *kasugai.ClientInfo, stream kasugai.ChatService_WatchVideoStreamServer) error {
+func (s *Server) WatchVideoStream(req *kasugai.Id, stream kasugai.ChatService_WatchVideoStreamServer) error {
 	s.mu.Lock()
-	client, ok := s.Clients[req.ClientId]
+	client, ok := s.Clients[req.Uuid]
 	s.mu.Unlock()
 
 	if !ok {
@@ -350,7 +352,7 @@ func (s *Server) StartScreenShare(stream kasugai.ChatService_StartScreenShareSer
 			return err
 		}
 
-		clientID := screenShare.ClientId
+		clientID := screenShare.StreamId.Uuid
 		s.mu.Lock()
 		client, ok := s.Clients[clientID]
 		if !ok {
@@ -363,9 +365,9 @@ func (s *Server) StartScreenShare(stream kasugai.ChatService_StartScreenShareSer
 	}
 }
 
-func (s *Server) WatchScreenShare(req *kasugai.ClientInfo, stream kasugai.ChatService_WatchScreenShareServer) error {
+func (s *Server) WatchScreenShare(req *kasugai.Id, stream kasugai.ChatService_WatchScreenShareServer) error {
 	s.mu.Lock()
-	client, ok := s.Clients[req.ClientId]
+	client, ok := s.Clients[req.Uuid]
 	s.mu.Unlock()
 
 	if !ok {
@@ -381,31 +383,37 @@ func (s *Server) WatchScreenShare(req *kasugai.ClientInfo, stream kasugai.ChatSe
 	return nil
 }
 
-func (s *Server) ReceiveFileMetadata(ctx context.Context, info *kasugai.ClientInfo) (*kasugai.FileMetadata, error) {
+func (s *Server) ReceiveFileMetadata(ctx context.Context, info *kasugai.Id) (*kasugai.FileMetadata, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	client, ok := s.Clients[info.ClientId]
+	client, ok := s.Clients[info.Uuid]
 	if !ok {
 		return nil, status.Errorf(codes.NotFound, "Client Not Found")
 	}
-	metadata, ok := client.FileMetadata[info.ClientId]
+	metadata, ok := client.FileMetadata[info.Uuid]
 	if !ok {
 		return nil, status.Errorf(codes.NotFound, "Metadata Not Found")
 	}
 	return metadata, nil
 }
 
-func (s *Server) ReceiveFileChunk(info *kasugai.ClientInfo, stream kasugai.FileTransferService_ReceiveFileChunkServer) error {
+func (s *Server) ReceiveFileChunk(req *kasugai.Id, stream kasugai.FileTransferService_ReceiveFileChunkServer) error {
+	clientID := req.Uuid // Assuming req.Uuid is the client UUID string
+
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	client, ok := s.Clients[info.ClientId]
+	client, ok := s.Clients[clientID]
 	if !ok {
+		s.mu.Unlock()
 		return status.Errorf(codes.NotFound, "Client Not Found")
 	}
-	chunks, ok := client.FileChunks[info.ClientId]
+
+	chunks, ok := client.FileChunks[clientID]
 	if !ok {
+		s.mu.Unlock()
 		return status.Errorf(codes.NotFound, "File Not Found")
 	}
+	s.mu.Unlock()
+
 	for _, chunk := range chunks {
 		if err := stream.Send(chunk); err != nil {
 			return err
@@ -417,7 +425,7 @@ func (s *Server) ReceiveFileChunk(info *kasugai.ClientInfo, stream kasugai.FileT
 func (s *Server) SendFileMetadata(ctx context.Context, metadata *kasugai.FileMetadata) (*kasugai.Ack, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	client, ok := s.Clients[metadata.ClientId]
+	client, ok := s.Clients[metadata.FileId.Uuid]
 	if !ok {
 		// If the client doesn't exist yet, we might need to create one.
 		// You can also return an error instead if that's the desired behavior.
@@ -425,16 +433,16 @@ func (s *Server) SendFileMetadata(ctx context.Context, metadata *kasugai.FileMet
 			FileChunks:   make(map[string][]*kasugai.FileChunk),
 			FileMetadata: make(map[string]*kasugai.FileMetadata),
 		}
-		s.Clients[metadata.ClientId] = client
+		s.Clients[metadata.FileId.Uuid] = client
 	}
-	client.FileMetadata[metadata.ClientId] = metadata
+	client.FileMetadata[metadata.FileId.Uuid] = metadata
 	return &kasugai.Ack{Success: true}, nil
 }
 
 func (s *Server) SendFileChunk(ctx context.Context, chunk *kasugai.FileChunk) (*kasugai.Ack, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	client, ok := s.Clients[chunk.ClientId]
+	client, ok := s.Clients[chunk.FileId.Uuid]
 	if !ok {
 		// If the client doesn't exist yet, we might need to create one.
 		// You can also return an error instead if that's the desired behavior.
@@ -442,9 +450,9 @@ func (s *Server) SendFileChunk(ctx context.Context, chunk *kasugai.FileChunk) (*
 			FileChunks:   make(map[string][]*kasugai.FileChunk),
 			FileMetadata: make(map[string]*kasugai.FileMetadata),
 		}
-		s.Clients[chunk.ClientId] = client
+		s.Clients[chunk.FileId.Uuid] = client
 	}
-	client.FileChunks[chunk.ClientId] = append(client.FileChunks[chunk.ClientId], chunk)
+	client.FileChunks[chunk.FileId.Uuid] = append(client.FileChunks[chunk.FileId.Uuid], chunk)
 	return &kasugai.Ack{Success: true}, nil
 }
 
@@ -452,31 +460,18 @@ func (s *Server) UploadFileToServer(ctx context.Context, chunk *kasugai.FileChun
 	return s.SendFileChunk(ctx, chunk)
 }
 
-func (s *Server) DownloadFileFromServer(req *kasugai.ClientInfo, stream kasugai.FileTransferService_DownloadFileFromServerServer) error {
+func (s *Server) DownloadFileFromServer(req *kasugai.Id, stream kasugai.FileTransferService_DownloadFileFromServerServer) error {
 	return s.ReceiveFileChunk(req, stream)
 }
 
-func (s *Server) ListRegisteredClients(ctx context.Context, req *kasugai.ListClientsRequest) (*kasugai.ListClientsResponse, error) {
+func (s *Server) ListRegisteredClients(ctx context.Context, req *kasugai.ActiveUsersRequest) (*kasugai.ActiveUsersList, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	var clients []*kasugai.ClientInfo
-	startIndex := int(req.Offset)
-	endIndex := startIndex + int(req.Limit)
-	if endIndex > len(s.Clients) {
-		endIndex = len(s.Clients)
-	}
-
-	clientIndex := 0
+	var users []*kasugai.User
 	for _, client := range s.Clients {
-		if clientIndex >= startIndex && clientIndex < endIndex {
-			clients = append(clients, client.ClientInfo)
-		}
-		clientIndex++
-		if clientIndex >= endIndex {
-			break
-		}
+		users = append(users, client.ClientInfo)
 	}
 
-	return &kasugai.ListClientsResponse{Clients: clients}, nil
+	return &kasugai.ActiveUsersList{Users: users}, nil
 }

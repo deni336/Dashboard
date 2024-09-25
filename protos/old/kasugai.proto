@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
 option go_package = "/kasugai";
 
 package kasugai;
@@ -42,33 +44,18 @@ message FileChunk {
     bytes data = 2; // Chunk of file data
 }
 
-message ActiveUsersList {
-    repeated User users = 1;
-}
-
-message ActiveUsersRequest {}
-
-message User {
-    Id uuid = 1;
-    string name = 2;
-    Message message = 3;
-}
-
 // Service definitions
 service ChatService {
-    rpc RegisterClient(User) returns (Ack);
-    rpc ActiveUsers(ActiveUsersRequest) returns (ActiveUsersList);
-
     // Text messaging
     rpc SendMessage(Message) returns (Ack);
     rpc ReceiveMessages(Id) returns (stream Message);
 
     // Video streaming
-    rpc StartVideoStream(stream VideoStream) returns (Ack);
+    rpc StartVideoStream(VideoStream) returns (Ack);
     rpc WatchVideoStream(Id) returns (stream VideoStream);
 
     // Screen sharing
-    rpc StartScreenShare(stream ScreenShare) returns (Ack);
+    rpc StartScreenShare(ScreenShare) returns (Ack);
     rpc WatchScreenShare(Id) returns (stream ScreenShare);
 }
 
@@ -89,3 +76,38 @@ message Ack {
     bool success = 1;
     string message = 2; // Optional error or success message
 }
+=======
+=======
+>>>>>>> Stashed changes
+option go_package = "/;kasugai";
+
+package kasugai;
+
+service Broadcast {
+    rpc ChatService(stream MessageResponse) returns (stream MessageResponse){}
+    rpc ActiveUsers(ActiveUsersRequest) returns (ActiveUsersList) {}
+  }
+
+  
+  message ActiveUsersList {
+    repeated User users = 1;
+  }
+
+  message ActiveUsersRequest {}
+
+  message User {
+    string name = 1;
+    MessageResponse message = 2;
+  }
+
+  message MessageResponse {
+    string message = 1;
+    string timestamp = 2;
+  }
+
+
+  
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
