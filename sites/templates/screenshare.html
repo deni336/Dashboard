@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screen Share</title>
+    
+    <!-- Link to custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+
+    <!-- Link to custom JS -->
+    <script src="/static/js/screenshare.js" defer></script>
+</head>
+
+<body>
+    <!-- Navigation Bar (copy the same from the main page) -->
+    <nav>
+        <ul>
+            <li><a href="/index.html" id="homeBtn">Home</a></li>
+            <li><a href="/index.html#chat" id="chatBtn">Chat</a></li>
+            <li><a href="/index.html#fileTransfer" id="fileTransferBtn">File Transfer</a></li>
+            <li><a href="#" id="screenShareBtn" class="active">Screen Share</a></li>
+            <li><a href="/index.html#settings" id="settingsBtn">Settings</a></li>
+        </ul>
+    </nav>
+
+    <!-- Screen Share Section -->
+    <section id="screenShareSection">
+        <h2>Screen Share</h2>
+        <div id="videoContainer">
+            <!-- Placeholder for video stream -->
+            <video id="screenVideo" autoplay></video>
+        </div>
+    </section>
+
+</body>
+
+</html>

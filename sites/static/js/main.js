@@ -1,7 +1,74 @@
+document.addEventListener('DOMContentLoaded', function () {
+    // Add event listeners to all dynamically loaded buttons
+    document.querySelectorAll('.dynamic-button').forEach(button => {
+        button.addEventListener('click', function () {
+            const buttonName = this.textContent;
+            // Send the button name to the server to handle the click
+            fetch(`/button_click/${encodeURIComponent(buttonName)}`, { method: 'POST' })
+                .then(response => {
+                    if (!response.ok) {
+                        console.error('Failed to execute button action:', response.statusText);
+                    }
+                })
+                .catch(error => console.error('Error during button click:', error));
+        });
+    });
+});
+
+// Function to populate buttons with only names (no links)
+function populateButtons(buttonNames) {
+    const container = document.getElementById('buttonContainer');
+    container.innerHTML = '';  // Clear existing buttons
+
+    buttonNames.forEach(buttonName => {
+        const buttonElement = document.createElement('button');
+        buttonElement.textContent = buttonName;
+        buttonElement.onclick = function () {
+            // Handle button click by sending the name to the server to resolve the link
+            fetch(`/button_click/${buttonName}`, { method: 'POST' })
+                .then(response => {
+                    if (!response.ok) {
+                        console.error('Failed to execute button action:', response.statusText);
+                    }
+                })
+                .catch(error => console.error('Error during button click:', error));
+        };
+        container.appendChild(buttonElement);
+    });
+}
+
+document.getElementById('backgroundForm').addEventListener('submit', function(event) {
+    event.preventDefault();  // Prevent the default form submission
+
+    let formData = new FormData(this);
+
+    // Use Fetch API to send the form data
+    fetch('/change_background', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            // Update the background image after successful upload
+            updateBackgroundImage();
+        } else {
+            alert('Failed to upload background image.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while uploading the background image.');
+    });
+});
+
+function updateBackgroundImage() {
+    // Force reload the background image by updating the URL with a timestamp to avoid caching
+    document.body.style.backgroundImage = `url('/static/img/bg.jpg?${new Date().getTime()}')`;
+}
+
 // Get modals
 const chatModal = document.getElementById("chatModal");
 const fileTransferModal = document.getElementById("fileTransferModal");
-const screenShareModal = document.getElementById("screenShareModal");
 const settingsModal = document.getElementById("settingsModal");
 
 // Get buttons that open the modals
@@ -13,21 +80,32 @@ const homeBtn = document.getElementById("homeBtn");
 
 // Get the <span> element that closes the modal
 const closeBtns = document.querySelectorAll(".close");
+var closeBtn = document.getElementsByClassName("close")[0];
 
 // Functions to open each modal
 chatBtn.onclick = function() {
-    closeAllModals();
     chatModal.style.display = "block";
+}
+// Close the modal when the 'x' is clicked
+closeBtn.onclick = function() {
+    chatModal.style.display = "none";
+}
+
+// Send a chat message
+document.getElementById("sendChat").onclick = function() {
+    var message = document.getElementById("chatInput").value;
+    if (message.trim() !== "") {
+        var chatMessages = document.getElementById("chatMessages");
+        var newMessage = document.createElement("p");
+        newMessage.textContent = message;
+        chatMessages.appendChild(newMessage);
+        document.getElementById("chatInput").value = ""; // Clear the input
+    }
 }
 
 fileTransferBtn.onclick = function() {
     closeAllModals();
     fileTransferModal.style.display = "block";
-}
-
-screenShareBtn.onclick = function() {
-    closeAllModals();
-    screenShareModal.style.display = "block";
 }
 
 settingsBtn.onclick = function() {

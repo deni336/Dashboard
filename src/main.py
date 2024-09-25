@@ -31,7 +31,7 @@ class Main:
         self.webserver.run()
 
     def start_server(self):
-        pass
+        self.event_handler.register_event([os.getpid(), "ChatServer"])
 
     
     def run(self):
@@ -54,6 +54,11 @@ class Main:
                     self.logger.warning(f"Process with PID {self.event_handler.events['WebServer']} has stopped running.")
                     self.logger.info(f"Restarting process PID {self.event_handler.events['WebServer']}")
                     self.start_webserver()
+            elif event == "ChatServer":
+                if not self.is_pid_running(self.event_handler.events['ChatServer']):
+                    self.logger.warning(f"Process with PID {self.event_handler.events['ChatServer']} has stopped running.")
+                    self.logger.info(f"Restarting process PID {self.event_handler.events['ChatServer']}")
+                    self.start_server()
             elif event == "Shutdown":
                 self.logger.info("Shutdown signal detected. Shutting down application...")
                 self.event_handler.events.clear()

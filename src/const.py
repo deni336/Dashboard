@@ -1,0 +1,1 @@
+UPLOAD_FOLDER = 'sites/static/img/'
