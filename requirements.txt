@@ -1,1 +1,4 @@
 waitress
+grpcio
+grpcio-tool
+werkzeug

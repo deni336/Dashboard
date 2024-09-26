@@ -28,6 +28,7 @@ type Client struct {
 	ClientInfo    *kasugai.User
 	HeartbeatChan chan bool
 	Messages      []*kasugai.Message
+	Broadcast     []kasugai.ChatService_ReceiveMessagesServer
 	VideoStreams  []*kasugai.VideoStream
 	ScreenShares  []*kasugai.ScreenShare
 	FileChunks    map[string][]*kasugai.FileChunk
@@ -67,13 +68,13 @@ func StartServer(address string) error {
 
 	opts := []logging.Option{
 		logging.WithLogOnEvents(logging.StartCall, logging.FinishCall),
-		// Add any other option if needed.
+		logging.WithLevels(logging.DefaultServerCodeToLevel),
 	}
 
 	// recovery options
 	recoveryOpt := recovery.WithRecoveryHandler(func(p interface{}) (err error) {
-		// Custom logic, for example, return a custom error message to the client
-		return status.Errorf(codes.Internal, "An internal error occurred.")
+		logger.Printf("Panic occurred: %v", p) // Log the panic
+		return status.Errorf(codes.Internal, "An internal error occurred")
 	})
 
 	s := grpc.NewServer(
@@ -166,17 +167,16 @@ func InterceptorLogger(l *log.Logger) logging.Logger {
 	return logging.LoggerFunc(func(_ context.Context, lvl logging.Level, msg string, fields ...any) {
 		switch lvl {
 		case logging.LevelDebug:
-			msg = fmt.Sprintf("DEBUG :%v", msg)
+			l.Printf("[DEBUG] %s - %v", msg, fields)
 		case logging.LevelInfo:
-			msg = fmt.Sprintf("INFO :%v", msg)
+			l.Printf("[INFO] %s - %v", msg, fields)
 		case logging.LevelWarn:
-			msg = fmt.Sprintf("WARN :%v", msg)
+			l.Printf("[WARN] %s - %v", msg, fields)
 		case logging.LevelError:
-			msg = fmt.Sprintf("ERROR :%v", msg)
+			l.Printf("[ERROR] %s - %v", msg, fields)
 		default:
-			panic(fmt.Sprintf("unknown level %v", lvl))
+			l.Printf("[UNKNOWN] %s - %v", msg, fields)
 		}
-		l.Println(append([]any{"msg", msg}, fields...))
 	})
 }
 
@@ -210,12 +210,13 @@ func (s *Server) RegisterClient(ctx context.Context, req *kasugai.User) (*kasuga
 	}
 
 	client := Client{
-		ClientInfo: &kasugai.User{ // Using User instead of ClientInfo
+		ClientInfo: &kasugai.User{
 			Uuid: req.Uuid,
 			Name: req.Name,
 		},
 		HeartbeatChan: make(chan bool),
 		Messages:      make([]*kasugai.Message, 0),
+		Broadcast:     make([]kasugai.ChatService_ReceiveMessagesServer, 0),
 		VideoStreams:  make([]*kasugai.VideoStream, 0),
 		ScreenShares:  make([]*kasugai.ScreenShare, 0),
 		FileChunks:    make(map[string][]*kasugai.FileChunk),
@@ -223,7 +224,7 @@ func (s *Server) RegisterClient(ctx context.Context, req *kasugai.User) (*kasuga
 	}
 	s.Clients[req.Uuid.Uuid] = client
 
-	go s.monitorClientHeartbeat(req.Uuid.Uuid)
+	//go s.monitorClientHeartbeat(req.Uuid.Uuid)
 	return &kasugai.Ack{Success: true, Message: "Registered"}, nil
 }
 
@@ -240,41 +241,83 @@ func (s *Server) RegisterClient(ctx context.Context, req *kasugai.User) (*kasuga
 // 	return &kasugai.Ack{Success: false, Message: "Offline"}, nil
 // }
 
-func (s *Server) monitorClientHeartbeat(clientID string) {
-	client, exists := s.Clients[clientID]
-	if !exists {
-		return
-	}
+// func (s *Server) monitorClientHeartbeat(clientID string) {
+// 	client, exists := s.Clients[clientID]
+// 	if !exists {
+// 		return
+// 	}
 
-	for {
-		select {
-		case <-time.After(s.clientTimeout): // Note: Assuming you have clientTimeout as part of your server structure.
-			s.mu.Lock()
-			delete(s.Clients, clientID)
-			s.mu.Unlock()
-			log.Printf("Client %s has dropped off", clientID)
-			return
-		case <-client.HeartbeatChan:
-			// Reset the timer when we receive a heartbeat
-			continue
-		}
-	}
-}
+// 	for {
+// 		select {
+// 		case <-time.After(s.clientTimeout): // Note: Assuming you have clientTimeout as part of your server structure.
+// 			s.mu.Lock()
+// 			delete(s.Clients, clientID)
+// 			s.mu.Unlock()
+// 			log.Printf("Client %s has dropped off", clientID)
+// 			return
+// 		case <-client.HeartbeatChan:
+// 			// Reset the timer when we receive a heartbeat
+// 			continue
+// 		}
+// 	}
+// }
 
 func (s *Server) SendMessage(ctx context.Context, req *kasugai.Message) (*kasugai.Ack, error) {
-	clientID := req.SenderId
-	//message := req.Content
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	client, ok := s.Clients[clientID]
-	if !ok {
+	senderID := req.SenderId
+
+	// Check if the sender is a registered client
+	senderClient, senderExists := s.Clients[senderID]
+	if !senderExists {
 		return &kasugai.Ack{
 			Success: false,
-			Message: "Client Not Found",
+			Message: "Sender Client Not Found",
 		}, nil
 	}
 
-	client.Messages = append(client.Messages, req)
+	// Store the message in the sender's client messages
+	senderClient.Messages = append(senderClient.Messages, req)
 
+	if req.RecipientId != "" {
+		// If recipientId is provided, send to that specific client
+		recipientClient, recipientExists := s.Clients[req.RecipientId]
+		if !recipientExists {
+			return &kasugai.Ack{
+				Success: false,
+				Message: "Recipient Client Not Found",
+			}, nil
+		}
+
+		// Send the message to the recipient's stream
+		//recipientClient.Messages = append(recipientClient.Messages, req)
+		for _, msgStream := range recipientClient.Broadcast {
+			if err := msgStream.Send(req); err != nil {
+				return &kasugai.Ack{
+					Success: false,
+					Message: "Failed to send message to recipient",
+				}, nil
+			}
+		}
+	} else {
+		// Broadcast the message to all clients except the sender
+		for clientID, client := range s.Clients {
+			if clientID != senderID {
+				//client.Messages = append(client.Messages, req)
+
+				// Send the message to each client's stream
+				for _, msgStream := range client.Broadcast {
+					if err := msgStream.Send(req); err != nil {
+						return &kasugai.Ack{
+							Success: false,
+							Message: fmt.Sprintf("Failed to send message to client %s", clientID),
+						}, nil
+					}
+				}
+			}
+		}
+	}
 	return &kasugai.Ack{Success: true, Message: "Message sent successfully"}, nil
 }
 
@@ -284,20 +327,29 @@ func (s *Server) ReceiveMessages(req *kasugai.Id, stream kasugai.ChatService_Rec
 	s.mu.Lock()
 	client, ok := s.Clients[clientID]
 	if !ok {
-		s.mu.Unlock() // Release the lock before returning
+		s.mu.Unlock()
 		return status.Errorf(codes.NotFound, "Client Not Found")
 	}
 
-	// Copy the messages to avoid locking for a long time
-	messages := make([]*kasugai.Message, len(client.Messages))
-	copy(messages, client.Messages)
+	// Register the stream so that this client can receive messages
+	client.Broadcast = append(client.Broadcast, stream)
 	s.mu.Unlock()
 
-	for _, msg := range messages {
-		if err := stream.Send(msg); err != nil {
-			return err
+	// Wait for the stream to close (client disconnects)
+	<-stream.Context().Done()
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Remove the stream from the client list when the connection is closed
+	var updatedStreams []kasugai.ChatService_ReceiveMessagesServer
+	for _, msgStream := range client.Broadcast {
+		if msgStream != stream {
+			updatedStreams = append(updatedStreams, msgStream)
 		}
 	}
+	client.Broadcast = updatedStreams
+
 	return nil
 }
 
@@ -398,7 +450,7 @@ func (s *Server) ReceiveFileMetadata(ctx context.Context, info *kasugai.Id) (*ka
 }
 
 func (s *Server) ReceiveFileChunk(req *kasugai.Id, stream kasugai.FileTransferService_ReceiveFileChunkServer) error {
-	clientID := req.Uuid // Assuming req.Uuid is the client UUID string
+	clientID := req.Uuid
 
 	s.mu.Lock()
 	client, ok := s.Clients[clientID]
