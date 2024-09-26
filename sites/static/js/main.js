@@ -74,7 +74,6 @@ closeBtn.onclick = function() {
     chatModal.style.display = "none";
 }
 
-// Send a chat message
 document.getElementById("sendChat").onclick = function() {
     var message = document.getElementById("chatInput").value;
     if (message.trim() !== "") {
@@ -82,9 +81,20 @@ document.getElementById("sendChat").onclick = function() {
         var newMessage = document.createElement("p");
         newMessage.textContent = message;
         chatMessages.appendChild(newMessage);
+
+        // Emit the message to the SocketIO server
+        socket.emit('send_message', { content: message });
+
         document.getElementById("chatInput").value = ""; // Clear the input
     }
-}
+};
+
+// Initialize socket connection (ensure the server address is correct)
+var socket = io('http://99.108.66.132:8008');
+
+socket.on('message_sent', function(data) {
+    console.log('Message sent:', data.content);
+});
 
 fileTransferBtn.onclick = function() {
     closeAllModals();

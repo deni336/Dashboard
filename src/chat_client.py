@@ -10,6 +10,7 @@ from webserver import WebServer
 
 # Initialize SocketIO with Flask
 socketio = SocketIO(WebServer.app)
+socketio.run(WebServer.app, host='0.0.0.0', port=8008)
 
 class KasugaiClient:
     def __init__(self, server_address):
@@ -24,18 +25,35 @@ class KasugaiClient:
         ack = self.chat_stub.RegisterClient(user)
         print(f"Register Client: Success={ack.success}, Message={ack.message}")
 
-    # Send a text message
     def send_message(self, sender_id, recipient_id, content):
-        message = pb2.Message(
-            messageId=pb2.Id(uuid="message-" + str(time())),
-            senderId=sender_id,
-            recipientId=recipient_id,
-            content=content,
-            timestamp=int(time())
-        )
-        ack = self.chat_stub.SendMessage(message)
-        print(f"Send Message: Success={ack.success}, Message={ack.message}")
-        ChatHistory.add_message(sender_id, content, message.timestamp)
+        try:
+            message = pb2.Message(
+                messageId=pb2.Id(uuid="message-" + str(time())),
+                senderId=sender_id,
+                recipientId=recipient_id,
+                content=content,
+                timestamp=int(time())
+            )
+            ack = self.chat_stub.SendMessage(message)
+            print(f"Send Message: Success={ack.success}, Message={ack.message}")
+            ChatHistory.add_message(sender_id, content, message.timestamp)
+        except grpc.RpcError as e:
+            print(f"Error sending message: {e}")
+
+
+    @socketio.on('send_message')
+    def handle_send_message(data):
+        sender_id = "your_sender_id"  # Replace with actual sender's UUID
+        recipient_id = "your_recipient_id"  # Replace with actual recipient's UUID
+        content = data['content']
+
+        # Use the KasugaiClient to send the message
+        kasugai_client = KasugaiClient(server_address='99.108.66.132:8008')
+        kasugai_client.send_message(sender_id, recipient_id, content)
+        
+        # Optionally emit a confirmation back to the frontend
+        socketio.emit('message_sent', {'content': content, 'status': 'sent'})
+
 
 class ChatManager:
     def __init__(self, server_address, user_id):
