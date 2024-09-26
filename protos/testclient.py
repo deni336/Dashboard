@@ -4,7 +4,7 @@ import kasugai_pb2_grpc
 import time
 import threading
 
-ADDRESS = "localhost:6969"
+ADDRESS = "localhost:8008"
 CLIENT_ID = "python-client"
 CLIENT_NAME = "PythonClient"
 RECIPIENT_ID = "recipient-client"  # Replace with an actual recipient ID
