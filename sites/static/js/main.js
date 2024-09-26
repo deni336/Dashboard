@@ -82,18 +82,42 @@ document.getElementById("sendChat").onclick = function() {
         newMessage.textContent = message;
         chatMessages.appendChild(newMessage);
 
-        // Emit the message to the SocketIO server
-        socket.emit('send_message', { content: message });
+        // Send the message to the Flask route
+        fetch('/send_message', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'message': message
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Error:', data.error);
+            } else {
+                console.log('Success:', data.status);
+            }
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
 
         document.getElementById("chatInput").value = ""; // Clear the input
     }
 };
 
 // Initialize socket connection (ensure the server address is correct)
-var socket = io('http://99.108.66.132:8008');
+var socket = io('http"//127.0.0.1:8000');
 
-socket.on('message_sent', function(data) {
-    console.log('Message sent:', data.content);
+// Listen for new messages from the server
+socket.on('new_message', function(data) {
+    // Display the new message in the chat window
+    var chatMessages = document.getElementById("chatMessages");
+    var newMessage = document.createElement("p");
+    newMessage.textContent = data.sender + ": " + data.content;
+    chatMessages.appendChild(newMessage);
 });
 
 fileTransferBtn.onclick = function() {
