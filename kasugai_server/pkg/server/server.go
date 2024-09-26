@@ -53,7 +53,7 @@ func (rl *rateLimiter) Limit() bool {
 }
 
 func StartServer(address string) error {
-	lis, err := net.Listen("tcp", address) //:50051
+	lis, err := net.Listen("tcp", address)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 		return err
@@ -267,10 +267,12 @@ func (s *Server) SendMessage(ctx context.Context, req *kasugai.Message) (*kasuga
 	defer s.mu.Unlock()
 
 	senderID := req.SenderId
+	log.Printf("Received message from sender: %s", senderID)
 
 	// Check if the sender is a registered client
 	senderClient, senderExists := s.Clients[senderID]
 	if !senderExists {
+		log.Printf("Sender client not found: %s", senderID)
 		return &kasugai.Ack{
 			Success: false,
 			Message: "Sender Client Not Found",
@@ -280,44 +282,47 @@ func (s *Server) SendMessage(ctx context.Context, req *kasugai.Message) (*kasuga
 	// Store the message in the sender's client messages
 	senderClient.Messages = append(senderClient.Messages, req)
 
-	if req.RecipientId != "" {
-		// If recipientId is provided, send to that specific client
+	// Check if recipientId is set; if not, broadcast the message to all clients
+	if req.RecipientId == "" {
+		log.Printf("Broadcasting message from sender: %s", senderID)
+		for clientID, client := range s.Clients {
+			if clientID != senderID { // Skip the sender
+				log.Printf("Broadcasting to client: %s", clientID)
+				for _, stream := range client.Broadcast {
+					if err := stream.Send(req); err != nil {
+						log.Printf("Failed to send message to client %s: %v", clientID, err)
+					} else {
+						log.Printf("Message sent to client %s", clientID)
+					}
+				}
+			}
+		}
+		log.Printf("Broadcast completed for sender: %s", senderID)
+	} else {
+		// Direct message to a specific recipient
 		recipientClient, recipientExists := s.Clients[req.RecipientId]
 		if !recipientExists {
+			log.Printf("Recipient client not found: %s", req.RecipientId)
 			return &kasugai.Ack{
 				Success: false,
 				Message: "Recipient Client Not Found",
 			}, nil
 		}
 
-		// Send the message to the recipient's stream
-		//recipientClient.Messages = append(recipientClient.Messages, req)
-		for _, msgStream := range recipientClient.Broadcast {
-			if err := msgStream.Send(req); err != nil {
+		// Send the message to the recipient's active streams
+		for _, stream := range recipientClient.Broadcast {
+			log.Printf("Sending direct message to recipient: %s", req.RecipientId)
+			if err := stream.Send(req); err != nil {
+				log.Printf("Failed to send message to recipient %s: %v", req.RecipientId, err)
 				return &kasugai.Ack{
 					Success: false,
 					Message: "Failed to send message to recipient",
 				}, nil
 			}
 		}
-	} else {
-		// Broadcast the message to all clients except the sender
-		for clientID, client := range s.Clients {
-			if clientID != senderID {
-				//client.Messages = append(client.Messages, req)
-
-				// Send the message to each client's stream
-				for _, msgStream := range client.Broadcast {
-					if err := msgStream.Send(req); err != nil {
-						return &kasugai.Ack{
-							Success: false,
-							Message: fmt.Sprintf("Failed to send message to client %s", clientID),
-						}, nil
-					}
-				}
-			}
-		}
+		log.Printf("Direct message successfully sent to recipient: %s", req.RecipientId)
 	}
+
 	return &kasugai.Ack{Success: true, Message: "Message sent successfully"}, nil
 }
 
@@ -328,29 +333,36 @@ func (s *Server) ReceiveMessages(req *kasugai.Id, stream kasugai.ChatService_Rec
 	client, ok := s.Clients[clientID]
 	if !ok {
 		s.mu.Unlock()
+		log.Printf("Client not found for receiving messages: %s", clientID)
 		return status.Errorf(codes.NotFound, "Client Not Found")
 	}
 
-	// Register the stream so that this client can receive messages
+	// Register the client's stream to receive messages
 	client.Broadcast = append(client.Broadcast, stream)
+	log.Printf("Client %s connected to message stream", clientID)
 	s.mu.Unlock()
 
-	// Wait for the stream to close (client disconnects)
-	<-stream.Context().Done()
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	// Remove the stream from the client list when the connection is closed
-	var updatedStreams []kasugai.ChatService_ReceiveMessagesServer
-	for _, msgStream := range client.Broadcast {
-		if msgStream != stream {
-			updatedStreams = append(updatedStreams, msgStream)
+	// Continuously keep the stream open until the client disconnects
+	for {
+		select {
+		case <-stream.Context().Done():
+			// Client has disconnected, remove the stream
+			log.Printf("Client %s disconnected from message stream", clientID)
+			s.mu.Lock()
+			var updatedStreams []kasugai.ChatService_ReceiveMessagesServer
+			for _, msgStream := range client.Broadcast {
+				if msgStream != stream {
+					updatedStreams = append(updatedStreams, msgStream)
+				}
+			}
+			client.Broadcast = updatedStreams
+			s.mu.Unlock()
+			return nil
+		default:
+			// Avoid tight loop
+			time.Sleep(100 * time.Millisecond)
 		}
 	}
-	client.Broadcast = updatedStreams
-
-	return nil
 }
 
 func (s *Server) StartVideoStream(stream kasugai.ChatService_StartVideoStreamServer) error {

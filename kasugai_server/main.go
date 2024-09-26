@@ -18,7 +18,7 @@ import (
 */
 
 func main() {
-	chataddr := "localhost:6969" // Default address
+	chataddr := "localhost:8008" // Default address
 	saddy := "localhost:7070"
 
 	if len(os.Args) > 1 {
