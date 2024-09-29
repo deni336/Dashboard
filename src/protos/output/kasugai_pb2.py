@@ -22,38 +22,67 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
+from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rkasugai.proto\x12\x07kasugai\"\x12\n\x02Id\x12\x0c\n\x04uuid\x18\x01 \x01(\t\"t\n\x07Message\x12\x1e\n\tmessageId\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12\x10\n\x08senderId\x18\x02 \x01(\t\x12\x13\n\x0brecipientId\x18\x03 \x01(\t\x12\x0f\n\x07\x63ontent\x18\x04 \x01(\t\x12\x11\n\ttimestamp\x18\x05 \x01(\x03\":\n\x0bVideoStream\x12\x1d\n\x08streamId\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\":\n\x0bScreenShare\x12\x1d\n\x08streamId\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"U\n\x0c\x46ileMetadata\x12\x1b\n\x06\x66ileId\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0c\n\x04size\x18\x03 \x01(\x05\x12\x0c\n\x04type\x18\x04 \x01(\t\"6\n\tFileChunk\x12\x1b\n\x06\x66ileId\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"/\n\x0f\x41\x63tiveUsersList\x12\x1c\n\x05users\x18\x01 \x03(\x0b\x32\r.kasugai.User\"\x14\n\x12\x41\x63tiveUsersRequest\"R\n\x04User\x12\x19\n\x04uuid\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12\x0c\n\x04name\x18\x02 \x01(\t\x12!\n\x07message\x18\x03 \x01(\x0b\x32\x10.kasugai.Message\"\'\n\x03\x41\x63k\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t2\xcb\x03\n\x0b\x43hatService\x12-\n\x0eRegisterClient\x12\r.kasugai.User\x1a\x0c.kasugai.Ack\x12\x44\n\x0b\x41\x63tiveUsers\x12\x1b.kasugai.ActiveUsersRequest\x1a\x18.kasugai.ActiveUsersList\x12-\n\x0bSendMessage\x12\x10.kasugai.Message\x1a\x0c.kasugai.Ack\x12\x32\n\x0fReceiveMessages\x12\x0b.kasugai.Id\x1a\x10.kasugai.Message0\x01\x12\x38\n\x10StartVideoStream\x12\x14.kasugai.VideoStream\x1a\x0c.kasugai.Ack(\x01\x12\x37\n\x10WatchVideoStream\x12\x0b.kasugai.Id\x1a\x14.kasugai.VideoStream0\x01\x12\x38\n\x10StartScreenShare\x12\x14.kasugai.ScreenShare\x1a\x0c.kasugai.Ack(\x01\x12\x37\n\x10WatchScreenShare\x12\x0b.kasugai.Id\x1a\x14.kasugai.ScreenShare0\x01\x32\xe8\x02\n\x13\x46ileTransferService\x12\x37\n\x10SendFileMetadata\x12\x15.kasugai.FileMetadata\x1a\x0c.kasugai.Ack\x12\x31\n\rSendFileChunk\x12\x12.kasugai.FileChunk\x1a\x0c.kasugai.Ack\x12\x39\n\x13ReceiveFileMetadata\x12\x0b.kasugai.Id\x1a\x15.kasugai.FileMetadata\x12\x35\n\x10ReceiveFileChunk\x12\x0b.kasugai.Id\x1a\x12.kasugai.FileChunk0\x01\x12\x36\n\x12UploadFileToServer\x12\x12.kasugai.FileChunk\x1a\x0c.kasugai.Ack\x12;\n\x16\x44ownloadFileFromServer\x12\x0b.kasugai.Id\x1a\x12.kasugai.FileChunk0\x01\x42\nZ\x08/kasugaib\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rkasugai.proto\x12\x07kasugai\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x12\n\x02Id\x12\x0c\n\x04uuid\x18\x01 \x01(\t\"R\n\x04User\x12\x17\n\x02id\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12\x0c\n\x04name\x18\x02 \x01(\t\x12#\n\x06status\x18\x03 \x01(\x0e\x32\x13.kasugai.UserStatus\"\'\n\x03\x41\x63k\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"&\n\x05\x45rror\x12\x0c\n\x04\x63ode\x18\x01 \x01(\t\x12\x0f\n\x07message\x18\x02 \x01(\t\"\xa7\x01\n\x0bTextMessage\x12\x17\n\x02id\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12\x1d\n\x08senderId\x18\x02 \x01(\x0b\x32\x0b.kasugai.Id\x12 \n\x0brecipientId\x18\x03 \x01(\x0b\x32\x0b.kasugai.Id\x12\x0f\n\x07\x63ontent\x18\x04 \x01(\t\x12-\n\ttimestamp\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"\x93\x01\n\x04Room\x12\x17\n\x02id\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12\x0c\n\x04name\x18\x02 \x01(\t\x12#\n\x0eparticipantIds\x18\x03 \x03(\x0b\x32\x0b.kasugai.Id\x12\x1f\n\x04type\x18\x04 \x01(\x0e\x32\x11.kasugai.RoomType\x12\x1e\n\tcreatorId\x18\x05 \x01(\x0b\x32\x0b.kasugai.Id\"\xa4\x01\n\x0bMediaStream\x12\x17\n\x02id\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12\x1d\n\x08senderId\x18\x02 \x01(\x0b\x32\x0b.kasugai.Id\x12 \n\x04type\x18\x03 \x01(\x0e\x32\x12.kasugai.MediaType\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\x0c\x12-\n\ttimestamp\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"\x96\x01\n\x0c\x46ileMetadata\x12\x17\n\x02id\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0c\n\x04size\x18\x03 \x01(\x03\x12\x10\n\x08mimeType\x18\x04 \x01(\t\x12\x1d\n\x08senderId\x18\x05 \x01(\x0b\x32\x0b.kasugai.Id\x12 \n\x0brecipientId\x18\x06 \x01(\x0b\x32\x0b.kasugai.Id\"r\n\tFileChunk\x12\x1b\n\x06\x66ileId\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\x12\x13\n\x0b\x63hunkNumber\x18\x03 \x01(\x05\x12\x13\n\x0bisLastChunk\x18\x04 \x01(\x08\x12\x10\n\x08\x63hecksum\x18\x05 \x01(\t\"\xf3\x01\n\x08VoIPCall\x12\x17\n\x02id\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12\x1d\n\x08\x63\x61llerId\x18\x02 \x01(\x0b\x32\x0b.kasugai.Id\x12\x1d\n\x08\x63\x61lleeId\x18\x03 \x01(\x0b\x32\x0b.kasugai.Id\x12#\n\x06status\x18\x04 \x01(\x0e\x32\x13.kasugai.CallStatus\x12-\n\tstartTime\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x30\n\x07\x65ndTime\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x00\x88\x01\x01\x42\n\n\x08_endTime\"\x1a\n\x0bSignalOffer\x12\x0b\n\x03sdp\x18\x01 \x01(\t\"\x1b\n\x0cSignalAnswer\x12\x0b\n\x03sdp\x18\x01 \x01(\t\"N\n\x12SignalICECandidate\x12\x11\n\tcandidate\x18\x01 \x01(\t\x12\x0e\n\x06sdpMid\x18\x02 \x01(\t\x12\x15\n\rsdpMLineIndex\x18\x03 \x01(\x05\"\xb8\x01\n\nVoIPSignal\x12\x1b\n\x06\x63\x61llId\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12%\n\x05offer\x18\x02 \x01(\x0b\x32\x14.kasugai.SignalOfferH\x00\x12\'\n\x06\x61nswer\x18\x03 \x01(\x0b\x32\x15.kasugai.SignalAnswerH\x00\x12\x33\n\x0ciceCandidate\x18\x04 \x01(\x0b\x32\x1b.kasugai.SignalICECandidateH\x00\x42\x08\n\x06signal\"(\n\x08UserList\x12\x1c\n\x05users\x18\x01 \x03(\x0b\x32\r.kasugai.User\"T\n\x10RoomParticipants\x12\x1b\n\x06roomId\x18\x01 \x01(\x0b\x32\x0b.kasugai.Id\x12#\n\x0cparticipants\x18\x02 \x03(\x0b\x32\r.kasugai.User*9\n\nUserStatus\x12\x0b\n\x07OFFLINE\x10\x00\x12\n\n\x06ONLINE\x10\x01\x12\x08\n\x04\x41WAY\x10\x02\x12\x08\n\x04\x42USY\x10\x03*)\n\x08RoomType\x12\x08\n\x04\x43HAT\x10\x00\x12\t\n\x05MEDIA\x10\x01\x12\x08\n\x04VOIP\x10\x02*-\n\tMediaType\x12\t\n\x05VIDEO\x10\x00\x12\t\n\x05\x41UDIO\x10\x01\x12\n\n\x06SCREEN\x10\x02*E\n\nCallStatus\x12\x0e\n\nINITIATING\x10\x00\x12\x0b\n\x07RINGING\x10\x01\x12\x0f\n\x0bIN_PROGRESS\x10\x02\x12\t\n\x05\x45NDED\x10\x03\x32\xd0\x01\n\x0bUserService\x12+\n\x0cRegisterUser\x12\r.kasugai.User\x1a\x0c.kasugai.Ack\x12/\n\x10UpdateUserStatus\x12\r.kasugai.User\x1a\x0c.kasugai.Ack\x12\x38\n\x0bGetUserList\x12\x16.google.protobuf.Empty\x1a\x11.kasugai.UserList\x12)\n\x0bGetUserById\x12\x0b.kasugai.Id\x1a\r.kasugai.User2\xc6\x01\n\x0bRoomService\x12)\n\nCreateRoom\x12\r.kasugai.Room\x1a\x0c.kasugai.Ack\x12%\n\x08JoinRoom\x12\x0b.kasugai.Id\x1a\x0c.kasugai.Ack\x12&\n\tLeaveRoom\x12\x0b.kasugai.Id\x1a\x0c.kasugai.Ack\x12=\n\x13GetRoomParticipants\x12\x0b.kasugai.Id\x1a\x19.kasugai.RoomParticipants2\x80\x01\n\x0b\x43hatService\x12\x35\n\x0fSendTextMessage\x12\x14.kasugai.TextMessage\x1a\x0c.kasugai.Ack\x12:\n\x13ReceiveTextMessages\x12\x0b.kasugai.Id\x1a\x14.kasugai.TextMessage0\x01\x32\xbf\x01\n\x0cMediaService\x12\x42\n\x10StartMediaStream\x12\x14.kasugai.MediaStream\x1a\x14.kasugai.MediaStream(\x01\x30\x01\x12+\n\x0e\x45ndMediaStream\x12\x0b.kasugai.Id\x1a\x0c.kasugai.Ack\x12>\n\x0eManageVoIPCall\x12\x13.kasugai.VoIPSignal\x1a\x13.kasugai.VoIPSignal(\x01\x30\x01\x32\xfe\x01\n\x13\x46ileTransferService\x12;\n\x14InitiateFileTransfer\x12\x15.kasugai.FileMetadata\x1a\x0c.kasugai.Ack\x12\x37\n\x11TransferFileChunk\x12\x12.kasugai.FileChunk\x1a\x0c.kasugai.Ack(\x01\x12\x39\n\x13ReceiveFileMetadata\x12\x0b.kasugai.Id\x1a\x15.kasugai.FileMetadata\x12\x36\n\x11ReceiveFileChunks\x12\x0b.kasugai.Id\x1a\x12.kasugai.FileChunk0\x01\x42\rZ\x08/kasugai\x90\x01\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'kasugai_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
-  _globals['DESCRIPTOR']._serialized_options = b'Z\010/kasugai'
-  _globals['_ID']._serialized_start=26
-  _globals['_ID']._serialized_end=44
-  _globals['_MESSAGE']._serialized_start=46
-  _globals['_MESSAGE']._serialized_end=162
-  _globals['_VIDEOSTREAM']._serialized_start=164
-  _globals['_VIDEOSTREAM']._serialized_end=222
-  _globals['_SCREENSHARE']._serialized_start=224
-  _globals['_SCREENSHARE']._serialized_end=282
-  _globals['_FILEMETADATA']._serialized_start=284
-  _globals['_FILEMETADATA']._serialized_end=369
-  _globals['_FILECHUNK']._serialized_start=371
-  _globals['_FILECHUNK']._serialized_end=425
-  _globals['_ACTIVEUSERSLIST']._serialized_start=427
-  _globals['_ACTIVEUSERSLIST']._serialized_end=474
-  _globals['_ACTIVEUSERSREQUEST']._serialized_start=476
-  _globals['_ACTIVEUSERSREQUEST']._serialized_end=496
-  _globals['_USER']._serialized_start=498
-  _globals['_USER']._serialized_end=580
-  _globals['_ACK']._serialized_start=582
-  _globals['_ACK']._serialized_end=621
-  _globals['_CHATSERVICE']._serialized_start=624
-  _globals['_CHATSERVICE']._serialized_end=1083
-  _globals['_FILETRANSFERSERVICE']._serialized_start=1086
-  _globals['_FILETRANSFERSERVICE']._serialized_end=1446
+  _globals['DESCRIPTOR']._serialized_options = b'Z\010/kasugai\220\001\001'
+  _globals['_USERSTATUS']._serialized_start=1727
+  _globals['_USERSTATUS']._serialized_end=1784
+  _globals['_ROOMTYPE']._serialized_start=1786
+  _globals['_ROOMTYPE']._serialized_end=1827
+  _globals['_MEDIATYPE']._serialized_start=1829
+  _globals['_MEDIATYPE']._serialized_end=1874
+  _globals['_CALLSTATUS']._serialized_start=1876
+  _globals['_CALLSTATUS']._serialized_end=1945
+  _globals['_ID']._serialized_start=88
+  _globals['_ID']._serialized_end=106
+  _globals['_USER']._serialized_start=108
+  _globals['_USER']._serialized_end=190
+  _globals['_ACK']._serialized_start=192
+  _globals['_ACK']._serialized_end=231
+  _globals['_ERROR']._serialized_start=233
+  _globals['_ERROR']._serialized_end=271
+  _globals['_TEXTMESSAGE']._serialized_start=274
+  _globals['_TEXTMESSAGE']._serialized_end=441
+  _globals['_ROOM']._serialized_start=444
+  _globals['_ROOM']._serialized_end=591
+  _globals['_MEDIASTREAM']._serialized_start=594
+  _globals['_MEDIASTREAM']._serialized_end=758
+  _globals['_FILEMETADATA']._serialized_start=761
+  _globals['_FILEMETADATA']._serialized_end=911
+  _globals['_FILECHUNK']._serialized_start=913
+  _globals['_FILECHUNK']._serialized_end=1027
+  _globals['_VOIPCALL']._serialized_start=1030
+  _globals['_VOIPCALL']._serialized_end=1273
+  _globals['_SIGNALOFFER']._serialized_start=1275
+  _globals['_SIGNALOFFER']._serialized_end=1301
+  _globals['_SIGNALANSWER']._serialized_start=1303
+  _globals['_SIGNALANSWER']._serialized_end=1330
+  _globals['_SIGNALICECANDIDATE']._serialized_start=1332
+  _globals['_SIGNALICECANDIDATE']._serialized_end=1410
+  _globals['_VOIPSIGNAL']._serialized_start=1413
+  _globals['_VOIPSIGNAL']._serialized_end=1597
+  _globals['_USERLIST']._serialized_start=1599
+  _globals['_USERLIST']._serialized_end=1639
+  _globals['_ROOMPARTICIPANTS']._serialized_start=1641
+  _globals['_ROOMPARTICIPANTS']._serialized_end=1725
+  _globals['_USERSERVICE']._serialized_start=1948
+  _globals['_USERSERVICE']._serialized_end=2156
+  _globals['_ROOMSERVICE']._serialized_start=2159
+  _globals['_ROOMSERVICE']._serialized_end=2357
+  _globals['_CHATSERVICE']._serialized_start=2360
+  _globals['_CHATSERVICE']._serialized_end=2488
+  _globals['_MEDIASERVICE']._serialized_start=2491
+  _globals['_MEDIASERVICE']._serialized_end=2682
+  _globals['_FILETRANSFERSERVICE']._serialized_start=2685
+  _globals['_FILETRANSFERSERVICE']._serialized_end=2939
+_builder.BuildServices(DESCRIPTOR, 'kasugai_pb2', _globals)
 # @@protoc_insertion_point(module_scope)

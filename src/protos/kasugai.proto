@@ -1,91 +1,176 @@
 syntax = "proto3";
 
-option go_package = "/kasugai";
-
 package kasugai;
 
-// A unique ID to identify messages, streams, and files
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "/kasugai";
+
+option py_generic_services = true;
+
+// Common messages
 message Id {
     string uuid = 1;
 }
 
-// Message types for text-based chat
-message Message {
-    Id messageId = 1;
-    string senderId = 2;
-    string recipientId = 3;
-    string content = 4;
-    int64 timestamp = 5; // Unix timestamp
-}
-
-// Message types for video streaming and screen sharing
-message VideoStream {
-    Id streamId = 1;
-    bytes data = 2; // Chunk of video data
-}
-
-message ScreenShare {
-    Id streamId = 1;
-    bytes data = 2; // Chunk of screenshare data
-}
-
-// Message types for file transfers
-message FileMetadata {
-    Id fileId = 1;
+message User {
+    Id id = 1;
     string name = 2;
-    int32 size = 3; // File size in bytes
-    string type = 4; // MIME type or file extension
+    UserStatus status = 3;
+}
+
+enum UserStatus {
+    OFFLINE = 0;
+    ONLINE = 1;
+    AWAY = 2;
+    BUSY = 3;
+}
+
+message Ack {
+    bool success = 1;
+    string message = 2;
+}
+
+message Error {
+    string code = 1;
+    string message = 2;
+}
+
+// Chat messages
+message TextMessage {
+    Id id = 1;
+    Id senderId = 2;
+    Id recipientId = 3;
+    string content = 4;
+    google.protobuf.Timestamp timestamp = 5;
+}
+
+message Room {
+    Id id = 1;
+    string name = 2;
+    repeated Id participantIds = 3;
+    RoomType type = 4;
+    Id creatorId = 5;
+}
+
+enum RoomType {
+    CHAT = 0;
+    MEDIA = 1;
+    VOIP = 2;
+}
+
+// Media streaming
+message MediaStream {
+    Id id = 1;
+    Id senderId = 2;
+    MediaType type = 3;
+    bytes data = 4;
+    google.protobuf.Timestamp timestamp = 5;
+}
+
+enum MediaType {
+    VIDEO = 0;
+    AUDIO = 1;
+    SCREEN = 2;
+}
+
+// File transfer
+message FileMetadata {
+    Id id = 1;
+    string name = 2;
+    int64 size = 3;
+    string mimeType = 4;
+    Id senderId = 5;
+    Id recipientId = 6;
 }
 
 message FileChunk {
     Id fileId = 1;
-    bytes data = 2; // Chunk of file data
+    bytes data = 2;
+    int32 chunkNumber = 3;
+    bool isLastChunk = 4;
+    string checksum = 5;
 }
 
-message ActiveUsersList {
+// VoIP
+message VoIPCall {
+    Id id = 1;
+    Id callerId = 2;
+    Id calleeId = 3;
+    CallStatus status = 4;
+    google.protobuf.Timestamp startTime = 5;
+    optional google.protobuf.Timestamp endTime = 6;
+}
+
+enum CallStatus {
+    INITIATING = 0;
+    RINGING = 1;
+    IN_PROGRESS = 2;
+    ENDED = 3;
+}
+
+message SignalOffer {
+    string sdp = 1;
+}
+
+message SignalAnswer {
+    string sdp = 1;
+}
+
+message SignalICECandidate {
+    string candidate = 1;
+    string sdpMid = 2;
+    int32 sdpMLineIndex = 3;
+}
+
+message VoIPSignal {
+    Id callId = 1;
+    oneof signal {
+        SignalOffer offer = 2;
+        SignalAnswer answer = 3;
+        SignalICECandidate iceCandidate = 4;
+    }
+}
+
+message UserList {
     repeated User users = 1;
 }
 
-message ActiveUsersRequest {}
-
-message User {
-    Id uuid = 1;
-    string name = 2;
-    Message message = 3;
+message RoomParticipants {
+    Id roomId = 1;
+    repeated User participants = 2;
 }
 
 // Service definitions
+service UserService {
+    rpc RegisterUser(User) returns (Ack);
+    rpc UpdateUserStatus(User) returns (Ack);
+    rpc GetUserList(google.protobuf.Empty) returns (UserList);
+    rpc GetUserById(Id) returns (User);
+}
+
+service RoomService {
+    rpc CreateRoom(Room) returns (Ack);
+    rpc JoinRoom(Id) returns (Ack);
+    rpc LeaveRoom(Id) returns (Ack);
+    rpc GetRoomParticipants(Id) returns (RoomParticipants);
+}
+
 service ChatService {
-    rpc RegisterClient(User) returns (Ack);
-    rpc ActiveUsers(ActiveUsersRequest) returns (ActiveUsersList);
+    rpc SendTextMessage(TextMessage) returns (Ack);
+    rpc ReceiveTextMessages(Id) returns (stream TextMessage);
+}
 
-    // Text messaging
-    rpc SendMessage(Message) returns (Ack);
-    rpc ReceiveMessages(Id) returns (stream Message);
-
-    // Video streaming
-    rpc StartVideoStream(stream VideoStream) returns (Ack);
-    rpc WatchVideoStream(Id) returns (stream VideoStream);
-
-    // Screen sharing
-    rpc StartScreenShare(stream ScreenShare) returns (Ack);
-    rpc WatchScreenShare(Id) returns (stream ScreenShare);
+service MediaService {
+    rpc StartMediaStream(stream MediaStream) returns (stream MediaStream);
+    rpc EndMediaStream(Id) returns (Ack); 
+    rpc ManageVoIPCall(stream VoIPSignal) returns (stream VoIPSignal);
 }
 
 service FileTransferService {
-    // P2P file transfer
-    rpc SendFileMetadata(FileMetadata) returns (Ack);
-    rpc SendFileChunk(FileChunk) returns (Ack);
+    rpc InitiateFileTransfer(FileMetadata) returns (Ack);
+    rpc TransferFileChunk(stream FileChunk) returns (Ack);
     rpc ReceiveFileMetadata(Id) returns (FileMetadata);
-    rpc ReceiveFileChunk(Id) returns (stream FileChunk);
-
-    // Server to user file transfer
-    rpc UploadFileToServer(FileChunk) returns (Ack);
-    rpc DownloadFileFromServer(Id) returns (stream FileChunk);
-}
-
-// Acknowledgement message
-message Ack {
-    bool success = 1;
-    string message = 2; // Optional error or success message
+    rpc ReceiveFileChunks(Id) returns (stream FileChunk);
 }
