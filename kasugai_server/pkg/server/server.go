@@ -161,21 +161,28 @@ func (s *Server) CreateRoom(ctx context.Context, req *kasugai.Room) (*kasugai.Ac
 		return nil, status.Errorf(codes.InvalidArgument, err.Error())
 	}
 
-	s.rooms[room.ID] = room
+	s.rooms[room.Channel.Id.Uuid] = room
 
-	s.logger.Info(fmt.Sprintf("Room created: %s (Type: %v)", room.ID, room.Type))
+	s.logger.Info(fmt.Sprintf("Room created: %s (Type: %v)", room.Channel.Id, room.Channel.Type))
 
-	return &kasugai.Ack{Success: true, Message: room.ID}, nil
+	return &kasugai.Ack{Success: true, Message: room.Channel.Id.Uuid}, nil
 }
 
 func (s *Server) JoinRoom(ctx context.Context, req *kasugai.Id) (*kasugai.Ack, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	userID, err := FromContext(ctx)
-	if err != nil {
-		return nil, err
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, status.Error(codes.InvalidArgument, "Failed to get metadata")
 	}
+
+	// Get specific values from metadata
+	userIDs := md.Get("user")
+	if len(userIDs) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "User ID not found in metadata")
+	}
+	userID := userIDs[0]
 
 	room, ok := s.rooms[req.Uuid]
 	if !ok {
@@ -188,16 +195,18 @@ func (s *Server) JoinRoom(ctx context.Context, req *kasugai.Id) (*kasugai.Ack, e
 		}
 	}
 
-	room.Participants[userID] = &Participant{User: s.clients[userID], Role: RoleParticipant}
-	return &kasugai.Ack{Success: true, Message: "User joined room"}, nil
-}
-
-func FromContext(ctx context.Context) (string, error) {
-	userID, ok := ctx.Value("user-id").(string)
-	if !ok || userID == "" {
-		return "", status.Error(codes.Unauthenticated, "User ID not found in context")
+	client := &Participant{
+		User: s.clients[userID],
+		Role: RoleParticipant,
 	}
-	return userID, nil
+
+	if room.Channel.CreatorId.Uuid == userID {
+		client.Role = RoleAdmin
+	}
+
+	room.Participants[userID] = client
+	s.logger.Info(fmt.Sprintf("User joined the channel: %s (Joined the room: %v | RoomID: %v)", s.clients[userID].Name, room.Channel.Name, room.Channel.Id))
+	return &kasugai.Ack{Success: true, Message: "User joined room"}, nil
 }
 
 func (s *Server) LeaveRoom(ctx context.Context, req *kasugai.Id) (*kasugai.Ack, error) {

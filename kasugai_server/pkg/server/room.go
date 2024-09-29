@@ -12,9 +12,7 @@ import (
 
 // Update the Room struct to include new fields
 type Room struct {
-	ID           string
-	Name         string
-	Type         RoomType
+	Channel      *kasugai.Room
 	Participants map[string]*Participant
 	Broadcast    chan []*RoomContent
 	Description  string
@@ -93,8 +91,10 @@ type RoomBuilder struct {
 func NewRoomBuilder() *RoomBuilder {
 	return &RoomBuilder{
 		room: &Room{
-			ID:           uuid.New().String(),
-			Participants: make(map[string]*Participant),
+			Channel: &kasugai.Room{
+				Id: &kasugai.Id{Uuid: uuid.New().String()},
+			},
+			Participants: make(map[string]*Participant, 0),
 			Broadcast:    make(chan []*RoomContent, 0),
 			CreatedAt:    time.Now(),
 		},
@@ -103,22 +103,19 @@ func NewRoomBuilder() *RoomBuilder {
 
 // WithName sets the name of the room
 func (rb *RoomBuilder) WithName(name string) *RoomBuilder {
-	rb.room.Name = name
+	rb.room.Channel.Name = name
 	return rb
 }
 
 // WithType sets the type of the room
 func (rb *RoomBuilder) WithType(roomType RoomType) *RoomBuilder {
-	rb.room.Type = roomType
+	rb.room.Channel.Type = kasugai.RoomType_CHAT
 	return rb
 }
 
 // WithCreator adds the creator as the first participant and admin
 func (rb *RoomBuilder) WithCreator(user *kasugai.User) *RoomBuilder {
-	rb.room.Participants[user.Id.Uuid] = &Participant{
-		User: user,
-		Role: RoleAdmin,
-	}
+	rb.room.Channel.CreatorId = user.Id
 	return rb
 }
 
@@ -129,6 +126,8 @@ func (rb *RoomBuilder) WithParticipant(user *kasugai.User) *RoomBuilder {
 			User: user,
 			Role: RoleParticipant,
 		}
+
+		rb.room.Channel.ParticipantIds = append(rb.room.Channel.ParticipantIds, user.Id)
 	}
 	return rb
 }
@@ -141,15 +140,15 @@ func (rb *RoomBuilder) WithDescription(description string) *RoomBuilder {
 
 // Build constructs and returns the Room object
 func (rb *RoomBuilder) Build() (*Room, error) {
-	if rb.room.Name == "" {
+	if rb.room.Channel.Name == "" {
 		return nil, errors.New("room must have a name")
 	}
-	if len(rb.room.Participants) == 0 {
-		return nil, errors.New("room must have at least one participant")
-	}
-	if rb.room.Type == DirectRoom && len(rb.room.Participants) > 2 {
-		return nil, errors.New("direct room cannot have more than two participants")
-	}
+	// if len(rb.room.Participants) == 0 {
+	// 	return nil, errors.New("room must have at least one participant")
+	// }
+	// if rb.room.Type == DirectRoom && len(rb.room.Participants) > 2 {
+	// 	return nil, errors.New("direct room cannot have more than two participants")
+	// }
 
 	return rb.room, nil
 }
