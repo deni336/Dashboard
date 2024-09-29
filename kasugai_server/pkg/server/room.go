@@ -95,7 +95,7 @@ func NewRoomBuilder() *RoomBuilder {
 				Id: &kasugai.Id{Uuid: uuid.New().String()},
 			},
 			Participants: make(map[string]*Participant, 0),
-			Broadcast:    make(chan []*RoomContent, 0),
+			Broadcast:    make(chan []*RoomContent, 1024),
 			CreatedAt:    time.Now(),
 		},
 	}

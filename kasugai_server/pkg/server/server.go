@@ -92,7 +92,7 @@ func (s *Server) RegisterUser(ctx context.Context, req *kasugai.User) (*kasugai.
 	}
 
 	s.clients[req.Id.Uuid] = req
-	s.streams[req.Id.Uuid] = make(chan *kasugai.TextMessage, 100)
+	s.streams[req.Id.Uuid] = make(chan *kasugai.TextMessage, 1024)
 
 	s.logger.Info(fmt.Sprintf("User registered successfully (ID: %s, Name: %s)", req.Id.Uuid, req.Name))
 	return &kasugai.Ack{Success: true, Message: "User registered"}, nil
@@ -223,7 +223,6 @@ func (s *Server) LeaveRoom(ctx context.Context, req *kasugai.Id) (*kasugai.Ack, 
 		return nil, status.Error(codes.InvalidArgument, "Failed to get metadata")
 	}
 
-	// Get specific values from metadata
 	userIDs := md.Get("user")
 	if len(userIDs) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "User ID not found in metadata")
@@ -232,10 +231,19 @@ func (s *Server) LeaveRoom(ctx context.Context, req *kasugai.Id) (*kasugai.Ack, 
 
 	if room.Participants[userID] != nil {
 		delete(room.Participants, userID)
+
+		// Cancel the stream context for this user in this room
+		s.activeStreamsMutex.Lock()
+		if cancelFunc, exists := s.activeStreams[userID+"-"+req.Uuid]; exists {
+			cancelFunc()
+			delete(s.activeStreams, userID+"-"+req.Uuid)
+		}
+		s.activeStreamsMutex.Unlock()
 	} else {
 		return nil, status.Error(codes.InvalidArgument, "User not found in room.")
 	}
 
+	s.logger.Info(fmt.Sprintf("User left the channel: %s (Left room: %v | RoomID: %v)", s.clients[userID].Name, room.Channel.Name, room.Channel.Id))
 	return &kasugai.Ack{Success: true, Message: "Successfully left the chat room."}, nil
 }
 
@@ -299,6 +307,33 @@ func (s *Server) ReceiveTextMessages(req *kasugai.Id, stream kasugai.ChatService
 		return status.Error(codes.NotFound, "Room not found")
 	}
 
+	md, ok := metadata.FromIncomingContext(stream.Context())
+	if !ok {
+		return status.Error(codes.InvalidArgument, "Failed to get metadata")
+	}
+
+	userIDs := md.Get("user")
+	if len(userIDs) == 0 {
+		return status.Error(codes.InvalidArgument, "User ID not found in metadata")
+	}
+	userID := userIDs[0]
+
+	// Create a new context with cancellation
+	ctx, cancel := context.WithCancel(stream.Context())
+	defer cancel()
+
+	// Register the cancel function
+	s.activeStreamsMutex.Lock()
+	s.activeStreams[userID+"-"+req.Uuid] = cancel
+	s.activeStreamsMutex.Unlock()
+
+	// Ensure we remove the cancel function when we're done
+	defer func() {
+		s.activeStreamsMutex.Lock()
+		delete(s.activeStreams, userID+"-"+req.Uuid)
+		s.activeStreamsMutex.Unlock()
+	}()
+
 	for {
 		select {
 		case contents := <-room.Broadcast:
@@ -315,14 +350,14 @@ func (s *Server) ReceiveTextMessages(req *kasugai.Id, stream kasugai.ChatService
 				}
 
 				if err := stream.Send(textMsg); err != nil {
-					s.logger.Error(fmt.Sprintf("Error sending message in room %s: %v", req.Uuid, err))
+					s.logger.Error(fmt.Sprintf("Error sending message to user %s in room %s: %v", userID, req.Uuid, err))
 					return err
 				}
-				s.logger.Debug(fmt.Sprintf("Broadcast message in room %s: %v", req.Uuid, textMsg))
+				s.logger.Debug(fmt.Sprintf("Sent message to user %s in room %s: %v", userID, req.Uuid, textMsg))
 			}
 
-		case <-stream.Context().Done():
-			s.logger.Info(fmt.Sprintf("Stopped receiving messages in room %s", req.Uuid))
+		case <-ctx.Done():
+			s.logger.Info(fmt.Sprintf("Stopped receiving messages for user %s in room %s", userID, req.Uuid))
 			return nil
 		}
 	}

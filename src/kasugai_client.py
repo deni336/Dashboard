@@ -2,8 +2,8 @@ import grpc
 import uuid
 from google.protobuf.empty_pb2 import Empty
 from google.protobuf.timestamp_pb2 import Timestamp
-from kasugai_pb2 import *
-from kasugai_pb2_grpc import *
+from protos.kasugai_pb2 import *
+from protos.kasugai_pb2_grpc import *
 import traceback
 
 class UserServiceClient:
@@ -178,52 +178,3 @@ class KasugaiClient:
         if not self.current_user or not self.current_room_id:
             raise ValueError("User not registered or not in a room")
         return self.media_service.end_media_stream(self.current_room_id)
-
-# Example usage
-if __name__ == '__main__':
-    import time
-    import threading
-
-    client = KasugaiClient(host='localhost', port=8008)
-
-    def receive_messages():
-        try:
-            for message in client.receive_text_messages():
-                print(f"Received message from {message.senderId.uuid}: {message.content}")
-        except grpc.RpcError as e:
-            print(f"gRPC Error in receive_messages: {e.code()}: {e.details()}")
-        except Exception as e:
-            print(f"Unexpected error in receive_messages: {str(e)}")
-            print(traceback.format_exc())
-
-    try:
-        # Register a user
-        user = client.register_user("Alice")
-        print(f"User registered: {user.id.uuid}, {user.name}")
-
-        # Create a room
-        room_id = client.create_room("General", RoomType.CHAT)
-        print(f"Room created with ID: {room_id.uuid}")
-
-        # Join the room
-        response = client.join_room(room_id)
-        print(f"Joining room: {response.success}, {response.message}")
-
-        # Start receiving messages in a separate thread
-        threading.Thread(target=receive_messages, daemon=True).start()
-
-        # Send a message
-        client.send_text_message("Hello, World!")
-
-        # Wait for a while to receive messages
-        time.sleep(10)
-
-        # Leave the room
-        response = client.leave_room()
-        print(f"Leaving room: {response.success}, {response.message}")
-
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
-        print(traceback.format_exc())
-    finally:
-        client.close()
