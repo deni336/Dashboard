@@ -16,7 +16,7 @@ type Room struct {
 	Name         string
 	Type         RoomType
 	Participants map[string]*Participant
-	Broadcast    chan *RoomContent
+	Broadcast    chan []*RoomContent
 	Description  string
 	CreatedAt    time.Time
 	mu           sync.RWMutex
@@ -95,7 +95,7 @@ func NewRoomBuilder() *RoomBuilder {
 		room: &Room{
 			ID:           uuid.New().String(),
 			Participants: make(map[string]*Participant),
-			Broadcast:    make(chan *RoomContent, 0),
+			Broadcast:    make(chan []*RoomContent, 0),
 			CreatedAt:    time.Now(),
 		},
 	}

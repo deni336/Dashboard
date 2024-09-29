@@ -19,6 +19,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -145,14 +146,6 @@ func (s *Server) CreateRoom(ctx context.Context, req *kasugai.Room) (*kasugai.Ac
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if req.Id == nil || req.Id.Uuid == "" {
-		return nil, status.Error(codes.InvalidArgument, "Invalid room ID")
-	}
-
-	if _, exists := s.rooms[req.Id.Uuid]; exists {
-		return nil, status.Error(codes.AlreadyExists, "Room already exists")
-	}
-
 	creator, exists := s.clients[req.CreatorId.Uuid]
 	if !exists {
 		return nil, status.Errorf(codes.NotFound, "Creator not found")
@@ -172,7 +165,7 @@ func (s *Server) CreateRoom(ctx context.Context, req *kasugai.Room) (*kasugai.Ac
 
 	s.logger.Info(fmt.Sprintf("Room created: %s (Type: %v)", room.ID, room.Type))
 
-	return &kasugai.Ack{Success: true, Message: "Room created"}, nil
+	return &kasugai.Ack{Success: true, Message: room.ID}, nil
 }
 
 func (s *Server) JoinRoom(ctx context.Context, req *kasugai.Id) (*kasugai.Ack, error) {
@@ -200,7 +193,7 @@ func (s *Server) JoinRoom(ctx context.Context, req *kasugai.Id) (*kasugai.Ack, e
 }
 
 func FromContext(ctx context.Context) (string, error) {
-	userID, ok := ctx.Value("userID").(string)
+	userID, ok := ctx.Value("user-id").(string)
 	if !ok || userID == "" {
 		return "", status.Error(codes.Unauthenticated, "User ID not found in context")
 	}
@@ -216,14 +209,25 @@ func (s *Server) LeaveRoom(ctx context.Context, req *kasugai.Id) (*kasugai.Ack, 
 		return nil, status.Error(codes.NotFound, "Room not found")
 	}
 
-	user, err := FromContext(ctx)
-	if err != nil {
-		return nil, status.Error(codes.NotFound, "Room not found")
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, status.Error(codes.InvalidArgument, "Failed to get metadata")
 	}
 
-	delete(room.Participants, user)
+	// Get specific values from metadata
+	userIDs := md.Get("user")
+	if len(userIDs) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "User ID not found in metadata")
+	}
+	userID := userIDs[0]
 
-	return nil, status.Error(codes.NotFound, "User not in room")
+	if room.Participants[userID] != nil {
+		delete(room.Participants, userID)
+	} else {
+		return nil, status.Error(codes.InvalidArgument, "User not found in room.")
+	}
+
+	return &kasugai.Ack{Success: true, Message: "Successfully left the chat room."}, nil
 }
 
 func (s *Server) GetRoomParticipants(ctx context.Context, req *kasugai.Id) (*kasugai.RoomParticipants, error) {
@@ -252,36 +256,26 @@ func (s *Server) GetRoomParticipants(ctx context.Context, req *kasugai.Id) (*kas
 
 func (s *Server) SendTextMessage(ctx context.Context, req *kasugai.TextMessage) (*kasugai.Ack, error) {
 	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	if req.RecipientId == nil || req.RecipientId.Uuid == "" {
-		s.logger.Error("Failed to send message: Invalid recipient ID")
-		return nil, status.Error(codes.InvalidArgument, "Invalid recipient ID")
-	}
-
 	room, ok := s.rooms[req.RecipientId.Uuid]
+	s.mu.RUnlock()
+
 	if !ok {
-		s.logger.Warning(fmt.Sprintf("Failed to send message: Room not found (ID: %s)", req.RecipientId.Uuid))
 		return nil, status.Error(codes.NotFound, "Room not found")
 	}
 
-	req.Timestamp = timestamppb.Now()
+	content := &RoomContent{
+		Type:      TextMessage,
+		SenderId:  req.SenderId.Uuid,
+		Payload:   req,
+		Timestamp: timestamppb.Now(),
+	}
 
-	// Broadcast to all participants in the room
-	for _, participant := range room.Participants {
-		if participant.User.Id.Uuid != req.SenderId.Uuid {
-			select {
-			case participant.DirectChannel <- &RoomContent{
-				Type:      TextMessage,
-				SenderId:  req.SenderId.Uuid,
-				Payload:   req,
-				Timestamp: req.Timestamp,
-			}:
-				s.logger.Info(fmt.Sprintf("Message sent in room %s (From: %s, Content: %s)", req.RecipientId.Uuid, req.SenderId.Uuid, req.Content))
-			default:
-				s.logger.Error(fmt.Sprintf("Failed to send message: Participant's message queue is full (ID: %s)", participant.User.Id.Uuid))
-			}
-		}
+	select {
+	case room.Broadcast <- []*RoomContent{content}:
+		s.logger.Info(fmt.Sprintf("Message broadcast in room %s (From: %s, Content: %s)", req.RecipientId.Uuid, req.SenderId.Uuid, req.Content))
+	default:
+		s.logger.Error(fmt.Sprintf("Failed to send message: Room broadcast channel is full (Room: %s)", req.RecipientId.Uuid))
+		return nil, status.Error(codes.ResourceExhausted, "Room broadcast channel is full")
 	}
 
 	return &kasugai.Ack{Success: true, Message: "Message sent"}, nil
@@ -296,33 +290,30 @@ func (s *Server) ReceiveTextMessages(req *kasugai.Id, stream kasugai.ChatService
 		return status.Error(codes.NotFound, "Room not found")
 	}
 
-	participant, ok := room.Participants[req.Uuid]
-	if !ok {
-		return status.Error(codes.NotFound, "User not in room")
-	}
-
 	for {
 		select {
-		case content := <-participant.DirectChannel:
-			if content.Type != TextMessage {
-				s.logger.Debug(fmt.Sprintf("Skipping non-text content for user %s: %v", req.Uuid, content.Type))
-				continue
-			}
+		case contents := <-room.Broadcast:
+			for _, content := range contents {
+				if content.Type != TextMessage {
+					s.logger.Debug(fmt.Sprintf("Skipping non-text content in room %s: %v", req.Uuid, content.Type))
+					continue
+				}
 
-			textMsg, ok := content.Payload.(*kasugai.TextMessage)
-			if !ok {
-				s.logger.Error(fmt.Sprintf("Failed to convert payload to TextMessage for user %s", req.Uuid))
-				continue
-			}
+				textMsg, ok := content.Payload.(*kasugai.TextMessage)
+				if !ok {
+					s.logger.Error(fmt.Sprintf("Failed to convert payload to TextMessage in room %s", req.Uuid))
+					continue
+				}
 
-			if err := stream.Send(textMsg); err != nil {
-				s.logger.Error(fmt.Sprintf("Error sending message to user %s: %v", req.Uuid, err))
-				return err
+				if err := stream.Send(textMsg); err != nil {
+					s.logger.Error(fmt.Sprintf("Error sending message in room %s: %v", req.Uuid, err))
+					return err
+				}
+				s.logger.Debug(fmt.Sprintf("Broadcast message in room %s: %v", req.Uuid, textMsg))
 			}
-			s.logger.Debug(fmt.Sprintf("Sent message to user %s: %v", req.Uuid, textMsg))
 
 		case <-stream.Context().Done():
-			s.logger.Info(fmt.Sprintf("Stopped receiving messages for user %s in room %s", req.Uuid, room.ID))
+			s.logger.Info(fmt.Sprintf("Stopped receiving messages in room %s", req.Uuid))
 			return nil
 		}
 	}
