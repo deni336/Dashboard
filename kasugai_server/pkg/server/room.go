@@ -143,12 +143,6 @@ func (rb *RoomBuilder) Build() (*Room, error) {
 	if rb.room.Channel.Name == "" {
 		return nil, errors.New("room must have a name")
 	}
-	// if len(rb.room.Participants) == 0 {
-	// 	return nil, errors.New("room must have at least one participant")
-	// }
-	// if rb.room.Type == DirectRoom && len(rb.room.Participants) > 2 {
-	// 	return nil, errors.New("direct room cannot have more than two participants")
-	// }
 
 	return rb.room, nil
 }
