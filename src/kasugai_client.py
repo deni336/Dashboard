@@ -6,110 +6,6 @@ from protos.kasugai_pb2 import *
 from protos.kasugai_pb2_grpc import *
 import traceback
 
-class UserServiceClient:
-    def __init__(self, channel):
-        self.stub = UserServiceStub(channel)
-
-    def register_user(self, name) -> User:
-        user = User(
-            id=Id(uuid=str(uuid.uuid4())),
-            name=name,
-            status=UserStatus.ONLINE
-        )
-        response = self.stub.RegisterUser(user)
-        print(f"RegisterUser response: {response}")
-        if response.success:
-            return user
-        else:
-            raise ValueError(f"Failed to register user: {response.message}")
-
-    def update_user_status(self, user):
-        return self.stub.UpdateUserStatus(user)
-
-    def get_user_list(self):
-        return self.stub.GetUserList(Empty())
-
-    def get_user_by_id(self, user_id):
-        return self.stub.GetUserById(Id(uuid=user_id))
-
-class RoomServiceClient:
-    def __init__(self, channel):
-        self.stub = RoomServiceStub(channel)
-
-    def create_room(self, name, room_type, creator_id):
-        room = Room(
-            name=name,
-            type=room_type,
-            creatorId=creator_id
-        )
-        return self.stub.CreateRoom(room)
-
-    def join_room(self, room_id, user_id):
-        metadata = (('user', user_id),)
-        return self.stub.JoinRoom(Id(uuid=room_id), metadata=metadata)
-
-    def leave_room(self, room_id, user_id):
-        metadata = (('user', user_id),)
-        return self.stub.LeaveRoom(Id(uuid=room_id), metadata=metadata)
-
-    def get_room_participants(self, room_id):
-        return self.stub.GetRoomParticipants(Id(uuid=room_id))
-
-class ChatServiceClient:
-    def __init__(self, channel):
-        self.stub = ChatServiceStub(channel)
-
-    def send_text_message(self, sender_id, recipient_id, content):
-        message = TextMessage(
-            id=Id(uuid=str(uuid.uuid4())),
-            senderId=Id(uuid=sender_id),
-            recipientId=Id(uuid=recipient_id),
-            content=content,
-            timestamp=Timestamp()
-        )
-        return self.stub.SendTextMessage(message)
-
-    def receive_text_messages(self, room_id, user_id):
-        metadata = (('user', user_id),)
-        return self.stub.ReceiveTextMessages(Id(uuid=room_id), metadata=metadata)
-
-class MediaServiceClient:
-    def __init__(self, channel):
-        self.stub = MediaServiceStub(channel)
-
-    def start_media_stream(self, room_id, sender_id, media_type):
-        def stream_generator():
-            yield MediaStream(
-                id=Id(uuid=room_id),
-                senderId=Id(uuid=sender_id),
-                type=media_type
-            )
-            # Add logic here to continuously yield MediaStream objects
-
-        return self.stub.StartMediaStream(stream_generator())
-
-    def end_media_stream(self, stream_id):
-        return self.stub.EndMediaStream(Id(uuid=stream_id))
-
-    def manage_voip_call(self):
-        return self.stub.ManageVoIPCall()
-
-class FileTransferServiceClient:
-    def __init__(self, channel):
-        self.stub = FileTransferServiceStub(channel)
-
-    def initiate_file_transfer(self, file_metadata):
-        return self.stub.InitiateFileTransfer(file_metadata)
-
-    def transfer_file_chunk(self):
-        return self.stub.TransferFileChunk()
-
-    def receive_file_metadata(self, file_id):
-        return self.stub.ReceiveFileMetadata(Id(uuid=file_id))
-
-    def receive_file_chunks(self, file_id):
-        return self.stub.ReceiveFileChunks(Id(uuid=file_id))
-
 class KasugaiClient:
     def __init__(self, host='localhost', port=8008):
         self.channel = grpc.insecure_channel(f'{host}:{port}')
@@ -137,7 +33,7 @@ class KasugaiClient:
             raise ValueError("User not registered")
         response = self.room_service.create_room(name, room_type, self.current_user.id)
         if response.success:
-            return Id(uuid=response.message)  # Return the room ID
+            return kasugai__pb2.Id(uuid=response.message)  # Return the room ID
         else:
             raise ValueError(f"Failed to create room: {response.message}")
 
@@ -172,9 +68,115 @@ class KasugaiClient:
     def start_screen_share(self):
         if not self.current_user or not self.current_room_id:
             raise ValueError("User not registered or not in a room")
-        return self.media_service.start_media_stream(self.current_room_id, self.current_user.id.uuid, MediaType.SCREEN)
+        return self.media_service.start_media_stream(self.current_room_id, self.current_user.id.uuid, kasugai__pb2.MediaType.SCREEN)
 
     def end_screen_share(self):
         if not self.current_user or not self.current_room_id:
             raise ValueError("User not registered or not in a room")
         return self.media_service.end_media_stream(self.current_room_id)
+
+class UserServiceClient:
+    def __init__(self, channel):
+        self.stub = UserServiceStub(channel)
+
+    def register_user(self, name):
+        self.user = kasugai__pb2.User(
+            id = kasugai__pb2.Id(uuid=str(uuid.uuid4())),
+            name = name,
+            status = kasugai__pb2.UserStatus.ONLINE
+        )
+        response = self.stub.RegisterUser(self.user)
+        print(f"RegisterUser response: {response}")
+        if response.success:
+            self.update_user_status()
+            return self.user
+        else:
+            raise ValueError(f"Failed to register user: {response.message}")
+
+    def update_user_status(self):
+        return self.stub.UpdateUserStatus(self.user)
+
+    def get_user_list(self):
+        return self.stub.GetUserList(Empty())
+
+    def get_user_by_id(self, user_id):
+        return self.stub.GetUserById(kasugai__pb2.Id(uuid=user_id))
+
+class RoomServiceClient:
+    def __init__(self, channel):
+        self.stub = RoomServiceStub(channel)
+
+    def create_room(self, name, room_type, creator_id):
+        room = kasugai__pb2.Room(
+            name=name,
+            type=room_type,
+            creatorId=creator_id
+        )
+        return self.stub.CreateRoom(room)
+
+    def join_room(self, room_id, user_id):
+        metadata = (('user', user_id),)
+        return self.stub.JoinRoom(kasugai__pb2.Id(uuid=room_id), metadata=metadata)
+
+    def leave_room(self, room_id, user_id):
+        metadata = (('user', user_id),)
+        return self.stub.LeaveRoom(kasugai__pb2.Id(uuid=room_id), metadata=metadata)
+
+    def get_room_participants(self, room_id):
+        return self.stub.GetRoomParticipants(kasugai__pb2.Id(uuid=room_id))
+
+class ChatServiceClient:
+    def __init__(self, channel):
+        self.stub = ChatServiceStub(channel)
+
+    def send_text_message(self, sender_id, recipient_id, content):
+        message = kasugai__pb2.TextMessage(
+            id = kasugai__pb2.Id(uuid=str(uuid.uuid4())),
+            senderId = kasugai__pb2.Id(uuid=sender_id),
+            recipientId = kasugai__pb2.Id(uuid=recipient_id),
+            content = content,
+            timestamp = Timestamp()
+        )
+        return self.stub.SendTextMessage(message)
+
+    def receive_text_messages(self, room_id, user_id):
+        metadata = (('user', user_id),)
+        return self.stub.ReceiveTextMessages(kasugai__pb2.Id(uuid=room_id), metadata=metadata)
+
+class MediaServiceClient:
+    def __init__(self, channel):
+        self.stub = MediaServiceStub(channel)
+
+    def start_media_stream(self, room_id, sender_id, media_type):
+        def stream_generator():
+            yield kasugai__pb2.MediaStream(
+                id = kasugai__pb2.Id(uuid=room_id),
+                senderId = kasugai__pb2.Id(uuid=sender_id),
+                type=media_type
+            )
+            # Add logic here to continuously yield MediaStream objects
+
+        return self.stub.StartMediaStream(stream_generator())
+
+    def end_media_stream(self, stream_id):
+        return self.stub.EndMediaStream(kasugai__pb2.Id(uuid=stream_id))
+
+    def manage_voip_call(self):
+        return self.stub.ManageVoIPCall()
+
+class FileTransferServiceClient:
+    def __init__(self, channel):
+        self.stub = FileTransferServiceStub(channel)
+
+    def initiate_file_transfer(self, file_metadata):
+        return self.stub.InitiateFileTransfer(file_metadata)
+
+    def transfer_file_chunk(self):
+        return self.stub.TransferFileChunk()
+
+    def receive_file_metadata(self, file_id):
+        return self.stub.ReceiveFileMetadata(kasugai__pb2.Id(uuid=file_id))
+
+    def receive_file_chunks(self, file_id):
+        return self.stub.ReceiveFileChunks(kasugai__pb2.Id(uuid=file_id))
+

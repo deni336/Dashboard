@@ -125,6 +125,10 @@ protoc --proto_path=. --go_out=. --go-grpc_out=. kasugai.proto
 - [] Dynamic Transfer rate
     - Starting at 1024 increase bytes transfered based on time to transfer
 
+- General software
+    - [] Setup user register and login/auth
+    - [] Setup server call & wait
+
 python -m grpc_tools.protoc -I. --python_out=./output --grpc_python_out=./output kasugai.proto
 
 

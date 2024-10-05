@@ -11,21 +11,21 @@ from waitress import serve
 from config_manager import ConfigManager
 from global_logger import GlobalLogger
 from event_handler import EventHandler
-from chat_client import ChatManager
+from chat_manager import ChatManager
 from const import UPLOAD_FOLDER
 
 class WebServer:
 	def __init__(self):
 		# Set up Flask app, logger, and config manager
-		self.app = Flask(__name__, template_folder='../sites/templates', static_folder='../sites/static')
-		self.app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-		self.sock = SocketIO(self.app, host='127.0.0.1', port=8000)
 		self.logger = GlobalLogger.get_logger("WebServer")
 		self.config = ConfigManager()
 		self.event_handler = EventHandler()
+		self.app = Flask(__name__, template_folder='../sites/templates', static_folder='../sites/static')
+		self.app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 		self.setup_routes()
-		self.server_connect()
-		asyncio.run(self.listen())
+
+		connection_thread = threading.Thread(target=self.server_connect(), daemon=True)
+		connection_thread.start()
 
 	def setup_routes(self):
 		# Home route to fetch button names and send them to the frontend
@@ -129,21 +129,7 @@ class WebServer:
 		
 	def server_connect(self):
 		self.logger.info('Connecting to server...')
-		self.chat_manager = ChatManager(server_address='127.0.0.1:8008')
-
-	async def listen(self):
-		"""
-		Start the message listener and the user activity checker in separate threads.
-		"""
-		print("Starting ChatManager...")
-		# Start a thread to listen for incoming messages
-		
-		message = await self.chat_manager.listen_for_messages()
-		if message is not []:
-			self.sock.emit('new_message', {
-				'sender' : message.senderId,
-				'content': message.content
-			})
+		self.chat_manager = ChatManager(self.app)
 
 	def stop(self):
 		"""
@@ -152,8 +138,6 @@ class WebServer:
 		self.is_running = False
 		print("ChatManager stopped.")
 
-
-		
 	def open_browser(self):
 		# Open the default web browser to access the web server
 		self.config = ConfigManager()

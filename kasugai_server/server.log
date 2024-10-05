@@ -8831,3 +8831,41 @@
 [2024-10-05 01:05:08] [INFO] Message broadcast in room 21fe1ad0-c917-4b57-a66c-53030a99332b (From: e9276b63-c442-4435-83bf-a621b124f6dc, Content: [Python Client]: What's your plan for the weekend?)
 [2024-10-05 01:05:08] [INFO] Shutdown signal received
 [2024-10-05 01:05:08] [INFO] Stopping server...
+[2024-10-05 03:02:08] [INFO] Shared datastore initialized
+[2024-10-05 03:02:08] [INFO] All servers started successfully
+[2024-10-05 03:02:08] [INFO] Media gRPC server started on: 0.0.0.0:50052
+[2024-10-05 03:02:08] [INFO] File Transfer gRPC server started on: 0.0.0.0:50051
+[2024-10-05 03:02:08] [INFO] Chat gRPC server started on: 0.0.0.0:8008
+[2024-10-05 03:02:22] [INFO] Shutdown signal received
+[2024-10-05 03:02:22] [INFO] Stopping server...
+[2024-10-05 03:02:22] [INFO] Server stopped gracefully
+[2024-10-05 03:02:22] [INFO] Stopping File Transfer server...
+[2024-10-05 03:02:22] [INFO] File Transfer server stopped gracefully
+[2024-10-05 03:02:22] [INFO] Stopping Media server...
+[2024-10-05 03:02:22] [INFO] Media server stopped gracefully
+[2024-10-05 03:02:22] [INFO] All servers shut down successfully
+[2024-10-05 03:03:22] [INFO] Shared datastore initialized
+[2024-10-05 03:03:22] [INFO] All servers started successfully
+[2024-10-05 03:03:22] [INFO] Media gRPC server started on: 0.0.0.0:50052
+[2024-10-05 03:03:22] [INFO] File Transfer gRPC server started on: 0.0.0.0:50051
+[2024-10-05 03:03:22] [INFO] Chat gRPC server started on: 0.0.0.0:8008
+[2024-10-05 03:03:46] [INFO] User registered successfully (ID: 65fa1c2c-cff9-4686-af47-593fa3e1ff2e, Name: Alice)
+[2024-10-05 03:03:46] [INFO] Room created: uuid:"11348ec0-6411-4700-9d66-f95d4412e00c" (Type: CHAT)
+[2024-10-05 03:03:46] [INFO] User joined the channel: Alice (Joined the room: General | RoomID: uuid:"11348ec0-6411-4700-9d66-f95d4412e00c")
+[2024-10-05 03:09:33] [INFO] User registered successfully (ID: 9e797765-08ad-40ce-8dfa-86f3816a704c, Name: Alice)
+[2024-10-05 03:09:33] [INFO] Room created: uuid:"11348ec0-6411-4700-9d66-f95d4412e00c" (Type: CHAT)
+[2024-10-05 03:09:33] [INFO] User joined the channel: Alice (Joined the room: General | RoomID: uuid:"11348ec0-6411-4700-9d66-f95d4412e00c")
+[2024-10-05 03:10:11] [INFO] Stopped receiving messages for user 9e797765-08ad-40ce-8dfa-86f3816a704c in room 11348ec0-6411-4700-9d66-f95d4412e00c
+[2024-10-05 03:10:13] [INFO] User registered successfully (ID: 653b2060-9374-4e9b-8d96-26c9fae0b358, Name: Alice)
+[2024-10-05 03:10:13] [INFO] Room created: uuid:"11348ec0-6411-4700-9d66-f95d4412e00c" (Type: CHAT)
+[2024-10-05 03:10:13] [INFO] User joined the channel: Alice (Joined the room: General | RoomID: uuid:"11348ec0-6411-4700-9d66-f95d4412e00c")
+[2024-10-05 03:13:19] [INFO] User registered successfully (ID: f3ab2939-265e-42bd-ba77-bf9ffc45864f, Name: Alice)
+[2024-10-05 03:13:19] [INFO] Room created: uuid:"11348ec0-6411-4700-9d66-f95d4412e00c" (Type: CHAT)
+[2024-10-05 03:13:19] [INFO] User joined the channel: Alice (Joined the room: General | RoomID: uuid:"11348ec0-6411-4700-9d66-f95d4412e00c")
+[2024-10-05 03:27:15] [INFO] Stopped receiving messages for user f3ab2939-265e-42bd-ba77-bf9ffc45864f in room 11348ec0-6411-4700-9d66-f95d4412e00c
+[2024-10-05 03:27:22] [INFO] User registered successfully (ID: f380c2a9-3622-4c4a-8970-b06622deb441, Name: Alice)
+[2024-10-05 03:27:25] [INFO] Room created: uuid:"11348ec0-6411-4700-9d66-f95d4412e00c" (Type: CHAT)
+[2024-10-05 03:27:27] [INFO] User joined the channel: Alice (Joined the room: General | RoomID: uuid:"11348ec0-6411-4700-9d66-f95d4412e00c")
+[2024-10-05 03:28:01] [INFO] User registered successfully (ID: 08c11660-79ff-4515-94a7-7bc51e7b1af0, Name: Alice)
+[2024-10-05 03:28:01] [INFO] Room created: uuid:"11348ec0-6411-4700-9d66-f95d4412e00c" (Type: CHAT)
+[2024-10-05 03:28:01] [INFO] User joined the channel: Alice (Joined the room: General | RoomID: uuid:"11348ec0-6411-4700-9d66-f95d4412e00c")

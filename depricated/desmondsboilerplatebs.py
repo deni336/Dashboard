@@ -2,11 +2,12 @@ import grpc
 import threading
 import asyncio
 from time import time, sleep
-import protos.kasugai_pb2 as pb2
-import protos.kasugai_pb2_grpc as gpb2
+from protos.kasugai_pb2 import *
+from protos.kasugai_pb2_grpc import *
 from chat_history import ChatHistory
 from kasugai_client import KasugaiClient
 import const
+import traceback
 
 class ChatManager:
     def __init__(self, server_address):
@@ -21,23 +22,23 @@ class ChatManager:
     # User registration
     def register_client(self):
         
-        user = client.register_user("Alice")
+        user = self.client.register_user("Alice") # Need to use OS.getlogin or something to show the actual username of the user
         print(f"User registered: {user.id.uuid}, {user.name}")
 
         # Create a room
-        room_id = client.create_room("General", RoomType.CHAT)
+        room_id = self.client.create_room("General", kasugai__pb2.RoomType.CHAT)
         print(f"Room created with ID: {room_id.uuid}")
 
         # Join the room
-        response = client.join_room(room_id)
+        response = self.client.join_room(room_id)
         print(f"Joining room: {response.success}, {response.message}")
 
     def send_message(self, content):
         self.client.send_text_message(content)
 
-    def receive_messages():
+    def receive_messages(self):
         try:
-            for message in client.receive_text_messages():
+            for message in self.client.receive_text_messages():
                 print(f"Received message from {message.senderId.uuid}: {message.content}")
         except grpc.RpcError as e:
             print(f"gRPC Error in receive_messages: {e.code()}: {e.details()}")
