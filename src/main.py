@@ -71,6 +71,20 @@ class Main:
             return p.is_running() and p.status() != psutil.STATUS_ZOMBIE
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             return False
+    
+    def terminate_processes(self):
+        """Terminate all processes."""
+        for pid in self.event_handler.events.values():
+            try:
+                p = psutil.Process(pid)
+                p.terminate()
+                p.wait(timeout=5)
+                self.logger.info(f"Terminated process with PID {pid}.")
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                self.logger.warning(f"Process with PID {pid} does not exist or access denied.")
+            except psutil.TimeoutExpired:
+                self.logger.error(f"Timeout expired when trying to terminate process with PID {pid}.")
+                p.kill()
 
 if __name__ == "__main__":
     Main()

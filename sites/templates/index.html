@@ -20,6 +20,7 @@
 <nav>
     <ul>
         <li><a href="#" id="homeBtn">Home</a></li>
+        <li><a href="#" id="embeddedBrowserBtn">Browser</a></li>
         <li><a href="#" id="chatBtn">Chat</a></li>
         <li><a href="#" id="fileTransferBtn">File Transfer</a></li>
         <li><a href="/screenshare" id="screenShareLink">Screen Share</a></li>
@@ -35,6 +36,18 @@
 </div>
 
 <!-- Modals -->
+
+<!-- Modal for Embedded Browser -->
+<div id="embeddedBrowserModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Kasugai Surfer</h2>
+        <input type="text" id="embeddedBrowserUrl" placeholder="Enter a URL" />
+        <button id="loadUrlBtn">Load</button>
+        <iframe id="embeddedIframe" title="Embedded Web Browser" sandbox="allow-scripts allow-same-origin" width="100%" height="400px"></iframe>
+    </div>
+</div>
+
 <div id="chatModal">
     <div class="modal-content">
         <span class="close">&times;</span>

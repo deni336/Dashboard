@@ -10,7 +10,24 @@ class ConfigManager:
         self.config = configparser.ConfigParser()
         try:
             if os.path.exists(self.config_file):
-                self.config.read(self.config_file)
+                file = self.config.read(self.config_file)
+                if file == '':
+                    self.config['Application'] = {
+                    'buttons': ''
+                    }
+                    self.config['WebServer'] = {
+                        'port': '8000',
+                        'address': 'localhost',
+                    }
+                    self.config['Logging'] = {
+                        'path': 'kasugai/logs/',
+                        'loglevel': 'INFO'
+                    }
+                    self.config['FileTransfer'] = {
+                        'avail': ''
+                    }
+                    with open(self.config_file, 'w') as configfile:
+                        self.config.write(configfile)
             else:
                 # If the config file doesn't exist, create a default one
                 self.config['Application'] = {

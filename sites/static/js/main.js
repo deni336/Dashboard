@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Update background first
     updateBackgroundImage();
 
-    // Then attach event listeners to the buttons
+    // Attach event listeners to the dynamic buttons
     document.querySelectorAll('.dynamic-button').forEach(button => {
         button.addEventListener('click', function () {
             const buttonName = this.textContent;
@@ -16,7 +16,44 @@ document.addEventListener('DOMContentLoaded', function () {
                 .catch(error => console.error('Error during button click:', error));
         });
     });
+    
+    // Attach event listener to Embedded Browser button
+    document.getElementById('embeddedBrowserBtn').addEventListener('click', function () {
+        embeddedBrowserModal.style.display = "block";
+    });
+
+    // Handle loading a URL into the embedded iframe
+    document.getElementById('loadUrlBtn').addEventListener('click', function () {
+        const iframe = document.getElementById('embeddedIframe');
+        const url = document.getElementById('embeddedBrowserUrl').value;
+
+        // Validate URL before loading
+        if (url) {
+            iframe.src = url.startsWith('http://') || url.startsWith('https://') ? url : `http://${url}`;
+        } else {
+            alert('Please enter a valid URL.');
+        }
+    });
+
+    // Close Embedded Browser Modal
+    closeBtns.forEach(function (btn) {
+        btn.onclick = function () {
+            btn.parentElement.parentElement.style.display = "none";
+        }
+    });
 });
+
+
+// Get the modal for Embedded Browser
+const embeddedBrowserModal = document.getElementById("embeddedBrowserModal");
+
+// Get buttons that open the modals
+const embeddedBrowserBtn = document.getElementById("embeddedBrowserBtn");
+
+// Functions to open each modal
+embeddedBrowserBtn.onclick = function() {
+    embeddedBrowserModal.style.display = "block";
+}
 
 document.getElementById('backgroundForm').addEventListener('submit', function(event) {
     event.preventDefault();  // Prevent the default form submission
