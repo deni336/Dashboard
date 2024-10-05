@@ -1,0 +1,5 @@
+2024-09-24 21:43:57,019 [INFO] [Main] Starting Kasugai version v0.1...
+2024-09-24 21:43:57,022 [INFO] [EventHandler] Event received: PID=50856, ChatServer
+2024-09-24 21:43:57,022 [INFO] [EventHandler] Event received: PID=50856, database
+2024-09-24 21:43:57,036 [INFO] [EventHandler] Event received: PID=50856, WebServer
+2024-09-24 21:43:57,037 [INFO] [WebServer] Starting WebServer using Waitress on port: 8000

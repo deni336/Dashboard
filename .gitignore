@@ -1,6 +1,4 @@
-*.json
-*.png
-*.log
+*.idea
 demo.py
 demo_helper.py
 actions.py

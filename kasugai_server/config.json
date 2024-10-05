@@ -1,0 +1,13 @@
+{
+  "chat_address": "0.0.0.0:8008",
+  "file_transfer_address": "0.0.0.0:50051",
+  "media_address": "0.0.0.0:50052",
+  "log_file": "server.log",
+  "log_level": "info",
+  "max_clients": 100,
+  "tls_config": {
+    "enabled": false,
+    "cert_file": "path/to/cert.pem",
+    "key_file": "path/to/key.pem"
+  }
+}

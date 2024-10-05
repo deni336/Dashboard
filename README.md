@@ -102,26 +102,26 @@ protoc --proto_path=. --go_out=. --go-grpc_out=. kasugai.proto
     - [X] Listener
     - [X] Broadcaster
     - [X] List of connected users
-    - [] Timestamps and History
     - [] SSL certificate
     - [] Server Management system
     - [] Auth
     - [] Unique Key for authentication
+    - [] Chat History
+    - [] Database
+    - [] who, when, what
 - [] Screen sharing
-    - [] Listener
+    - [X] Listener
     - [] Front end work needs to be done for this also
     - [] List  of broadcasting users
     - [] Only broadcast when user is connected
     - [] bi-directional stream
 - [] File Transfer
-    - [] bi-directional stream for dynamic file sharing
+    - [X] bi-directional stream for dynamic file sharing
     - [] P2P 
     - [] Pull info from the server (user info)
     - [X] File storage location
     - [] History (filename, size, who it came from)
-- [] Chat History
-    - [] Database
-    - [] who, when, what
+
 - [] Dynamic Transfer rate
     - Starting at 1024 increase bytes transfered based on time to transfer
 
