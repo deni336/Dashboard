@@ -8,7 +8,6 @@ from chat_history import ChatHistory
 from kasugai_client import KasugaiClient
 import const
 
-# Have the address hard coded need to change later
 class ChatManager:
     def __init__(self, server_address):
         self.client = KasugaiClient(host='localhost', port=8008)
@@ -21,8 +20,7 @@ class ChatManager:
 
     # User registration
     def register_client(self):
-        # we need to figure this out register > create room > join room
-        # Register a user
+        
         user = client.register_user("Alice")
         print(f"User registered: {user.id.uuid}, {user.name}")
 

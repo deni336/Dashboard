@@ -1,25 +1,20 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"image/png"
-	"io"
 	"net"
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 
-	"chat/internal/screenshare"
+	"chat/pkg/datastore"
 	"chat/pkg/kasugai"
 	"chat/pkg/stdlog"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -40,39 +35,65 @@ type Server struct {
 	activeStreams      map[string]context.CancelFunc
 	activeStreamsMutex sync.Mutex
 	roomBuilder        *RoomBuilder
+	dataStore          *datastore.DataStore
+	grpcServer         *grpc.Server
 	logger             *stdlog.Logger
 }
 
 // NewServer initializes a new Server.
-func NewServer(logger *stdlog.Logger) *Server {
+func NewServer(logger *stdlog.Logger, ds *datastore.DataStore) *Server {
 	return &Server{
 		clients:       make(map[string]*kasugai.User),
 		rooms:         make(map[string]*Room),
 		streams:       make(map[string]chan *kasugai.TextMessage),
 		activeStreams: make(map[string]context.CancelFunc),
 		roomBuilder:   NewRoomBuilder(),
+		dataStore:     ds,
 		logger:        logger,
 	}
 }
 
 // StartServer starts the gRPC server.
-func StartServer(address string, logger *stdlog.Logger) error {
+func (s *Server) Start(address string) error {
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 
-	server := NewServer(logger)
+	s.grpcServer = grpc.NewServer()
 
-	s := grpc.NewServer()
-	kasugai.RegisterUserServiceServer(s, server)
-	kasugai.RegisterRoomServiceServer(s, server)
-	kasugai.RegisterChatServiceServer(s, server)
-	kasugai.RegisterMediaServiceServer(s, server)
-	kasugai.RegisterFileTransferServiceServer(s, server)
+	kasugai.RegisterUserServiceServer(s.grpcServer, s)
+	kasugai.RegisterRoomServiceServer(s.grpcServer, s)
+	kasugai.RegisterChatServiceServer(s.grpcServer, s)
 
-	logger.Info(fmt.Sprintf("gRPC server started on %s", address))
-	return s.Serve(lis)
+	// Register reflection service on gRPC server
+	reflection.Register(s.grpcServer)
+
+	s.logger.Info(fmt.Sprintf("Chat gRPC server started on: %s", address))
+	// Start serving
+	if err := s.grpcServer.Serve(lis); err != nil {
+		return fmt.Errorf("failed to serve: %v", err)
+	}
+	return nil
+}
+
+func (s *Server) Stop() {
+	s.logger.Info("Stopping server...")
+	stopped := make(chan struct{})
+	go func() {
+		s.grpcServer.GracefulStop()
+		close(stopped)
+	}()
+
+	t := time.NewTimer(10 * time.Second)
+	select {
+	case <-stopped:
+		s.logger.Info("Server stopped gracefully")
+	case <-t.C:
+		s.logger.Warning("Server stop timeout, forcing shutdown")
+		s.grpcServer.Stop()
+	}
+	t.Stop()
 }
 
 // UserService Methods
@@ -359,207 +380,6 @@ func (s *Server) ReceiveTextMessages(req *kasugai.Id, stream kasugai.ChatService
 		case <-ctx.Done():
 			s.logger.Info(fmt.Sprintf("Stopped receiving messages for user %s in room %s", userID, req.Uuid))
 			return nil
-		}
-	}
-}
-
-// FileTransferService Methods
-
-func (s *Server) InitiateFileTransfer(ctx context.Context, req *kasugai.FileMetadata) (*kasugai.Ack, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	return nil, status.Error(codes.Unimplemented, "Method InitiateFileTransfer not implemented")
-}
-
-func (s *Server) TransferFileChunk(stream kasugai.FileTransferService_TransferFileChunkServer) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	return status.Error(codes.Unimplemented, "Method TransferFileChunk not implemented")
-}
-
-func (s *Server) ReceiveFileMetadata(ctx context.Context, req *kasugai.Id) (*kasugai.FileMetadata, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return nil, status.Error(codes.Unimplemented, "Method ReceiveFileChunks not implemented")
-}
-
-func (s *Server) ReceiveFileChunks(req *kasugai.Id, stream kasugai.FileTransferService_ReceiveFileChunksServer) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return status.Error(codes.Unimplemented, "Method ReceiveFileChunks not implemented")
-}
-
-// MediaService Methods
-
-func (s *Server) StartMediaStream(stream kasugai.MediaService_StartMediaStreamServer) error {
-	var streamID string
-	var mediaType kasugai.MediaType
-
-	initialData, err := stream.Recv()
-	if err != nil {
-		s.logger.Error(fmt.Sprintf("Error receiving initial media stream data: %v", err))
-		return err
-	}
-
-	streamID = initialData.Id.Uuid
-	mediaType = initialData.Type
-	s.logger.Info(fmt.Sprintf("New media stream started: %s, Type: %s", streamID, mediaType))
-
-	s.mu.RLock()
-	room, ok := s.rooms[initialData.Id.Uuid]
-	s.mu.RUnlock()
-
-	if !ok {
-		return status.Error(codes.NotFound, "Room not found")
-	}
-
-	streamCtx, cancelFunc := context.WithCancel(stream.Context())
-
-	s.activeStreamsMutex.Lock()
-	s.activeStreams[streamID] = cancelFunc
-	s.activeStreamsMutex.Unlock()
-
-	defer func() {
-		s.activeStreamsMutex.Lock()
-		delete(s.activeStreams, streamID)
-		s.activeStreamsMutex.Unlock()
-	}()
-
-	switch mediaType {
-	case kasugai.MediaType_SCREEN:
-		return s.handleScreenShare(streamCtx, stream, initialData, room)
-	case kasugai.MediaType_AUDIO:
-		return s.handleAudioStream(streamCtx, stream, initialData, room)
-	default:
-		s.logger.Warning(fmt.Sprintf("Unknown media type: %s", mediaType))
-		return status.Errorf(codes.InvalidArgument, "Unknown media type: %s", mediaType)
-	}
-}
-
-func (s *Server) EndMediaStream(ctx context.Context, req *kasugai.Id) (*kasugai.Ack, error) {
-	s.activeStreamsMutex.Lock()
-	defer s.activeStreamsMutex.Unlock()
-
-	cancelFunc, exists := s.activeStreams[req.Uuid]
-	if !exists {
-		s.logger.Warning(fmt.Sprintf("Attempt to end non-existent stream: %s", req.Uuid))
-		return &kasugai.Ack{
-			Success: false,
-			Message: "Stream not found",
-		}, status.Error(codes.NotFound, "Stream not found")
-	}
-
-	// Cancel the stream
-	cancelFunc()
-
-	// Remove the stream from the active streams map
-	delete(s.activeStreams, req.Uuid)
-
-	s.logger.Info(fmt.Sprintf("Media stream ended: %s", req.Uuid))
-	return &kasugai.Ack{
-		Success: true,
-		Message: "Stream ended successfully",
-	}, nil
-}
-
-func (s *Server) ManageVoIPCall(stream kasugai.MediaService_ManageVoIPCallServer) error {
-	return status.Error(codes.Unimplemented, "Method ManageVoIPCall not implemented")
-}
-
-func (s *Server) handleScreenShare(ctx context.Context, stream kasugai.MediaService_StartMediaStreamServer, initialData *kasugai.MediaStream, room *Room) error {
-	s.logger.Info(fmt.Sprintf("Screen sharing started for user: %s", initialData.SenderId.Uuid))
-
-	ticker := time.NewTicker(500 * time.Millisecond)
-	defer ticker.Stop()
-
-	buf := new(bytes.Buffer)
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
-
-	for {
-		select {
-		case <-ticker.C:
-			img, err := screenshare.CaptureDisplay(0)
-			if err != nil {
-				s.logger.Error(fmt.Sprintf("Error capturing display: %v", err))
-				return status.Errorf(codes.Internal, "Failed to capture display: %v", err)
-			}
-
-			buf.Reset()
-			if err := png.Encode(buf, img); err != nil {
-				s.logger.Error(fmt.Sprintf("Error encoding image: %v", err))
-				return status.Errorf(codes.Internal, "Failed to encode image: %v", err)
-			}
-
-			// Broadcast screen data to all participants in the room
-			for _, participant := range room.Participants {
-				if participant.User.Id.Uuid != initialData.SenderId.Uuid {
-					// Send the captured screen through the gRPC stream
-					if err := stream.Send(&kasugai.MediaStream{
-						Id:        initialData.Id,
-						SenderId:  initialData.SenderId,
-						Type:      kasugai.MediaType_SCREEN,
-						Data:      buf.Bytes(),
-						Timestamp: timestamppb.Now(),
-					}); err != nil {
-						s.logger.Error(fmt.Sprintf("Error sending screen share data: %v", err))
-						return err
-					}
-					s.logger.Debug(fmt.Sprintf("Sent screen update for user: %s, size: %d bytes", initialData.SenderId.Uuid, buf.Len()))
-				}
-			}
-
-		case <-interrupt:
-			s.logger.Info(fmt.Sprintf("Screen sharing interrupted for user: %s", initialData.SenderId.Uuid))
-			return status.Error(codes.Canceled, "Screen sharing interrupted")
-
-		case <-ctx.Done():
-			s.logger.Info(fmt.Sprintf("Screen sharing stopped for user: %s", initialData.SenderId.Uuid))
-			return ctx.Err()
-		}
-	}
-}
-
-func (s *Server) handleAudioStream(ctx context.Context, stream kasugai.MediaService_StartMediaStreamServer, initialData *kasugai.MediaStream, room *Room) error {
-	// Implement audio streaming logic here
-	// This is a placeholder and should be implemented based on our VoIP requirements
-	s.logger.Info(fmt.Sprintf("Audio streaming started for user: %s", initialData.SenderId.Uuid))
-
-	for {
-		data, err := stream.Recv()
-		if err == io.EOF {
-			s.logger.Info(fmt.Sprintf("Audio stream ended for user: %s", initialData.SenderId.Uuid))
-			return nil
-		}
-		if err != nil {
-			s.logger.Error(fmt.Sprintf("Error receiving audio data: %v", err))
-			return err
-		}
-
-		// Process and forward audio data here
-		// For example, you might send it to other participants in a call
-		s.logger.Debug(fmt.Sprintf("Received audio data from user: %s, size: %d bytes", initialData.SenderId.Uuid, len(data.Data)))
-
-		// Send acknowledgment
-		if err := stream.Send(&kasugai.MediaStream{
-			Id:        initialData.Id,
-			SenderId:  initialData.SenderId,
-			Type:      kasugai.MediaType_AUDIO,
-			Data:      []byte("ACK"),
-			Timestamp: timestamppb.Now(),
-		}); err != nil {
-			s.logger.Error(fmt.Sprintf("Error sending audio ACK: %v", err))
-			return err
-		}
-
-		// Check for stream context cancellation
-		select {
-		case <-ctx.Done():
-			s.logger.Info(fmt.Sprintf("Audio streaming stopped for user: %s", initialData.SenderId.Uuid))
-			return ctx.Err()
-		default:
 		}
 	}
 }

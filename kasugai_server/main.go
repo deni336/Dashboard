@@ -1,22 +1,26 @@
 package main
 
 import (
-	"chat/internal/screenshare"
+	"chat/pkg/datastore"
 	"chat/pkg/server"
 	"chat/pkg/stdlog"
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 )
 
 // Config struct to hold the chat server address, logging details, and other settings
 type Config struct {
-	ChatAddress        string    `json:"chat_address"`
-	LogFile            string    `json:"log_file"`
-	LogLevel           string    `json:"log_level"`
-	ScreenShareAddress string    `json:"screen_share_address"`
-	MaxClients         int       `json:"max_clients"`
-	TLSConfig          TLSConfig `json:"tls_config"`
+	ChatAddress         string    `json:"chat_address"`
+	FileTransferAddress string    `json:"file_transfer_address"`
+	MediaAddress        string    `json:"media_address"`
+	LogFile             string    `json:"log_file"`
+	LogLevel            string    `json:"log_level"`
+	MaxClients          int       `json:"max_clients"`
+	TLSConfig           TLSConfig `json:"tls_config"`
 }
 
 // TLSConfig struct to handle TLS (SSL) settings
@@ -76,11 +80,12 @@ func main() {
 	if err != nil {
 		fmt.Println("Error loading config file, using defaults:", err)
 		config = &Config{
-			ChatAddress:        "localhost:8008",
-			LogFile:            "server.log",
-			LogLevel:           "info",
-			ScreenShareAddress: "0.0.0.0:6969",
-			MaxClients:         100,
+			ChatAddress:         "localhost:8008",
+			FileTransferAddress: "localhost:50051",
+			MediaAddress:        "localhost:50052",
+			LogFile:             "server.log",
+			LogLevel:            "info",
+			MaxClients:          100,
 			TLSConfig: TLSConfig{
 				Enabled:  false,
 				CertFile: "",
@@ -93,7 +98,7 @@ func main() {
 	if len(os.Args) > 1 {
 		config.ChatAddress = os.Args[1]
 	} else {
-		fmt.Println("No address override provided, using default or config:", config.ChatAddress)
+		fmt.Println("No address override provided, attempting to read from config:", config.ChatAddress)
 	}
 
 	// Set up logging based on config.
@@ -103,10 +108,72 @@ func main() {
 	}
 	defer logger.Close()
 
-	go screenshare.InitScreenShareServer(config.ScreenShareAddress)
+	// Initialize the shared data store
+	ds := datastore.GetInstance()
+	logger.Info("Shared datastore initialized")
 
-	// Start the chat server.
-	if err := server.StartServer(config.ChatAddress, logger); err != nil {
-		logger.Fatal(fmt.Sprintf("Server failed to start: %v", err))
+	// Create a channel to signal server shutdown
+	shutdown := make(chan struct{})
+
+	// Start all servers concurrently
+	var wg sync.WaitGroup
+	wg.Add(3)
+
+	var chatServer *server.Server
+	var fileTransferServer *server.FileTransferServer
+	var mediaServer *server.MediaServer
+
+	startServer := func(name string, serverStart func() error) {
+		defer wg.Done()
+		go func() {
+			if err := serverStart(); err != nil {
+				logger.Error(fmt.Sprintf("%s server failed: %v", name, err))
+				close(shutdown)
+			}
+		}()
 	}
+
+	startServer("Chat", func() error {
+		chatServer = server.NewServer(logger, ds)
+		return chatServer.Start(config.ChatAddress)
+	})
+
+	startServer("File Transfer", func() error {
+		fileTransferServer = server.NewFileTransferServer(logger, ds)
+		return fileTransferServer.Start(config.FileTransferAddress)
+	})
+
+	startServer("Media", func() error {
+		mediaServer = server.NewMediaServer(logger, ds)
+		return mediaServer.Start(config.MediaAddress)
+	})
+
+	logger.Info("All servers started successfully")
+
+	// Set up signal catching
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+
+	// Wait for shutdown signal
+	select {
+	case <-signals:
+		logger.Info("Shutdown signal received")
+	case <-shutdown:
+		logger.Info("Shutting down due to server failure")
+	}
+
+	// Graceful shutdown
+	if chatServer != nil {
+		chatServer.Stop()
+	}
+	if fileTransferServer != nil {
+		fileTransferServer.Stop()
+	}
+	if mediaServer != nil {
+		mediaServer.Stop()
+	}
+
+	// Wait for all servers to finish
+	wg.Wait()
+	logger.Info("All servers shut down successfully")
 }
