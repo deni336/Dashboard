@@ -4,6 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/user"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -41,7 +44,24 @@ type logMessage struct {
 
 // NewLogger creates a new Logger instance
 func NewLogger(filename string, level LogLevel, consoleLog bool) (*Logger, error) {
-	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	currentUser, err := user.Current()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get current user: %v", err)
+	}
+
+	usernameParts := strings.Split(currentUser.Username, "\\")
+	username := usernameParts[len(usernameParts)-1]
+
+	logDir := filepath.Join("C:\\", "Users", username, "kasugai/", "logs/")
+
+	err = os.MkdirAll(logDir, os.ModePerm)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create log directory: %v", err)
+	}
+
+	logPath := filepath.Join(logDir, filename)
+
+	file, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return nil, err
 	}

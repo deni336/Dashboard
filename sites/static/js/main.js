@@ -185,3 +185,75 @@ function closeAllModals() {
     fileTransferModal.style.display = "none";
     settingsModal.style.display = "none";
 }
+
+// Join Room Button Functionality
+document.getElementById('joinRoomBtn').addEventListener('click', function() {
+    const room = document.getElementById('roomSelect').value;
+    if (room) {
+        console.log(`Joining room: ${room}`);
+        fetch('/join_room', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ room: room })
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log(`Successfully joined room: ${room}`);
+            } else {
+                console.error(`Failed to join room: ${room}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    } else {
+        console.error('Please select a room to join.');
+    }
+});
+
+// Create Room Button Functionality
+document.getElementById('createRoomBtn').addEventListener('click', function() {
+    const roomName = document.getElementById('newRoomName').value;
+    const roomPassword = document.getElementById('roomPassword').value;
+    if (roomName) {
+        console.log(`Creating room: ${roomName} with password: ${roomPassword}`);
+        fetch('/create_room', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ roomName: roomName, roomPassword: roomPassword })
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log(`Successfully created room: ${roomName}`);
+            } else {
+                console.error(`Failed to create room: ${roomName}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    } else {
+        console.error('Please enter a room name.');
+    }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', function() {
+    fetch('/logout', {
+        method: 'GET'
+    })
+    .then(response => {
+        if (response.ok) {
+            console.log('Logged out successfully.');
+            window.location.href = '/'; // Redirect to home or login page
+        } else {
+            console.error('Failed to log out.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+});

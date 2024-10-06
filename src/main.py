@@ -31,7 +31,6 @@ class Main:
 
     def start_server(self):
         self.event_handler.register_event([os.getpid(), "ChatServer"])
-
     
     def run(self):
         """Main loop to monitor events, process statuses, and handle shutdown signals."""

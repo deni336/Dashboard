@@ -1,4 +1,10 @@
 waitress
 grpcio
-grpcio-tool
+grpcio-tools
 werkzeug
+flask-socketio
+protobuf
+authlib
+google-api-python-client
+google-auth-oauthlib
+google-auth-httplib2
