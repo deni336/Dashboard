@@ -13,34 +13,44 @@ import traceback
 from flask_socketio import SocketIO, emit
 
 class ChatManager:
-    def __init__(self, app):
+    def __init__(self, app, name):
         self.logger = GlobalLogger.get_logger('ChatManager')
         self.config_manager = ConfigManager()
         self.client = KasugaiClient(host=self.config_manager.get('WebServer', 'kasaddress'), port=self.config_manager.get('WebServer', 'kasport'))
         self.active_users = []  # Keep track of active users
         self.history = ChatHistory()
-        self.register_client()
+        self.register_client(name)
         self.socketio = SocketIO(app)
         #self.socketio.run(app, host=self.config_manager.get('WebServer', 'address'), port=self.config_manager.get('WebServer', 'port'))
 
-        listener_thread = threading.Thread(target=self.listen_for_messages, daemon=True)
-        listener_thread.start()
-
     # User registration
-    def register_client(self):
+    def register_client(self, name):
         try:
-            self.user = self.client.register_user("Alice") # Need to use OS.getlogin or something to show the actual username of the user
+            self.user = self.client.register_user(name) # Need to use OS.getlogin or something to show the actual username of the user
             self.logger.info(f"User registered: {self.user.id.uuid}, {self.user.name}")
-
-            # Create a room
-            room_id = self.client.create_room("General", kasugai__pb2.RoomType.CHAT)
-            self.logger.info(f"Room created with ID: {room_id.uuid}")
-
-            # Join the room
-            response = self.client.join_room(room_id)
-            self.logger.info(f"Joining room: {response.success}, {response.message}")
         except Exception as e:
             self.logger.error(f'Failed to register client: {e}')
+
+    def create_room(self, room, password):
+        try:
+            # Create a room
+            creater_id = self.user.id.uuid
+            room_id = self.client.create_room(room, password, kasugai__pb2.RoomType.CHAT, creater_id)
+            self.logger.info(f"Room created with ID: {room_id.uuid}")
+            response = self.client.join_room(room_id, password='')
+            self.logger.info(f"Joining room: {response.success}, {response.message}")
+        except Exception as e:
+            self.logger.error(f'Failed to create room: {e}')
+
+    def join_room(self, room, password):
+        try:
+            # Join the room
+            response = self.client.join_room(room)
+            self.logger.info(f"Joining room: {response.success}, {response.message}")
+            listener_thread = threading.Thread(target=self.listen_for_messages, daemon=True)
+            listener_thread.start()
+        except Exception as e:
+            self.logger.error(f'Failed to join room: {e}')
         
     def send_message(self, content):
         try:

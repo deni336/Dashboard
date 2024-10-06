@@ -18,14 +18,17 @@
     
 <!-- Custom navigation bar -->
 <nav>
-    <ul>
-        <li><a href="#" id="homeBtn">Home</a></li>
-        <li><a href="#" id="embeddedBrowserBtn">Browser</a></li>
-        <li><a href="#" id="chatBtn">Chat</a></li>
-        <li><a href="#" id="fileTransferBtn">File Transfer</a></li>
-        <li><a href="/screenshare" id="screenShareLink">Screen Share</a></li>
-        <li><a href="#" id="settingsBtn">Settings</a></li>
-    </ul>
+    <ul class="nav-left">
+            <li><a href="/" id="homeBtn">Home</a></li>
+            <li><a href="#" id="embeddedBrowserBtn">Browser</a></li>
+            <li><a href="#" id="chatBtn">Chat</a></li>
+            <li><a href="#" id="fileTransferBtn">File Transfer</a></li>
+            <li><a href="#" id="screenShareBtn" class="active">Screen Share</a></li>
+            <li><a href="#" id="settingsBtn">Settings</a></li>
+            </ul>
+    <ul class="nav-right">
+        <li><a href="#" id="logoutBtn">Logout</a></li>
+        </ul>
 </nav>
 
 <!-- Button container on the left side -->
@@ -52,12 +55,29 @@
     <div class="modal-content">
         <span class="close">&times;</span>
         <h2>Chat</h2>
+        <!-- Dropdown to Join Public Room -->
+        <label for="roomSelect">Join Public Room:</label>
+        <select id="roomSelect">
+            <option value="">Select a room...</option>
+            <!-- More rooms can be added dynamically -->
+        </select>
+        <button id="joinRoomBtn">Join Room</button>
+        
+        <!-- Button to Create a Private Room -->
+        <h3>Create a Private Room</h3>
+        <label for="newRoomName">Room Name:</label>
+        <input type="text" id="newRoomName" required>
+        <label for="roomPassword">Password (optional):</label>
+        <input type="password" id="roomPassword">
+        <button id="createRoomBtn">Create Room</button>
+        
         <div id="chatMessages"></div>
         <!-- Chat Input Area -->
         <textarea id="chatInput" placeholder="Type your message here..."></textarea>
         <button id="sendChat">Send</button>
     </div>
 </div>
+
 
 <div id="fileTransferModal" class="modal">
     <div class="modal-content">

@@ -14,15 +14,18 @@
 </head>
 
 <body>
-    <!-- Navigation Bar (copy the same from the main page) -->
+    <!-- Custom navigation bar -->
     <nav>
-        <ul>
-            <li><a href="/" id="homeBtn">Home</a></li>
-            <li><a href="#" id="chatBtn">Chat</a></li>
-            <li><a href="#" id="fileTransferBtn">File Transfer</a></li>
-            <li><a href="#" id="screenShareBtn" class="active">Screen Share</a></li>
-            <li><a href="#" id="settingsBtn">Settings</a></li>
-        </ul>
+        <ul class="nav-left">
+                <li><a href="/" id="homeBtn">Home</a></li>
+                <li><a href="#" id="chatBtn">Chat</a></li>
+                <li><a href="#" id="fileTransferBtn">File Transfer</a></li>
+                <li><a href="#" id="screenShareBtn" class="active">Screen Share</a></li>
+                <li><a href="#" id="settingsBtn">Settings</a></li>
+                </ul>
+        <ul class="nav-right">
+            <li><a href="#" id="logoutBtn">Logout</a></li>
+            </ul>
     </nav>
 
     <!-- Button container on the left side -->
@@ -39,19 +42,55 @@
             <!-- Placeholder for video stream -->
             <video id="screenVideo" autoplay></video>
         </div>
+        <button id="startScreenShareBtn">Start Screen Share</button>
+        <button id="stopScreenShareBtn" disabled>Stop Screen Share</button>
+    </section>
+
+    <!-- Viewers Section -->
+    <section id="viewersSection">
+        <h3>Current Viewers</h3>
+        <ul id="viewersList">
+            <!-- List of viewers will be populated here -->
+        </ul>
+    </section>
+
+    <!-- Available Broadcasts Section -->
+    <section id="broadcastsSection">
+        <h3>Available Broadcasts</h3>
+        <ul id="broadcastsList">
+            <!-- List of available broadcasts to watch -->
+        </ul>
+        <button id="watchBroadcastBtn" disabled>Watch Selected Broadcast</button>
     </section>
 
     <!-- Modals -->
-      <div id="chatModal">
-         <div class="modal-content">
+    <div id="chatModal">
+        <div class="modal-content">
             <span class="close">&times;</span>
             <h2>Chat</h2>
+            <!-- Dropdown to Join Public Room -->
+            <label for="roomSelect">Join Public Room:</label>
+            <select id="roomSelect">
+                <option value="">Select a room...</option>
+                <!-- More rooms can be added dynamically -->
+            </select>
+            <button id="joinRoomBtn">Join Room</button>
+            
+            <!-- Button to Create a Private Room -->
+            <h3>Create a Room</h3>
+            <label for="newRoomName">Room Name:</label>
+            <input type="text" id="newRoomName" required>
+            <label for="roomPassword">Password (optional):</label>
+            <input type="password" id="roomPassword">
+            <button id="createRoomBtn">Create Room</button>
+            
             <div id="chatMessages"></div>
             <!-- Chat Input Area -->
             <textarea id="chatInput" placeholder="Type your message here..."></textarea>
             <button id="sendChat">Send</button>
-         </div>
-      </div>
+        </div>
+    </div>
+
 
       <div id="fileTransferModal" class="modal">
          <div class="modal-content">
@@ -86,6 +125,25 @@
              </form>
          </div>
      </div>
+
+     <!-- Python Integration for Screen Capture -->
+    <script>
+        document.getElementById('startScreenShareBtn').addEventListener('click', function() {
+            fetch('/start_screen_capture', {
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log('Screen capture started successfully.');
+                } else {
+                    console.error('Failed to start screen capture.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    </script>
 
 </body>
 

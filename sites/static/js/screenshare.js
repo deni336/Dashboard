@@ -1,25 +1,82 @@
-document.addEventListener('DOMContentLoaded', function () {
-   // Example placeholder for screen share video functionality
-    const video = document.getElementById('screenVideo');
-    
-    function startScreenShare() {
-        const socket = new WebSocket('ws://localhost:8080/screen-share'); // WebSocket to receive frames
-        
-        socket.onmessage = function(event) {
-            const imageBlob = new Blob([event.data], { type: 'image/jpeg' });
-            const imageUrl = URL.createObjectURL(imageBlob);
-            
-            // Display the received frame
-            video.src = imageUrl;
-        };
-        
-        socket.onerror = function(error) {
-            console.error('WebSocket Error: ', error);
-        };
+document.addEventListener('DOMContentLoaded', () => {
+    const startScreenShareBtn = document.getElementById('startScreenShareBtn');
+    const stopScreenShareBtn = document.getElementById('stopScreenShareBtn');
+    const screenVideo = document.getElementById('screenVideo');
+    const viewersList = document.getElementById('viewersList');
+    const broadcastsList = document.getElementById('broadcastsList');
+    const watchBroadcastBtn = document.getElementById('watchBroadcastBtn');
+
+    let screenStream = null;
+
+    // Start screen sharing
+    startScreenShareBtn.addEventListener('click', async () => {
+        try {
+            screenStream = await navigator.mediaDevices.getDisplayMedia({
+                video: {
+                    cursor: "always"
+                },
+                audio: false
+            });
+            screenVideo.srcObject = screenStream;
+
+            // Enable Stop button and disable Start button
+            startScreenShareBtn.disabled = true;
+            stopScreenShareBtn.disabled = false;
+
+            // Notify viewers about the screen share (backend implementation required)
+            notifyViewersAboutScreenShare();
+        } catch (err) {
+            console.error("Error: " + err);
+        }
+    });
+
+    // Stop screen sharing
+    stopScreenShareBtn.addEventListener('click', () => {
+        if (screenStream) {
+            let tracks = screenStream.getTracks();
+            tracks.forEach(track => track.stop());
+            screenStream = null;
+        }
+
+        // Reset video
+        screenVideo.srcObject = null;
+
+        // Enable Start button and disable Stop button
+        startScreenShareBtn.disabled = false;
+        stopScreenShareBtn.disabled = true;
+
+        // Notify viewers that screenshare has stopped
+        notifyViewersScreenshareStopped();
+    });
+
+    // Watch a selected broadcast
+    watchBroadcastBtn.addEventListener('click', () => {
+        const selectedBroadcast = broadcastsList.querySelector('li.selected');
+        if (selectedBroadcast) {
+            const streamId = selectedBroadcast.dataset.streamId;
+            watchBroadcastStream(streamId); // Function to watch a broadcast
+        }
+    });
+
+    // Function to notify viewers about the screen share
+    function notifyViewersAboutScreenShare() {
+        // You would need to implement backend communication here
+        console.log("Notifying viewers about screen share...");
+        // E.g., make an API call to update viewers or a WebSocket implementation
     }
-   // Call function to start the screen share
-   startScreenShare();
+
+    // Function to notify viewers that the screenshare stopped
+    function notifyViewersScreenshareStopped() {
+        console.log("Notifying viewers that screenshare has stopped...");
+    }
+
+    // Function to watch a broadcasted stream
+    function watchBroadcastStream(streamId) {
+        console.log("Watching broadcast with stream ID: " + streamId);
+        // Here you would implement logic to retrieve the selected stream and play it
+    }
 });
+
 
 document.addEventListener('DOMContentLoaded', function () {
    // Add event listeners to all dynamically loaded buttons
@@ -152,3 +209,76 @@ function closeAllModals() {
    fileTransferModal.style.display = "none";
    settingsModal.style.display = "none";
 }
+
+// Join Room Button Functionality
+document.getElementById('joinRoomBtn').addEventListener('click', function() {
+    const room = document.getElementById('roomSelect').value;
+    if (room) {
+        console.log(`Joining room: ${room}`);
+        fetch('/join_room', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ room: room })
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log(`Successfully joined room: ${room}`);
+            } else {
+                console.error(`Failed to join room: ${room}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    } else {
+        console.error('Please select a room to join.');
+    }
+});
+
+// Create Room Button Functionality
+document.getElementById('createRoomBtn').addEventListener('click', function() {
+    const roomName = document.getElementById('newRoomName').value;
+    const roomPassword = document.getElementById('roomPassword').value;
+    if (roomName) {
+        console.log(`Creating room: ${roomName} with password: ${roomPassword}`);
+        fetch('/create_room', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ roomName: roomName, roomPassword: roomPassword })
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log(`Successfully created room: ${roomName}`);
+            } else {
+                console.error(`Failed to create room: ${roomName}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    } else {
+        console.error('Please enter a room name.');
+    }
+});
+
+// Logout Button Functionality
+document.getElementById('logoutBtn').addEventListener('click', function() {
+    fetch('/logout', {
+        method: 'POST'
+    })
+    .then(response => {
+        if (response.ok) {
+            console.log('Logged out successfully.');
+            window.location.href = '/'; // Redirect to home or login page
+        } else {
+            console.error('Failed to log out.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+});

@@ -37,10 +37,10 @@ class KasugaiClient:
         else:
             raise ValueError(f"Failed to create room: {response.message}")
 
-    def join_room(self, room_id):
+    def join_room(self, room_id, password):
         if not self.current_user:
             raise ValueError("User not registered")
-        response = self.room_service.join_room(room_id.uuid, self.current_user.id.uuid)
+        response = self.room_service.join_room(room_id.uuid, password, self.current_user.id.uuid)
         if response.success:
             self.current_room_id = room_id.uuid
         return response
@@ -106,16 +106,17 @@ class RoomServiceClient:
     def __init__(self, channel):
         self.stub = RoomServiceStub(channel)
 
-    def create_room(self, name, room_type, creator_id):
+    def create_room(self, name, password, room_type, creator_id):
         room = kasugai__pb2.Room(
             name=name,
+            password=password,
             type=room_type,
             creatorId=creator_id
         )
         return self.stub.CreateRoom(room)
 
-    def join_room(self, room_id, user_id):
-        metadata = (('user', user_id),)
+    def join_room(self, room_id, password, user_id):
+        metadata = (('user', user_id), ('password', password))
         return self.stub.JoinRoom(kasugai__pb2.Id(uuid=room_id), metadata=metadata)
 
     def leave_room(self, room_id, user_id):
