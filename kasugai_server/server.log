@@ -8869,3 +8869,49 @@
 [2024-10-05 03:28:01] [INFO] User registered successfully (ID: 08c11660-79ff-4515-94a7-7bc51e7b1af0, Name: Alice)
 [2024-10-05 03:28:01] [INFO] Room created: uuid:"11348ec0-6411-4700-9d66-f95d4412e00c" (Type: CHAT)
 [2024-10-05 03:28:01] [INFO] User joined the channel: Alice (Joined the room: General | RoomID: uuid:"11348ec0-6411-4700-9d66-f95d4412e00c")
+[2024-10-05 03:30:39] [INFO] Shared datastore initialized
+[2024-10-05 03:30:39] [INFO] All servers started successfully
+[2024-10-05 03:30:39] [INFO] Media gRPC server started on: 0.0.0.0:50052
+[2024-10-05 03:30:39] [INFO] Chat gRPC server started on: 0.0.0.0:8008
+[2024-10-05 03:30:39] [INFO] File Transfer gRPC server started on: 0.0.0.0:50051
+[2024-10-05 03:35:21] [INFO] User registered successfully (ID: ee350a75-67d0-4a7a-89e7-167ae6a734d1, Name: Alice)
+[2024-10-05 03:35:21] [INFO] Room created: uuid:"59bf07e9-982a-4acb-8cae-236ed85ac10c" (Type: CHAT)
+[2024-10-05 03:35:21] [INFO] User joined the channel: Alice (Joined the room: General | RoomID: uuid:"59bf07e9-982a-4acb-8cae-236ed85ac10c")
+[2024-10-05 03:58:11] [INFO] Stopped receiving messages for user ee350a75-67d0-4a7a-89e7-167ae6a734d1 in room 59bf07e9-982a-4acb-8cae-236ed85ac10c
+[2024-10-05 03:58:19] [INFO] User registered successfully (ID: 40fa4ea0-3f3b-4cfc-894c-8713980d0675, Name: Alice)
+[2024-10-05 03:58:19] [INFO] Room created: uuid:"59bf07e9-982a-4acb-8cae-236ed85ac10c" (Type: CHAT)
+[2024-10-05 03:58:19] [INFO] User joined the channel: Alice (Joined the room: General | RoomID: uuid:"59bf07e9-982a-4acb-8cae-236ed85ac10c")
+[2024-10-05 04:00:53] [INFO] Stopped receiving messages for user 40fa4ea0-3f3b-4cfc-894c-8713980d0675 in room 59bf07e9-982a-4acb-8cae-236ed85ac10c
+[2024-10-05 04:00:57] [INFO] Shutdown signal received
+[2024-10-05 04:00:57] [INFO] Stopping server...
+[2024-10-05 04:00:57] [INFO] Server stopped gracefully
+[2024-10-05 04:00:57] [INFO] Stopping File Transfer server...
+[2024-10-05 04:00:57] [INFO] File Transfer server stopped gracefully
+[2024-10-05 04:00:57] [INFO] Stopping Media server...
+[2024-10-05 04:00:57] [INFO] Media server stopped gracefully
+[2024-10-05 04:01:02] [INFO] Shared datastore initialized
+[2024-10-05 04:01:02] [INFO] All servers started successfully
+[2024-10-05 04:01:02] [INFO] Media gRPC server started on: 0.0.0.0:50052
+[2024-10-05 04:01:02] [INFO] File Transfer gRPC server started on: 0.0.0.0:50051
+[2024-10-05 04:01:02] [INFO] Chat gRPC server started on: 0.0.0.0:8008
+[2024-10-05 04:01:10] [INFO] User registered successfully (ID: 66b60a9c-7999-4e76-a6d3-3415c4803622, Name: Alice)
+[2024-10-05 04:01:10] [INFO] Room created: uuid:"5d27ffa9-af41-478c-8dbc-ad04d8b8097f" (Type: CHAT)
+[2024-10-05 04:01:10] [INFO] User joined the channel: Alice (Joined the room: General | RoomID: uuid:"5d27ffa9-af41-478c-8dbc-ad04d8b8097f")
+[2024-10-05 04:11:54] [INFO] Shutdown signal received
+[2024-10-05 04:11:54] [INFO] Stopping server...
+[2024-10-05 22:05:22] [INFO] Shared datastore initialized
+[2024-10-05 22:05:22] [INFO] All servers started successfully
+[2024-10-05 22:05:22] [INFO] File Transfer gRPC server started on: 0.0.0.0:50051
+[2024-10-05 22:05:22] [INFO] Chat gRPC server started on: 0.0.0.0:8008
+[2024-10-05 22:05:22] [INFO] Media gRPC server started on: 0.0.0.0:50052
+[2024-10-06 00:11:28] [INFO] Shutdown signal received
+[2024-10-06 00:11:28] [INFO] Stopping server...
+[2024-10-06 00:11:28] [INFO] Server stopped gracefully
+[2024-10-06 00:11:28] [INFO] Stopping File Transfer server...
+[2024-10-06 00:11:28] [INFO] File Transfer server stopped gracefully
+[2024-10-06 00:11:28] [INFO] Stopping Media server...
+[2024-10-06 01:10:46] [INFO] Shared datastore initialized
+[2024-10-06 01:10:46] [INFO] All servers started successfully
+[2024-10-06 01:10:46] [INFO] File Transfer gRPC server started on: 0.0.0.0:50051
+[2024-10-06 01:10:46] [INFO] Chat gRPC server started on: 0.0.0.0:8008
+[2024-10-06 01:10:46] [INFO] Media gRPC server started on: 0.0.0.0:50052

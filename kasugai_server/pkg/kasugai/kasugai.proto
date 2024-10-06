@@ -52,6 +52,7 @@ message Room {
     repeated Id participantIds = 3;
     RoomType type = 4;
     Id creatorId = 5;
+    string key = 6;
 }
 
 enum RoomType {
@@ -142,6 +143,10 @@ message RoomParticipants {
     repeated User participants = 2;
 }
 
+message RoomList {
+    repeated Room rooms = 1;
+}
+
 // Service definitions
 service UserService {
     rpc RegisterUser(User) returns (Ack);
@@ -155,6 +160,7 @@ service RoomService {
     rpc JoinRoom(Id) returns (Ack);
     rpc LeaveRoom(Id) returns (Ack);
     rpc GetRoomParticipants(Id) returns (RoomParticipants);
+    rpc GetRoomList(google.protobuf.Empty) returns (RoomList);
 }
 
 service ChatService {

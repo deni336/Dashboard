@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"google.golang.org/grpc/metadata"
 	"image/png"
 	"io"
 	"net"
@@ -47,7 +46,7 @@ func (s *MediaServer) Start(address string) error {
 	}
 
 	s.grpcServer = grpc.NewServer()
-	kasugai.RegisterMediaServiceServer(s.grpcServer, s)
+	kasugai.RegisterMediaServiceServer(s.grpcServer, s.UnimplementedMediaServiceServer)
 	reflection.Register(s.grpcServer)
 
 	s.logger.Info(fmt.Sprintf("Media gRPC server started on: %s", address))
@@ -73,7 +72,7 @@ func (s *MediaServer) Stop() {
 	t.Stop()
 }
 
-func (s *MediaServer) StartMediaStream(stream kasugai.MediaService_StartMediaStreamServer) error {
+func (s *MediaServer) StartMediaStream(id *kasugai.Id, stream kasugai.MediaService_StartMediaStreamServer) error {
 	peerInfo, _ := peer.FromContext(stream.Context())
 	s.logger.Info(fmt.Sprintf("New media stream connection from: %s", peerInfo.Addr.String()))
 
@@ -86,7 +85,10 @@ func (s *MediaServer) StartMediaStream(stream kasugai.MediaService_StartMediaStr
 	s.logger.Info(fmt.Sprintf("Media stream started: ID=%s, Type=%s, User=%s",
 		initialData.Id.Uuid, initialData.Type, initialData.SenderId.Uuid))
 
-	s.dataStore.AddActiveStream(initialData)
+	err = s.dataStore.AddActiveStream(id.Uuid, stream)
+	if err != nil {
+		return fmt.Errorf("Error adding active stream to datastore: %v", err)
+	}
 
 	for {
 		mediaData, err := stream.Recv()
@@ -132,7 +134,7 @@ func (s *MediaServer) EndMediaStream(ctx context.Context, req *kasugai.Id) (*kas
 	s.logger.Info(fmt.Sprintf("Request to end media stream: ID=%s", req.Uuid))
 
 	_, exists := s.dataStore.GetActiveStream(req.Uuid)
-	if !exists {
+	if exists != nil {
 		s.logger.Warning(fmt.Sprintf("Attempt to end non-existent stream: %s", req.Uuid))
 		return &kasugai.Ack{
 			Success: false,
@@ -149,96 +151,48 @@ func (s *MediaServer) EndMediaStream(ctx context.Context, req *kasugai.Id) (*kas
 	}, nil
 }
 
-func (s *MediaServer) ManageVoIPCall(stream kasugai.MediaService_ManageVoIPCallServer) error {
-	s.logger.Info("Managing VoIP call")
-
-	var currentCall *kasugai.VoIPCall
-
-	// Get caller ID from metadata
-	md, ok := metadata.FromIncomingContext(stream.Context())
-	if !ok {
-		return status.Errorf(codes.InvalidArgument, "missing metadata")
-	}
-	callerIDs := md.Get("caller_id")
-	if len(callerIDs) == 0 {
-		return status.Errorf(codes.InvalidArgument, "caller_id not found in metadata")
-	}
-
-	for {
-		signal, err := stream.Recv()
-		if err == io.EOF {
-			s.logger.Info("VoIP call stream ended")
-			return nil
-		}
-		if err != nil {
-			s.logger.Error(fmt.Sprintf("Error receiving VoIP signal: %v", err))
-			return err
-		}
-
-		s.logger.Info(fmt.Sprintf("Received VoIP signal for call %s", signal.CallId.Uuid))
-
-		// Process the VoIP signal
-		response, err := s.processVoIPSignal(signal, &currentCall)
-		if err != nil {
-			s.logger.Error(fmt.Sprintf("Error processing VoIP signal: %v", err))
-			return err
-		}
-
-		// Send the response back to the client
-		if err := stream.Send(response); err != nil {
-			s.logger.Error(fmt.Sprintf("Error sending VoIP signal: %v", err))
-			return err
-		}
-	}
-}
-
-func (s *MediaServer) processVoIPSignal(signal *kasugai.VoIPSignal, currentCall **kasugai.VoIPCall) (*kasugai.VoIPSignal, error) {
-	switch signalType := signal.Signal.(type) {
-	case *kasugai.VoIPSignal_Offer:
-		// Handle call offer
-		if *currentCall != nil {
-			return nil, status.Error(codes.AlreadyExists, "Call already in progress")
-		}
-		*currentCall = &kasugai.VoIPCall{
-			Id:        signal.CallId,
-			Status:    kasugai.CallStatus_INITIATING,
-			StartTime: timestamppb.Now(),
-		}
-		// Note: We don't have CallerId and CalleeId in the offer.
-		// You might need to obtain this information from elsewhere,
-		// such as the client's metadata or a separate method call.
-		s.dataStore.AddActiveCall(*currentCall)
-		return &kasugai.VoIPSignal{
-			CallId: signal.CallId,
-			Signal: &kasugai.VoIPSignal_Answer{
-				Answer: &kasugai.SignalAnswer{
-					Sdp: "SDP_ANSWER", // In a real implementation, generate proper SDP answer
-				},
-			},
-		}, nil
-
-	case *kasugai.VoIPSignal_Answer:
-		// Handle call answer
-		if *currentCall == nil {
-			return nil, status.Error(codes.NotFound, "No active call found")
-		}
-		(*currentCall).Status = kasugai.CallStatus_IN_PROGRESS
-		s.dataStore.UpdateActiveCall(*currentCall)
-		return signal, nil // Echo back the answer to confirm
-
-	case *kasugai.VoIPSignal_IceCandidate:
-		// Handle ICE candidate
-		if *currentCall == nil {
-			return nil, status.Error(codes.NotFound, "No active call found")
-		}
-		// In a real implementation, you would process the ICE candidate
-		// For now, we'll just echo it back
-		return signal, nil
-
-	default:
-		return nil, status.Errorf(codes.Unimplemented, "Unhandled signal type: %T", signalType)
-	}
-}
+//func (s *MediaServer) ManageVoIPCall(stream kasugai.MediaService_ManageVoIPCallServer) error {
+//	s.logger.Info("Managing VoIP call")
+//
+//	var currentCall *kasugai.VoIPCall
+//
+//	// Get caller ID from metadata
+//	md, ok := metadata.FromIncomingContext(stream.Context())
+//	if !ok {
+//		return status.Errorf(codes.InvalidArgument, "missing metadata")
+//	}
+//	callerIDs := md.Get("caller_id")
+//	if len(callerIDs) == 0 {
+//		return status.Errorf(codes.InvalidArgument, "caller_id not found in metadata")
+//	}
+//
+//	for {
+//		signal, err := stream.Recv()
+//		if err == io.EOF {
+//			s.logger.Info("VoIP call stream ended")
+//			return nil
+//		}
+//		if err != nil {
+//			s.logger.Error(fmt.Sprintf("Error receiving VoIP signal: %v", err))
+//			return err
+//		}
+//
+//		s.logger.Info(fmt.Sprintf("Received VoIP signal for call %s", signal.CallId.Uuid))
+//
+//		// Process the VoIP signal
+//		//response, err := s.processVoIPSignal(signal, &currentCall)
+//		//if err != nil {
+//		//	s.logger.Error(fmt.Sprintf("Error processing VoIP signal: %v", err))
+//		//	return err
+//		//}
+//		//
+//		//// Send the response back to the client
+//		//if err := stream.Send(response); err != nil {
+//		//	s.logger.Error(fmt.Sprintf("Error sending VoIP signal: %v", err))
+//		//	return err
+//		//}
+//	}
+//}
 
 func (s *MediaServer) handleScreenShare(ctx context.Context, stream kasugai.MediaService_StartMediaStreamServer, initialData *kasugai.MediaStream, room *Room) error {
 	s.logger.Info(fmt.Sprintf("Screen sharing started for user: %s", initialData.SenderId.Uuid))
