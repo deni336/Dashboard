@@ -25,8 +25,6 @@ type Server struct {
 	kasugai.UnimplementedUserServiceServer
 	kasugai.UnimplementedRoomServiceServer
 	kasugai.UnimplementedChatServiceServer
-	kasugai.UnimplementedMediaServiceServer
-	kasugai.UnimplementedFileTransferServiceServer
 
 	mu                 sync.RWMutex
 	clients            map[string]*kasugai.User
@@ -53,7 +51,7 @@ func NewServer(logger *stdlog.Logger, ds *datastore.DataStore) *Server {
 	}
 }
 
-// StartServer starts the gRPC server.
+// Start starts the gRPC server.
 func (s *Server) Start(address string) error {
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
@@ -62,9 +60,9 @@ func (s *Server) Start(address string) error {
 
 	s.grpcServer = grpc.NewServer()
 
-	kasugai.RegisterUserServiceServer(s.grpcServer, s)
-	kasugai.RegisterRoomServiceServer(s.grpcServer, s)
-	kasugai.RegisterChatServiceServer(s.grpcServer, s)
+	kasugai.RegisterUserServiceServer(s.grpcServer, s.UnimplementedUserServiceServer)
+	kasugai.RegisterRoomServiceServer(s.grpcServer, s.UnimplementedRoomServiceServer)
+	kasugai.RegisterChatServiceServer(s.grpcServer, s.UnimplementedChatServiceServer)
 
 	// Register reflection service on gRPC server
 	reflection.Register(s.grpcServer)
@@ -77,6 +75,7 @@ func (s *Server) Start(address string) error {
 	return nil
 }
 
+// Stop stops the gRPC server
 func (s *Server) Stop() {
 	s.logger.Info("Stopping server...")
 	stopped := make(chan struct{})
@@ -115,6 +114,9 @@ func (s *Server) RegisterUser(ctx context.Context, req *kasugai.User) (*kasugai.
 	s.clients[req.Id.Uuid] = req
 	s.streams[req.Id.Uuid] = make(chan *kasugai.TextMessage, 1024)
 
+	// Add to datastore
+	s.dataStore.AddUser(req)
+
 	s.logger.Info(fmt.Sprintf("User registered successfully (ID: %s, Name: %s)", req.Id.Uuid, req.Name))
 	return &kasugai.Ack{Success: true, Message: "User registered"}, nil
 }
@@ -128,6 +130,13 @@ func (s *Server) GetUserList(ctx context.Context, _ *emptypb.Empty) (*kasugai.Us
 		users = append(users, user)
 	}
 
+	// Could do this instead
+	//list, exists := s.dataStore.GetUserList()
+	//if !exists {
+	//	return nil, status.Error(codes.NotFound, "User list not found")
+	//}
+	//return list, nil
+
 	s.logger.Info(fmt.Sprintf("User list successfully requested"))
 	return &kasugai.UserList{Users: users}, nil
 }
@@ -137,13 +146,20 @@ func (s *Server) UpdateUserStatus(ctx context.Context, req *kasugai.User) (*kasu
 	defer s.mu.Unlock()
 
 	if req.Id == nil || req.Id.Uuid == "" {
-		return nil, status.Error(codes.InvalidArgument, "Invalid user ID")
+		return &kasugai.Ack{Success: false, Message: "Invalid user id"}, status.Error(codes.InvalidArgument, "Invalid user ID")
 	}
 
 	user, exists := s.clients[req.Id.Uuid]
 	if !exists {
-		return nil, status.Error(codes.NotFound, "User not found")
+		return &kasugai.Ack{Success: false, Message: "User not found"}, status.Error(codes.NotFound, "user not found")
 	}
+
+	// Update datastore user
+	u, exists := s.dataStore.GetUser(req.Id.Uuid)
+	if !exists {
+		return &kasugai.Ack{Success: false, Message: "User not found"}, status.Error(codes.NotFound, "user not found")
+	}
+	u.Status = req.Status
 
 	user.Status = req.Status
 	return &kasugai.Ack{Success: true, Message: "User status updated"}, nil
@@ -158,6 +174,12 @@ func (s *Server) GetUserById(ctx context.Context, req *kasugai.Id) (*kasugai.Use
 		return nil, status.Error(codes.NotFound, "User not found")
 	}
 
+	// using datastore instead
+	//user, exists := s.dataStore.GetUser(req.Uuid)
+	//if !exists {
+	//	return nil, status.Error(codes.NotFound, "User not found")
+	//}
+
 	return user, nil
 }
 
@@ -169,20 +191,23 @@ func (s *Server) CreateRoom(ctx context.Context, req *kasugai.Room) (*kasugai.Ac
 
 	creator, exists := s.clients[req.CreatorId.Uuid]
 	if !exists {
-		return nil, status.Errorf(codes.NotFound, "Creator not found")
+		return &kasugai.Ack{Success: false, Message: "Failed to build the room"}, status.Errorf(codes.NotFound, "Creator not found")
 	}
 
 	room, err := s.roomBuilder.
 		WithName(req.Name).
 		WithType(RoomType(req.Type)).
 		WithCreator(creator).
+		WithKey(req.Key).
 		Build()
 
 	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, err.Error())
+		return &kasugai.Ack{Success: false, Message: "Failed to build the room"}, status.Errorf(codes.InvalidArgument, err.Error())
 	}
 
+	// Add to datastore
 	s.rooms[room.Channel.Id.Uuid] = room
+	s.dataStore.AddRoom(room.Channel)
 
 	s.logger.Info(fmt.Sprintf("Room created: %s (Type: %v)", room.Channel.Id, room.Channel.Type))
 
@@ -195,24 +220,34 @@ func (s *Server) JoinRoom(ctx context.Context, req *kasugai.Id) (*kasugai.Ack, e
 
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return nil, status.Error(codes.InvalidArgument, "Failed to get metadata")
+		return &kasugai.Ack{Success: false, Message: "Failed to get metadata"}, status.Error(codes.InvalidArgument, "failed to get metadata")
 	}
 
 	// Get specific values from metadata
 	userIDs := md.Get("user")
 	if len(userIDs) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "User ID not found in metadata")
+		return &kasugai.Ack{Success: false, Message: "User ID not found in metadata"}, status.Error(codes.InvalidArgument, "user id not found in metadata")
 	}
 	userID := userIDs[0]
 
+	roomKeys := md.Get("key")
+	if len(roomKeys) == 0 {
+		return &kasugai.Ack{Success: false, Message: "Room key not found in metadata"}, status.Error(codes.InvalidArgument, "room key not found in metadata")
+	}
+	roomKey := roomKeys[0]
+
 	room, ok := s.rooms[req.Uuid]
 	if !ok {
-		return nil, status.Error(codes.NotFound, "Room not found")
+		return &kasugai.Ack{Success: false, Message: "Room not found"}, status.Error(codes.NotFound, "room not found")
+	}
+
+	if s.rooms[req.Uuid].key != roomKey {
+		return &kasugai.Ack{Success: false, Message: "Invalid key"}, status.Error(codes.InvalidArgument, "this key does not fit the lock")
 	}
 
 	for _, participants := range room.Participants {
 		if participants.User.Id.Uuid == userID {
-			return &kasugai.Ack{Success: true, Message: "User already in the room"}, nil
+			return &kasugai.Ack{Success: false, Message: "User already in the room"}, status.Error(codes.AlreadyExists, "already in the room")
 		}
 	}
 
@@ -225,7 +260,10 @@ func (s *Server) JoinRoom(ctx context.Context, req *kasugai.Id) (*kasugai.Ack, e
 		client.Role = RoleAdmin
 	}
 
+	// add to datastore room
 	room.Participants[userID] = client
+	s.dataStore.AddRoomParticipants(s.clients[userID], room.Channel.Id)
+
 	s.logger.Info(fmt.Sprintf("User joined the channel: %s (Joined the room: %v | RoomID: %v)", s.clients[userID].Name, room.Channel.Name, room.Channel.Id))
 	return &kasugai.Ack{Success: true, Message: "User joined room"}, nil
 }
@@ -233,35 +271,36 @@ func (s *Server) JoinRoom(ctx context.Context, req *kasugai.Id) (*kasugai.Ack, e
 func (s *Server) LeaveRoom(ctx context.Context, req *kasugai.Id) (*kasugai.Ack, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
+	failMsg := &kasugai.Ack{Success: false, Message: "Failed to leave the room"}
 	room, ok := s.rooms[req.Uuid]
 	if !ok {
-		return nil, status.Error(codes.NotFound, "Room not found")
+		return failMsg, status.Error(codes.NotFound, "Room not found")
 	}
 
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return nil, status.Error(codes.InvalidArgument, "Failed to get metadata")
+		return failMsg, status.Error(codes.InvalidArgument, "Failed to get metadata")
 	}
 
 	userIDs := md.Get("user")
 	if len(userIDs) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "User ID not found in metadata")
+		return failMsg, status.Error(codes.InvalidArgument, "User ID not found in metadata")
 	}
 	userID := userIDs[0]
 
 	if room.Participants[userID] != nil {
 		delete(room.Participants, userID)
-
+		s.dataStore.RemoveParticipant(room.Channel.Id, s.clients[userID])
 		// Cancel the stream context for this user in this room
 		s.activeStreamsMutex.Lock()
 		if cancelFunc, exists := s.activeStreams[userID+"-"+req.Uuid]; exists {
 			cancelFunc()
 			delete(s.activeStreams, userID+"-"+req.Uuid)
+			// don't forget datastore
 		}
 		s.activeStreamsMutex.Unlock()
 	} else {
-		return nil, status.Error(codes.InvalidArgument, "User not found in room.")
+		return failMsg, status.Error(codes.InvalidArgument, "User not found in room.")
 	}
 
 	s.logger.Info(fmt.Sprintf("User left the channel: %s (Left room: %v | RoomID: %v)", s.clients[userID].Name, room.Channel.Name, room.Channel.Id))
@@ -284,10 +323,34 @@ func (s *Server) GetRoomParticipants(ctx context.Context, req *kasugai.Id) (*kas
 		}
 	}
 
+	// Could possibly do this
+	// return s.dataStore.GetRoomParticipants(req)
+
 	return &kasugai.RoomParticipants{
 		RoomId:       req,
 		Participants: participants,
 	}, nil
+}
+
+func (s *Server) GetRoomList(ctx context.Context) (*kasugai.RoomList, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	roomList := &kasugai.RoomList{}
+
+	if len(s.rooms) == 0 {
+		return nil, status.Error(codes.NotFound, "Room list is empty")
+	}
+
+	for _, room := range s.rooms {
+		roomList.Rooms = append(roomList.Rooms, room.Channel)
+	}
+
+	// Could return this
+	//list, exists := s.dataStore.GetRoomList()
+	//if !exists { return nil, status.Error(codes.NotFound, "no rooms found") }
+	//return list, nil
+
+	return roomList, nil
 }
 
 // ChatService Methods
@@ -298,7 +361,7 @@ func (s *Server) SendTextMessage(ctx context.Context, req *kasugai.TextMessage) 
 	s.mu.RUnlock()
 
 	if !ok {
-		return nil, status.Error(codes.NotFound, "Room not found")
+		return &kasugai.Ack{Success: false, Message: "Room not found"}, status.Error(codes.NotFound, "Room not found")
 	}
 
 	content := &RoomContent{
@@ -313,7 +376,7 @@ func (s *Server) SendTextMessage(ctx context.Context, req *kasugai.TextMessage) 
 		s.logger.Info(fmt.Sprintf("Message broadcast in room %s (From: %s, Content: %s)", req.RecipientId.Uuid, req.SenderId.Uuid, req.Content))
 	default:
 		s.logger.Error(fmt.Sprintf("Failed to send message: Room broadcast channel is full (Room: %s)", req.RecipientId.Uuid))
-		return nil, status.Error(codes.ResourceExhausted, "Room broadcast channel is full")
+		return &kasugai.Ack{Success: false, Message: "Room broadcast channel is full"}, status.Error(codes.ResourceExhausted, "Room broadcast channel is full")
 	}
 
 	return &kasugai.Ack{Success: true, Message: "Message sent"}, nil

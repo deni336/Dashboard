@@ -20,6 +20,154 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	ChatService_SendTextMessage_FullMethodName     = "/kasugai.ChatService/SendTextMessage"
+	ChatService_ReceiveTextMessages_FullMethodName = "/kasugai.ChatService/ReceiveTextMessages"
+)
+
+// ChatServiceClient is the client API for ChatService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// ChatService definition
+type ChatServiceClient interface {
+	SendTextMessage(ctx context.Context, in *TextMessage, opts ...grpc.CallOption) (*Ack, error)
+	ReceiveTextMessages(ctx context.Context, in *Id, opts ...grpc.CallOption) (grpc.ServerStreamingClient[TextMessage], error)
+}
+
+type chatServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewChatServiceClient(cc grpc.ClientConnInterface) ChatServiceClient {
+	return &chatServiceClient{cc}
+}
+
+func (c *chatServiceClient) SendTextMessage(ctx context.Context, in *TextMessage, opts ...grpc.CallOption) (*Ack, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Ack)
+	err := c.cc.Invoke(ctx, ChatService_SendTextMessage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chatServiceClient) ReceiveTextMessages(ctx context.Context, in *Id, opts ...grpc.CallOption) (grpc.ServerStreamingClient[TextMessage], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &ChatService_ServiceDesc.Streams[0], ChatService_ReceiveTextMessages_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[Id, TextMessage]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ChatService_ReceiveTextMessagesClient = grpc.ServerStreamingClient[TextMessage]
+
+// ChatServiceServer is the server API for ChatService service.
+// All implementations must embed UnimplementedChatServiceServer
+// for forward compatibility.
+//
+// ChatService definition
+type ChatServiceServer interface {
+	SendTextMessage(context.Context, *TextMessage) (*Ack, error)
+	ReceiveTextMessages(*Id, grpc.ServerStreamingServer[TextMessage]) error
+	mustEmbedUnimplementedChatServiceServer()
+}
+
+// UnimplementedChatServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedChatServiceServer struct{}
+
+func (UnimplementedChatServiceServer) SendTextMessage(context.Context, *TextMessage) (*Ack, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendTextMessage not implemented")
+}
+func (UnimplementedChatServiceServer) ReceiveTextMessages(*Id, grpc.ServerStreamingServer[TextMessage]) error {
+	return status.Errorf(codes.Unimplemented, "method ReceiveTextMessages not implemented")
+}
+func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
+func (UnimplementedChatServiceServer) testEmbeddedByValue()                     {}
+
+// UnsafeChatServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ChatServiceServer will
+// result in compilation errors.
+type UnsafeChatServiceServer interface {
+	mustEmbedUnimplementedChatServiceServer()
+}
+
+func RegisterChatServiceServer(s grpc.ServiceRegistrar, srv ChatServiceServer) {
+	// If the following call pancis, it indicates UnimplementedChatServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&ChatService_ServiceDesc, srv)
+}
+
+func _ChatService_SendTextMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TextMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).SendTextMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_SendTextMessage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).SendTextMessage(ctx, req.(*TextMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChatService_ReceiveTextMessages_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Id)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ChatServiceServer).ReceiveTextMessages(m, &grpc.GenericServerStream[Id, TextMessage]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ChatService_ReceiveTextMessagesServer = grpc.ServerStreamingServer[TextMessage]
+
+// ChatService_ServiceDesc is the grpc.ServiceDesc for ChatService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var ChatService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "kasugai.ChatService",
+	HandlerType: (*ChatServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "SendTextMessage",
+			Handler:    _ChatService_SendTextMessage_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ReceiveTextMessages",
+			Handler:       _ChatService_ReceiveTextMessages_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "kasugai.proto",
+}
+
+const (
 	UserService_RegisterUser_FullMethodName     = "/kasugai.UserService/RegisterUser"
 	UserService_UpdateUserStatus_FullMethodName = "/kasugai.UserService/UpdateUserStatus"
 	UserService_GetUserList_FullMethodName      = "/kasugai.UserService/GetUserList"
@@ -30,7 +178,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// Service definitions
+// UserService definition
 type UserServiceClient interface {
 	RegisterUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Ack, error)
 	UpdateUserStatus(ctx context.Context, in *User, opts ...grpc.CallOption) (*Ack, error)
@@ -90,7 +238,7 @@ func (c *userServiceClient) GetUserById(ctx context.Context, in *Id, opts ...grp
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
 //
-// Service definitions
+// UserService definition
 type UserServiceServer interface {
 	RegisterUser(context.Context, *User) (*Ack, error)
 	UpdateUserStatus(context.Context, *User) (*Ack, error)
@@ -244,16 +392,20 @@ const (
 	RoomService_JoinRoom_FullMethodName            = "/kasugai.RoomService/JoinRoom"
 	RoomService_LeaveRoom_FullMethodName           = "/kasugai.RoomService/LeaveRoom"
 	RoomService_GetRoomParticipants_FullMethodName = "/kasugai.RoomService/GetRoomParticipants"
+	RoomService_GetRoomList_FullMethodName         = "/kasugai.RoomService/GetRoomList"
 )
 
 // RoomServiceClient is the client API for RoomService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// RoomService definition
 type RoomServiceClient interface {
 	CreateRoom(ctx context.Context, in *Room, opts ...grpc.CallOption) (*Ack, error)
 	JoinRoom(ctx context.Context, in *Id, opts ...grpc.CallOption) (*Ack, error)
 	LeaveRoom(ctx context.Context, in *Id, opts ...grpc.CallOption) (*Ack, error)
 	GetRoomParticipants(ctx context.Context, in *Id, opts ...grpc.CallOption) (*RoomParticipants, error)
+	GetRoomList(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*RoomList, error)
 }
 
 type roomServiceClient struct {
@@ -304,14 +456,27 @@ func (c *roomServiceClient) GetRoomParticipants(ctx context.Context, in *Id, opt
 	return out, nil
 }
 
+func (c *roomServiceClient) GetRoomList(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*RoomList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RoomList)
+	err := c.cc.Invoke(ctx, RoomService_GetRoomList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RoomServiceServer is the server API for RoomService service.
 // All implementations must embed UnimplementedRoomServiceServer
 // for forward compatibility.
+//
+// RoomService definition
 type RoomServiceServer interface {
 	CreateRoom(context.Context, *Room) (*Ack, error)
 	JoinRoom(context.Context, *Id) (*Ack, error)
 	LeaveRoom(context.Context, *Id) (*Ack, error)
 	GetRoomParticipants(context.Context, *Id) (*RoomParticipants, error)
+	GetRoomList(context.Context, *emptypb.Empty) (*RoomList, error)
 	mustEmbedUnimplementedRoomServiceServer()
 }
 
@@ -333,6 +498,9 @@ func (UnimplementedRoomServiceServer) LeaveRoom(context.Context, *Id) (*Ack, err
 }
 func (UnimplementedRoomServiceServer) GetRoomParticipants(context.Context, *Id) (*RoomParticipants, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRoomParticipants not implemented")
+}
+func (UnimplementedRoomServiceServer) GetRoomList(context.Context, *emptypb.Empty) (*RoomList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRoomList not implemented")
 }
 func (UnimplementedRoomServiceServer) mustEmbedUnimplementedRoomServiceServer() {}
 func (UnimplementedRoomServiceServer) testEmbeddedByValue()                     {}
@@ -427,6 +595,24 @@ func _RoomService_GetRoomParticipants_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RoomService_GetRoomList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RoomServiceServer).GetRoomList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RoomService_GetRoomList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RoomServiceServer).GetRoomList(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RoomService_ServiceDesc is the grpc.ServiceDesc for RoomService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -450,319 +636,12 @@ var RoomService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetRoomParticipants",
 			Handler:    _RoomService_GetRoomParticipants_Handler,
 		},
+		{
+			MethodName: "GetRoomList",
+			Handler:    _RoomService_GetRoomList_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "kasugai.proto",
-}
-
-const (
-	ChatService_SendTextMessage_FullMethodName     = "/kasugai.ChatService/SendTextMessage"
-	ChatService_ReceiveTextMessages_FullMethodName = "/kasugai.ChatService/ReceiveTextMessages"
-)
-
-// ChatServiceClient is the client API for ChatService service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type ChatServiceClient interface {
-	SendTextMessage(ctx context.Context, in *TextMessage, opts ...grpc.CallOption) (*Ack, error)
-	ReceiveTextMessages(ctx context.Context, in *Id, opts ...grpc.CallOption) (grpc.ServerStreamingClient[TextMessage], error)
-}
-
-type chatServiceClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewChatServiceClient(cc grpc.ClientConnInterface) ChatServiceClient {
-	return &chatServiceClient{cc}
-}
-
-func (c *chatServiceClient) SendTextMessage(ctx context.Context, in *TextMessage, opts ...grpc.CallOption) (*Ack, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Ack)
-	err := c.cc.Invoke(ctx, ChatService_SendTextMessage_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *chatServiceClient) ReceiveTextMessages(ctx context.Context, in *Id, opts ...grpc.CallOption) (grpc.ServerStreamingClient[TextMessage], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &ChatService_ServiceDesc.Streams[0], ChatService_ReceiveTextMessages_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[Id, TextMessage]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type ChatService_ReceiveTextMessagesClient = grpc.ServerStreamingClient[TextMessage]
-
-// ChatServiceServer is the server API for ChatService service.
-// All implementations must embed UnimplementedChatServiceServer
-// for forward compatibility.
-type ChatServiceServer interface {
-	SendTextMessage(context.Context, *TextMessage) (*Ack, error)
-	ReceiveTextMessages(*Id, grpc.ServerStreamingServer[TextMessage]) error
-	mustEmbedUnimplementedChatServiceServer()
-}
-
-// UnimplementedChatServiceServer must be embedded to have
-// forward compatible implementations.
-//
-// NOTE: this should be embedded by value instead of pointer to avoid a nil
-// pointer dereference when methods are called.
-type UnimplementedChatServiceServer struct{}
-
-func (UnimplementedChatServiceServer) SendTextMessage(context.Context, *TextMessage) (*Ack, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SendTextMessage not implemented")
-}
-func (UnimplementedChatServiceServer) ReceiveTextMessages(*Id, grpc.ServerStreamingServer[TextMessage]) error {
-	return status.Errorf(codes.Unimplemented, "method ReceiveTextMessages not implemented")
-}
-func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
-func (UnimplementedChatServiceServer) testEmbeddedByValue()                     {}
-
-// UnsafeChatServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to ChatServiceServer will
-// result in compilation errors.
-type UnsafeChatServiceServer interface {
-	mustEmbedUnimplementedChatServiceServer()
-}
-
-func RegisterChatServiceServer(s grpc.ServiceRegistrar, srv ChatServiceServer) {
-	// If the following call pancis, it indicates UnimplementedChatServiceServer was
-	// embedded by pointer and is nil.  This will cause panics if an
-	// unimplemented method is ever invoked, so we test this at initialization
-	// time to prevent it from happening at runtime later due to I/O.
-	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
-		t.testEmbeddedByValue()
-	}
-	s.RegisterService(&ChatService_ServiceDesc, srv)
-}
-
-func _ChatService_SendTextMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TextMessage)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ChatServiceServer).SendTextMessage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ChatService_SendTextMessage_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChatServiceServer).SendTextMessage(ctx, req.(*TextMessage))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ChatService_ReceiveTextMessages_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(Id)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(ChatServiceServer).ReceiveTextMessages(m, &grpc.GenericServerStream[Id, TextMessage]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type ChatService_ReceiveTextMessagesServer = grpc.ServerStreamingServer[TextMessage]
-
-// ChatService_ServiceDesc is the grpc.ServiceDesc for ChatService service.
-// It's only intended for direct use with grpc.RegisterService,
-// and not to be introspected or modified (even as a copy)
-var ChatService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "kasugai.ChatService",
-	HandlerType: (*ChatServiceServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "SendTextMessage",
-			Handler:    _ChatService_SendTextMessage_Handler,
-		},
-	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "ReceiveTextMessages",
-			Handler:       _ChatService_ReceiveTextMessages_Handler,
-			ServerStreams: true,
-		},
-	},
-	Metadata: "kasugai.proto",
-}
-
-const (
-	MediaService_StartMediaStream_FullMethodName = "/kasugai.MediaService/StartMediaStream"
-	MediaService_EndMediaStream_FullMethodName   = "/kasugai.MediaService/EndMediaStream"
-	MediaService_ManageVoIPCall_FullMethodName   = "/kasugai.MediaService/ManageVoIPCall"
-)
-
-// MediaServiceClient is the client API for MediaService service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type MediaServiceClient interface {
-	StartMediaStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[MediaStream, MediaStream], error)
-	EndMediaStream(ctx context.Context, in *Id, opts ...grpc.CallOption) (*Ack, error)
-	ManageVoIPCall(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[VoIPSignal, VoIPSignal], error)
-}
-
-type mediaServiceClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewMediaServiceClient(cc grpc.ClientConnInterface) MediaServiceClient {
-	return &mediaServiceClient{cc}
-}
-
-func (c *mediaServiceClient) StartMediaStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[MediaStream, MediaStream], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &MediaService_ServiceDesc.Streams[0], MediaService_StartMediaStream_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[MediaStream, MediaStream]{ClientStream: stream}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type MediaService_StartMediaStreamClient = grpc.BidiStreamingClient[MediaStream, MediaStream]
-
-func (c *mediaServiceClient) EndMediaStream(ctx context.Context, in *Id, opts ...grpc.CallOption) (*Ack, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Ack)
-	err := c.cc.Invoke(ctx, MediaService_EndMediaStream_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *mediaServiceClient) ManageVoIPCall(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[VoIPSignal, VoIPSignal], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &MediaService_ServiceDesc.Streams[1], MediaService_ManageVoIPCall_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[VoIPSignal, VoIPSignal]{ClientStream: stream}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type MediaService_ManageVoIPCallClient = grpc.BidiStreamingClient[VoIPSignal, VoIPSignal]
-
-// MediaServiceServer is the server API for MediaService service.
-// All implementations must embed UnimplementedMediaServiceServer
-// for forward compatibility.
-type MediaServiceServer interface {
-	StartMediaStream(grpc.BidiStreamingServer[MediaStream, MediaStream]) error
-	EndMediaStream(context.Context, *Id) (*Ack, error)
-	ManageVoIPCall(grpc.BidiStreamingServer[VoIPSignal, VoIPSignal]) error
-	mustEmbedUnimplementedMediaServiceServer()
-}
-
-// UnimplementedMediaServiceServer must be embedded to have
-// forward compatible implementations.
-//
-// NOTE: this should be embedded by value instead of pointer to avoid a nil
-// pointer dereference when methods are called.
-type UnimplementedMediaServiceServer struct{}
-
-func (UnimplementedMediaServiceServer) StartMediaStream(grpc.BidiStreamingServer[MediaStream, MediaStream]) error {
-	return status.Errorf(codes.Unimplemented, "method StartMediaStream not implemented")
-}
-func (UnimplementedMediaServiceServer) EndMediaStream(context.Context, *Id) (*Ack, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method EndMediaStream not implemented")
-}
-func (UnimplementedMediaServiceServer) ManageVoIPCall(grpc.BidiStreamingServer[VoIPSignal, VoIPSignal]) error {
-	return status.Errorf(codes.Unimplemented, "method ManageVoIPCall not implemented")
-}
-func (UnimplementedMediaServiceServer) mustEmbedUnimplementedMediaServiceServer() {}
-func (UnimplementedMediaServiceServer) testEmbeddedByValue()                      {}
-
-// UnsafeMediaServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to MediaServiceServer will
-// result in compilation errors.
-type UnsafeMediaServiceServer interface {
-	mustEmbedUnimplementedMediaServiceServer()
-}
-
-func RegisterMediaServiceServer(s grpc.ServiceRegistrar, srv MediaServiceServer) {
-	// If the following call pancis, it indicates UnimplementedMediaServiceServer was
-	// embedded by pointer and is nil.  This will cause panics if an
-	// unimplemented method is ever invoked, so we test this at initialization
-	// time to prevent it from happening at runtime later due to I/O.
-	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
-		t.testEmbeddedByValue()
-	}
-	s.RegisterService(&MediaService_ServiceDesc, srv)
-}
-
-func _MediaService_StartMediaStream_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(MediaServiceServer).StartMediaStream(&grpc.GenericServerStream[MediaStream, MediaStream]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type MediaService_StartMediaStreamServer = grpc.BidiStreamingServer[MediaStream, MediaStream]
-
-func _MediaService_EndMediaStream_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Id)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MediaServiceServer).EndMediaStream(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: MediaService_EndMediaStream_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MediaServiceServer).EndMediaStream(ctx, req.(*Id))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _MediaService_ManageVoIPCall_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(MediaServiceServer).ManageVoIPCall(&grpc.GenericServerStream[VoIPSignal, VoIPSignal]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type MediaService_ManageVoIPCallServer = grpc.BidiStreamingServer[VoIPSignal, VoIPSignal]
-
-// MediaService_ServiceDesc is the grpc.ServiceDesc for MediaService service.
-// It's only intended for direct use with grpc.RegisterService,
-// and not to be introspected or modified (even as a copy)
-var MediaService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "kasugai.MediaService",
-	HandlerType: (*MediaServiceServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "EndMediaStream",
-			Handler:    _MediaService_EndMediaStream_Handler,
-		},
-	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "StartMediaStream",
-			Handler:       _MediaService_StartMediaStream_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
-		},
-		{
-			StreamName:    "ManageVoIPCall",
-			Handler:       _MediaService_ManageVoIPCall_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
-		},
-	},
 	Metadata: "kasugai.proto",
 }
 
@@ -776,6 +655,8 @@ const (
 // FileTransferServiceClient is the client API for FileTransferService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// FileTransferService definition
 type FileTransferServiceClient interface {
 	InitiateFileTransfer(ctx context.Context, in *FileMetadata, opts ...grpc.CallOption) (*Ack, error)
 	TransferFileChunk(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[FileChunk, Ack], error)
@@ -846,6 +727,8 @@ type FileTransferService_ReceiveFileChunksClient = grpc.ServerStreamingClient[Fi
 // FileTransferServiceServer is the server API for FileTransferService service.
 // All implementations must embed UnimplementedFileTransferServiceServer
 // for forward compatibility.
+//
+// FileTransferService definition
 type FileTransferServiceServer interface {
 	InitiateFileTransfer(context.Context, *FileMetadata) (*Ack, error)
 	TransferFileChunk(grpc.ClientStreamingServer[FileChunk, Ack]) error
@@ -974,6 +857,177 @@ var FileTransferService_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "ReceiveFileChunks",
 			Handler:       _FileTransferService_ReceiveFileChunks_Handler,
 			ServerStreams: true,
+		},
+	},
+	Metadata: "kasugai.proto",
+}
+
+const (
+	MediaService_StartMediaStream_FullMethodName = "/kasugai.MediaService/StartMediaStream"
+	MediaService_EndMediaStream_FullMethodName   = "/kasugai.MediaService/EndMediaStream"
+	MediaService_ManageVoIPCall_FullMethodName   = "/kasugai.MediaService/ManageVoIPCall"
+)
+
+// MediaServiceClient is the client API for MediaService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// MediaService definition
+type MediaServiceClient interface {
+	StartMediaStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[MediaStream, MediaStream], error)
+	EndMediaStream(ctx context.Context, in *Id, opts ...grpc.CallOption) (*Ack, error)
+	ManageVoIPCall(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[VoIPSignal, VoIPSignal], error)
+}
+
+type mediaServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewMediaServiceClient(cc grpc.ClientConnInterface) MediaServiceClient {
+	return &mediaServiceClient{cc}
+}
+
+func (c *mediaServiceClient) StartMediaStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[MediaStream, MediaStream], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &MediaService_ServiceDesc.Streams[0], MediaService_StartMediaStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[MediaStream, MediaStream]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MediaService_StartMediaStreamClient = grpc.BidiStreamingClient[MediaStream, MediaStream]
+
+func (c *mediaServiceClient) EndMediaStream(ctx context.Context, in *Id, opts ...grpc.CallOption) (*Ack, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Ack)
+	err := c.cc.Invoke(ctx, MediaService_EndMediaStream_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mediaServiceClient) ManageVoIPCall(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[VoIPSignal, VoIPSignal], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &MediaService_ServiceDesc.Streams[1], MediaService_ManageVoIPCall_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[VoIPSignal, VoIPSignal]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MediaService_ManageVoIPCallClient = grpc.BidiStreamingClient[VoIPSignal, VoIPSignal]
+
+// MediaServiceServer is the server API for MediaService service.
+// All implementations must embed UnimplementedMediaServiceServer
+// for forward compatibility.
+//
+// MediaService definition
+type MediaServiceServer interface {
+	StartMediaStream(grpc.BidiStreamingServer[MediaStream, MediaStream]) error
+	EndMediaStream(context.Context, *Id) (*Ack, error)
+	ManageVoIPCall(grpc.BidiStreamingServer[VoIPSignal, VoIPSignal]) error
+	mustEmbedUnimplementedMediaServiceServer()
+}
+
+// UnimplementedMediaServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedMediaServiceServer struct{}
+
+func (UnimplementedMediaServiceServer) StartMediaStream(grpc.BidiStreamingServer[MediaStream, MediaStream]) error {
+	return status.Errorf(codes.Unimplemented, "method StartMediaStream not implemented")
+}
+func (UnimplementedMediaServiceServer) EndMediaStream(context.Context, *Id) (*Ack, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EndMediaStream not implemented")
+}
+func (UnimplementedMediaServiceServer) ManageVoIPCall(grpc.BidiStreamingServer[VoIPSignal, VoIPSignal]) error {
+	return status.Errorf(codes.Unimplemented, "method ManageVoIPCall not implemented")
+}
+func (UnimplementedMediaServiceServer) mustEmbedUnimplementedMediaServiceServer() {}
+func (UnimplementedMediaServiceServer) testEmbeddedByValue()                      {}
+
+// UnsafeMediaServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to MediaServiceServer will
+// result in compilation errors.
+type UnsafeMediaServiceServer interface {
+	mustEmbedUnimplementedMediaServiceServer()
+}
+
+func RegisterMediaServiceServer(s grpc.ServiceRegistrar, srv MediaServiceServer) {
+	// If the following call pancis, it indicates UnimplementedMediaServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&MediaService_ServiceDesc, srv)
+}
+
+func _MediaService_StartMediaStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(MediaServiceServer).StartMediaStream(&grpc.GenericServerStream[MediaStream, MediaStream]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MediaService_StartMediaStreamServer = grpc.BidiStreamingServer[MediaStream, MediaStream]
+
+func _MediaService_EndMediaStream_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Id)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MediaServiceServer).EndMediaStream(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MediaService_EndMediaStream_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MediaServiceServer).EndMediaStream(ctx, req.(*Id))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MediaService_ManageVoIPCall_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(MediaServiceServer).ManageVoIPCall(&grpc.GenericServerStream[VoIPSignal, VoIPSignal]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MediaService_ManageVoIPCallServer = grpc.BidiStreamingServer[VoIPSignal, VoIPSignal]
+
+// MediaService_ServiceDesc is the grpc.ServiceDesc for MediaService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var MediaService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "kasugai.MediaService",
+	HandlerType: (*MediaServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "EndMediaStream",
+			Handler:    _MediaService_EndMediaStream_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "StartMediaStream",
+			Handler:       _MediaService_StartMediaStream_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "ManageVoIPCall",
+			Handler:       _MediaService_ManageVoIPCall_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "kasugai.proto",

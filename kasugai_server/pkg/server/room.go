@@ -18,6 +18,7 @@ type Room struct {
 	Description  string
 	CreatedAt    time.Time
 	mu           sync.RWMutex
+	key          string
 }
 
 type RoomType int
@@ -56,30 +57,6 @@ type ParticipantRole int
 const (
 	RoleParticipant ParticipantRole = iota
 	RoleAdmin
-)
-
-type Message struct {
-	Text *kasugai.TextMessage
-}
-
-type MediaStream struct {
-	Media  *kasugai.MediaStream
-	Active bool
-}
-
-type FileTransfer struct {
-	Metadata  *kasugai.FileMetadata
-	FileChunk *kasugai.FileChunk
-	Status    FileTransferStatus
-}
-
-type FileTransferStatus int
-
-const (
-	FileTransferPending FileTransferStatus = iota
-	FileTransferInProgress
-	FileTransferCompleted
-	FileTransferFailed
 )
 
 // RoomBuilder is used to construct Room objects
@@ -135,6 +112,16 @@ func (rb *RoomBuilder) WithParticipant(user *kasugai.User) *RoomBuilder {
 // WithDescription sets the description of the room
 func (rb *RoomBuilder) WithDescription(description string) *RoomBuilder {
 	rb.room.Description = description
+	return rb
+}
+
+// WithKey sets the password key of the room
+func (rb *RoomBuilder) WithKey(key string) *RoomBuilder {
+	if len(key) == 0 {
+		key = "OPEN"
+	}
+
+	rb.room.key = key
 	return rb
 }
 

@@ -11,15 +11,15 @@ the `chat` package is easy to use.
 
 ### User Service
 - [X] Register User
-- [] GetUserList
-- [] UpdateUser Status
-- [] Get user by id
+- [X] GetUserList
+- [X] UpdateUser Status
+- [X] Get user by id
 
 ### Room Service:
 - [X] Create Room
 - [X] Join room
 - [X] Leave Room
-- [] Get room participants
+- [X] Get room participants
 
 ### File Transfer Service
 - [] Init

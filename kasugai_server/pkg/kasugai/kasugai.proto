@@ -10,8 +10,47 @@ option go_package = "/kasugai";
 option py_generic_services = true;
 
 // Common messages
+message Error {
+    string code = 1;
+    string message = 2;
+}
+
 message Id {
     string uuid = 1;
+}
+
+message Ack {
+    bool success = 1;
+    string message = 2;
+}
+
+// ChatService definition
+service ChatService {
+    rpc SendTextMessage(TextMessage) returns (Ack);
+    rpc ReceiveTextMessages(Id) returns (stream TextMessage);
+}
+
+// Chat messages
+message TextMessage {
+    Id id = 1;
+    Id senderId = 2;
+    Id recipientId = 3;
+    string content = 4;
+    google.protobuf.Timestamp timestamp = 5;
+}
+
+// USER DEFINITIONS
+
+// UserService definition
+service UserService {
+    rpc RegisterUser(User) returns (Ack);
+    rpc UpdateUserStatus(User) returns (Ack);
+    rpc GetUserList(google.protobuf.Empty) returns (UserList);
+    rpc GetUserById(Id) returns (User);
+}
+
+message UserList {
+    repeated User users = 1;
 }
 
 message User {
@@ -27,23 +66,24 @@ enum UserStatus {
     BUSY = 3;
 }
 
-message Ack {
-    bool success = 1;
-    string message = 2;
+// ROOM DEFINITIONS
+
+// RoomService definition
+service RoomService {
+    rpc CreateRoom(Room) returns (Ack);
+    rpc JoinRoom(Id) returns (Ack);
+    rpc LeaveRoom(Id) returns (Ack);
+    rpc GetRoomParticipants(Id) returns (RoomParticipants);
+    rpc GetRoomList(google.protobuf.Empty) returns (RoomList);
 }
 
-message Error {
-    string code = 1;
-    string message = 2;
+message RoomParticipants {
+    Id roomId = 1;
+    repeated User participants = 2;
 }
 
-// Chat messages
-message TextMessage {
-    Id id = 1;
-    Id senderId = 2;
-    Id recipientId = 3;
-    string content = 4;
-    google.protobuf.Timestamp timestamp = 5;
+message RoomList {
+    repeated Room rooms = 1;
 }
 
 message Room {
@@ -61,19 +101,15 @@ enum RoomType {
     VOIP = 2;
 }
 
-// Media streaming
-message MediaStream {
-    Id id = 1;
-    Id senderId = 2;
-    MediaType type = 3;
-    bytes data = 4;
-    google.protobuf.Timestamp timestamp = 5;
-}
 
-enum MediaType {
-    VIDEO = 0;
-    AUDIO = 1;
-    SCREEN = 2;
+// FILE TRANSFER DEFINITIONS
+
+// FileTransferService definition
+service FileTransferService {
+    rpc InitiateFileTransfer(FileMetadata) returns (Ack);
+    rpc TransferFileChunk(stream FileChunk) returns (Ack);
+    rpc ReceiveFileMetadata(Id) returns (FileMetadata);
+    rpc ReceiveFileChunks(Id) returns (stream FileChunk);
 }
 
 // File transfer
@@ -92,6 +128,31 @@ message FileChunk {
     int32 chunkNumber = 3;
     bool isLastChunk = 4;
     string checksum = 5;
+}
+
+
+// MEDIA STREAMING DEFINITIONS
+
+// MediaService definition
+service MediaService {
+    rpc StartMediaStream(stream MediaStream) returns (stream MediaStream);
+    rpc EndMediaStream(Id) returns (Ack); 
+    rpc ManageVoIPCall(stream VoIPSignal) returns (stream VoIPSignal);
+}
+
+// Media streaming
+message MediaStream {
+    Id id = 1;
+    Id senderId = 2;
+    MediaType type = 3;
+    bytes data = 4;
+    google.protobuf.Timestamp timestamp = 5;
+}
+
+enum MediaType {
+    VIDEO = 0;
+    AUDIO = 1;
+    SCREEN = 2;
 }
 
 // VoIP
@@ -134,49 +195,4 @@ message VoIPSignal {
     }
 }
 
-message UserList {
-    repeated User users = 1;
-}
 
-message RoomParticipants {
-    Id roomId = 1;
-    repeated User participants = 2;
-}
-
-message RoomList {
-    repeated Room rooms = 1;
-}
-
-// Service definitions
-service UserService {
-    rpc RegisterUser(User) returns (Ack);
-    rpc UpdateUserStatus(User) returns (Ack);
-    rpc GetUserList(google.protobuf.Empty) returns (UserList);
-    rpc GetUserById(Id) returns (User);
-}
-
-service RoomService {
-    rpc CreateRoom(Room) returns (Ack);
-    rpc JoinRoom(Id) returns (Ack);
-    rpc LeaveRoom(Id) returns (Ack);
-    rpc GetRoomParticipants(Id) returns (RoomParticipants);
-    rpc GetRoomList(google.protobuf.Empty) returns (RoomList);
-}
-
-service ChatService {
-    rpc SendTextMessage(TextMessage) returns (Ack);
-    rpc ReceiveTextMessages(Id) returns (stream TextMessage);
-}
-
-service MediaService {
-    rpc StartMediaStream(stream MediaStream) returns (stream MediaStream);
-    rpc EndMediaStream(Id) returns (Ack); 
-    rpc ManageVoIPCall(stream VoIPSignal) returns (stream VoIPSignal);
-}
-
-service FileTransferService {
-    rpc InitiateFileTransfer(FileMetadata) returns (Ack);
-    rpc TransferFileChunk(stream FileChunk) returns (Ack);
-    rpc ReceiveFileMetadata(Id) returns (FileMetadata);
-    rpc ReceiveFileChunks(Id) returns (stream FileChunk);
-}
