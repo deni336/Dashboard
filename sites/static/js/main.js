@@ -114,10 +114,6 @@ closeBtn.onclick = function() {
 document.getElementById("sendChat").onclick = function() {
     var message = document.getElementById("chatInput").value;
     if (message.trim() !== "") {
-        var chatMessages = document.getElementById("chatMessages");
-        var newMessage = document.createElement("p");
-        newMessage.textContent = message;
-        chatMessages.appendChild(newMessage);
 
         // Send the message to the Flask route
         fetch('/send_message', {
