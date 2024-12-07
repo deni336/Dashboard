@@ -212,7 +212,11 @@ class WebServer:
 		"""
 		self.is_running = False
 		print("ChatManager stopped.")
+<<<<<<< Updated upstream
 
+=======
+		
+>>>>>>> Stashed changes
 	def open_browser(self):
 		# Open the default web browser to access the web server
 		self.config = ConfigManager()
