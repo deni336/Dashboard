@@ -4,10 +4,10 @@ import sys
 import os
 import psutil
 from __init__ import __version__
-from global_logger import GlobalLogger
-from config_handler import ConfigHandler
-from event_handler import EventHandler
-from webserver import WebServer
+from src.global_logger import GlobalLogger
+from src.config_handler import ConfigHandler
+from src.event_handler import EventHandler
+from src.webserver import WebServer
 
 class Main:
 

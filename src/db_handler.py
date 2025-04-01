@@ -1,8 +1,8 @@
 import sqlite3
 from sqlite3 import Error
 import os, getpass
-from global_logger import GlobalLogger
-from db_utils import get_default_db_path
+from src.global_logger import GlobalLogger
+from src.db_utils import get_default_db_path
 
 # Create the table in the database if it doesn't exist
 class DatabaseCreation:

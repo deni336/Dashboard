@@ -4,7 +4,7 @@ import platform
 import subprocess
 import webbrowser
 from flask import Blueprint, request, render_template, session, abort
-from global_logger import GlobalLogger
+from src.global_logger import GlobalLogger
 
 button_bp = Blueprint('button_bp', __name__)
 logger = GlobalLogger.get_logger("ButtonRoutes")

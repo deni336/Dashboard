@@ -1,4 +1,4 @@
-from config_handler import ConfigHandler
+from src.config_handler import ConfigHandler
 
 class FileManager:
     def __init__(self):

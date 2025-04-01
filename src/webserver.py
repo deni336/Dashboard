@@ -6,18 +6,18 @@ import secrets
 from authlib.integrations.flask_client import OAuth
 from flask import Flask, session
 from waitress import serve
-from config_handler import ConfigHandler
-from global_logger import GlobalLogger
-from event_handler import EventHandler
-from chat_manager import ChatManager
-from const import UPLOAD_FOLDER
+from src.config_handler import ConfigHandler
+from src.global_logger import GlobalLogger
+from src.event_handler import EventHandler
+from src.chat_manager import ChatManager
+from src.const import UPLOAD_FOLDER
 
 # Import modular routes
-from routes.auth_routes import auth_bp, init_auth_routes
-from routes.chat_routes import chat_bp, init_chat_routes
-from routes.file_routes import file_bp
-from routes.button_routes import button_bp, init_button_routes
-from routes.ui_routes import ui_bp, init_ui_routes
+from src.routes.auth_routes import auth_bp, init_auth_routes
+from src.routes.chat_routes import chat_bp, init_chat_routes
+from src.routes.file_routes import file_bp
+from src.routes.button_routes import button_bp, init_button_routes
+from src.routes.ui_routes import ui_bp, init_ui_routes
 
 class WebServer:
     def __init__(self):

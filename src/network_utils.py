@@ -2,7 +2,7 @@ import os
 import subprocess
 import json
 from datetime import datetime
-from global_logger import GlobalLogger
+from src.global_logger import GlobalLogger
 
 logger = GlobalLogger.get_logger("NetworkSettings")
 

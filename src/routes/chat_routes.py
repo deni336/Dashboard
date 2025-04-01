@@ -1,6 +1,6 @@
 # routes/chat_routes.py
 from flask import Blueprint, request, jsonify
-from global_logger import GlobalLogger
+from src.global_logger import GlobalLogger
 
 chat_bp = Blueprint('chat_bp', __name__)
 logger = GlobalLogger.get_logger("ChatRoutes")
@@ -41,14 +41,19 @@ def join_room():
 @chat_bp.route('/create_room', methods=['POST'])
 def create_room():
     data = request.get_json()
-    room = data.get('room')
-    password = data.get('password')
+    room_name = data.get('roomName')
+    room_password = data.get('roomPassword', '')
 
-    if room:
-        if room in rooms:
-            return jsonify({"Error": "Room already exists"}), 400
-        else:
-            rooms[room] = {"password": password}
-            return jsonify({"Message": f"Room '{room}' created successfully"}), 200
-    else:
-        return jsonify({"Error": "Room name is required"}), 400
+    if not room_name:
+        return jsonify({'error': 'Room name required'}), 400
+
+    try:
+        new_room = chat_manager.create_room(room_name, room_password)
+
+        # ✅ Update global/shared `rooms` dict with the new room
+        rooms[new_room['id']] = new_room
+
+        return jsonify({'status': 'Room created', 'room': new_room}), 200
+    except Exception as e:
+        logger.error(f"Failed to create room: {e}")
+        return jsonify({'error': str(e)}), 500

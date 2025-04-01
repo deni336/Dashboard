@@ -6,7 +6,6 @@ import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 
 option go_package = "/kasugai";
-
 option py_generic_services = true;
 
 // Common messages
@@ -47,11 +46,17 @@ message TextMessage {
 }
 
 message Room {
-    Id id = 1;
+    Id id = 1; // Server should generate this ID on room creation
     string name = 2;
     repeated Id participantIds = 3;
     RoomType type = 4;
     Id creatorId = 5;
+    string password = 6;
+}
+
+message JoinRoomRequest {
+    Id roomId = 1;
+    string password = 2;
 }
 
 enum RoomType {
@@ -152,14 +157,14 @@ service UserService {
 
 service RoomService {
     rpc CreateRoom(Room) returns (Ack);
-    rpc JoinRoom(Id) returns (Ack);
+    rpc JoinRoom(JoinRoomRequest) returns (Ack);
     rpc LeaveRoom(Id) returns (Ack);
     rpc GetRoomParticipants(Id) returns (RoomParticipants);
 }
 
 service ChatService {
     rpc SendTextMessage(TextMessage) returns (Ack);
-    rpc ReceiveTextMessages(Id) returns (stream TextMessage);
+    rpc ReceiveTextMessages(Id) returns (stream TextMessage); // Assumes Id.uuid = Room ID
 }
 
 service MediaService {

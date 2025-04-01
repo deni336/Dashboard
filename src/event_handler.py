@@ -1,4 +1,4 @@
-from global_logger import GlobalLogger
+from src.global_logger import GlobalLogger
 
 class EventHandler:
     def __init__(self, logger=None):

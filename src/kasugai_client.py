@@ -1,5 +1,5 @@
 import grpc
-from global_logger import GlobalLogger
+from src.global_logger import GlobalLogger
 from protos.kasugai_pb2 import Id, Room, TextMessage, MediaStream, MediaType, User, UserStatus
 from protos.kasugai_pb2_grpc import (
     UserServiceStub, RoomServiceStub, ChatServiceStub,

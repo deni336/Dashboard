@@ -2,7 +2,7 @@
 import os
 from flask import Blueprint, render_template, request, redirect, url_for, send_from_directory, session, jsonify
 from werkzeug.utils import secure_filename
-from global_logger import GlobalLogger
+from src.global_logger import GlobalLogger
 
 ui_bp = Blueprint('ui_bp', __name__)
 logger = GlobalLogger.get_logger("UIRoutes")

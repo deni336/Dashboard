@@ -1,6 +1,6 @@
 import getpass
-from global_logger import GlobalLogger
-from config_handler import ConfigHandler
+from src.global_logger import GlobalLogger
+from src.config_handler import ConfigHandler
 
 logger = GlobalLogger.get_logger("DBUtils")
 config = ConfigHandler()

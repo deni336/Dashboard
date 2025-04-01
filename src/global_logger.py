@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime
-from config_handler import ConfigHandler
+from src.config_handler import ConfigHandler
 
 class GlobalLogger:
     config = ConfigHandler()

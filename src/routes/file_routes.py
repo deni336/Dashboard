@@ -1,7 +1,7 @@
 # routes/file_routes.py
 from flask import Blueprint, request, jsonify
-from file_manager import FileManager
-from global_logger import GlobalLogger
+from src.file_manager import FileManager
+from src.global_logger import GlobalLogger
 
 file_bp = Blueprint('file_bp', __name__)
 logger = GlobalLogger.get_logger("FileRoutes")

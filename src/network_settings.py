@@ -6,7 +6,7 @@ import tkinter as tk
 from tkinter import scrolledtext, messagebox, simpledialog, ttk
 import ctypes, sys
 import threading
-from network_utils import NetworkSettingsTool
+from src.network_utils import NetworkSettingsTool
 
 # Check if the script is running with administrator privileges
 def is_admin():

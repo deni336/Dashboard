@@ -1,6 +1,6 @@
 # routes/auth_routes.py
 from flask import Blueprint, redirect, session, url_for
-from global_logger import GlobalLogger
+from src.global_logger import GlobalLogger
 
 auth_bp = Blueprint('auth_bp', __name__)
 logger = GlobalLogger.get_logger("AuthRoutes")
