@@ -5,7 +5,7 @@ import os
 import psutil
 from __init__ import __version__
 from global_logger import GlobalLogger
-from config_manager import ConfigManager
+from config_handler import ConfigHandler
 from event_handler import EventHandler
 from webserver import WebServer
 
@@ -14,7 +14,7 @@ class Main:
     def __init__(self):
         self.logger = GlobalLogger().get_logger("Main")
         self.logger.info(f"Starting Kasugai version {__version__}...")
-        self.config = ConfigManager()
+        self.config = ConfigHandler()
         self.event_handler = EventHandler()
 
         webserver_thread = threading.Thread(target=self.start_webserver, daemon=True)
@@ -30,14 +30,13 @@ class Main:
         self.webserver.run()
 
     def start_server(self):
-        self.event_handler.register_event([os.getpid(), "ChatServer"])
+        self.event_handler.register_event("ChatServer", os.getpid())
     
     def run(self):
         """Main loop to monitor events, process statuses, and handle shutdown signals."""
         try:
-            while "Shutdown" not in self.event_handler.events:
+            while not self.event_handler.has_event("Shutdown"):
                 self.process_events()
-                #self.monitor_process()
                 time.sleep(5)
         except KeyboardInterrupt:
             self.terminate_processes()
@@ -45,20 +44,18 @@ class Main:
             sys.exit(0)
 
     def process_events(self):
-        for event in list(self.event_handler.events):
-            if event == "WebServer":
-                if not self.is_pid_running(self.event_handler.events['WebServer']):
-                    self.logger.warning(f"Process with PID {self.event_handler.events['WebServer']} has stopped running.")
-                    self.logger.info(f"Restarting process PID {self.event_handler.events['WebServer']}")
-                    self.start_webserver()
-            elif event == "ChatServer":
-                if not self.is_pid_running(self.event_handler.events['ChatServer']):
-                    self.logger.warning(f"Process with PID {self.event_handler.events['ChatServer']} has stopped running.")
-                    self.logger.info(f"Restarting process PID {self.event_handler.events['ChatServer']}")
-                    self.start_server()
-            elif event == "Shutdown":
+        for name, pid in self.event_handler.list_events().items():
+            if name == "WebServer" and not self.is_pid_running(pid):
+                self.logger.warning(f"Process '{name}' with PID {pid} has stopped running.")
+                self.logger.info(f"Restarting {name}...")
+                self.start_webserver()
+            elif name == "ChatServer" and not self.is_pid_running(pid):
+                self.logger.warning(f"Process '{name}' with PID {pid} has stopped running.")
+                self.logger.info(f"Restarting {name}...")
+                self.start_server()
+            elif name == "Shutdown":
                 self.logger.info("Shutdown signal detected. Shutting down application...")
-                self.event_handler.events.clear()
+                self.event_handler.clear_events()
                 self.terminate_processes()
                 sys.exit(0)
 
@@ -73,7 +70,7 @@ class Main:
     
     def terminate_processes(self):
         """Terminate all processes."""
-        for pid in self.event_handler.events.values():
+        for pid in self.event_handler.list_events().values():
             try:
                 p = psutil.Process(pid)
                 p.terminate()

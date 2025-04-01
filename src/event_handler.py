@@ -1,20 +1,32 @@
 from global_logger import GlobalLogger
-from config_manager import ConfigManager
 
 class EventHandler:
-    events = {}
+    def __init__(self, logger=None):
+        self.logger = logger or GlobalLogger.get_logger('EventHandler')
+        self._events = {}
 
-    def __init__(self):
-        self.logger = GlobalLogger.get_logger('EventHandler')
+    def register_event(self, name, pid):
+        """Register a process event by name and PID."""
+        self._events[name] = pid
+        self.logger.info(f"Event registered: {name} with PID={pid}")
 
-    def register_event(self, event):
-        self.events[event[1]] = event[0] # event[1] is the event name, event[0] is the PID
-        self.logger.info(f"Event received: PID={event[0]}, {event[1]}")
-
-    def remove_event(self, event):
-        # Ensure the event exists before removing
-        if event[1] in self.events:
-            del self.events[event[1]]  # Remove the event by its name (event[1])
-            self.logger.info(f"Event removed: PID={event[0]}, {event[1]}")
+    def remove_event(self, name):
+        """Remove an event by name."""
+        if name in self._events:
+            del self._events[name]
+            self.logger.info(f"Event removed: {name}")
         else:
-            self.logger.warning(f"Event not found: {event[1]}")
+            self.logger.warning(f"Tried to remove nonexistent event: {name}")
+
+    def get_pid(self, name):
+        return self._events.get(name)
+
+    def list_events(self):
+        return self._events.copy()
+
+    def clear_events(self):
+        self.logger.info("Clearing all registered events.")
+        self._events.clear()
+
+    def has_event(self, name):
+        return name in self._events

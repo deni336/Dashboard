@@ -1,27 +1,23 @@
-# from ChatClient import ChatCl
-import config_manager as ConfigHandler
+from config_handler import ConfigHandler
 
-class FileManager():
-    def __init__(self) -> None:
+class FileManager:
+    def __init__(self):
         self.config = ConfigHandler()
-    
-    def whatsAvail(self):
-        self.config = ConfigHandler()
-        self.listOfAvailFiles = self.config.get('FileTransfer', 'avail')
-        return self.listOfAvailFiles
 
-    def download():
-        pass
+    def get_available_files(self):
+        files = self.config.get('FileTransfer', 'avail')
+        return files if isinstance(files, list) else []
 
     def delete(self, filename):
-        self.listOfAvailFiles.remove(filename)
-        ConfigHandler.update('download', self.listOfAvailFiles)
-
+        files = self.get_available_files()
+        if filename in files:
+            files.remove(filename)
+            self.config.set('FileTransfer', 'avail', str(files))
 
     def stage(self, ip, size, path):
-        self.listOfAvailFiles.append([ip, size, path])
-        ConfigHandler.update('download', self.listOfAvailFiles)
-        # ChatClient.sendStage(ChatClient[ip, size, path])
-    
+        files = self.get_available_files()
+        files.append([ip, size, path])
+        self.config.set('FileTransfer', 'avail', str(files))
 
-# This needs to be an API
+    def download(self):
+        raise NotImplementedError("Download functionality is not implemented yet.")

@@ -237,6 +237,23 @@ document.getElementById('createRoomBtn').addEventListener('click', function() {
     }
 });
 
+document.getElementById('launchNetworkSettingsBtn').addEventListener('click', () => {
+    fetch('/open_network_settings', {
+      method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.message) {
+        console.log(data.message); // Optional: Toast or alert
+      } else {
+        console.error(data.error);
+      }
+    })
+    .catch(error => {
+      console.error('Network Settings launch failed:', error);
+    });
+  });
+
 document.getElementById('logoutBtn').addEventListener('click', function() {
     fetch('/logout', {
         method: 'GET'

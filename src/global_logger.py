@@ -1,10 +1,10 @@
 import logging
 import os
 from datetime import datetime
-from config_manager import ConfigManager
+from config_handler import ConfigHandler
 
 class GlobalLogger:
-    config = ConfigManager()
+    config = ConfigHandler()
 
     @classmethod
     def get_logger(cls, name):

@@ -5,6 +5,8 @@ from datetime import datetime
 import tkinter as tk
 from tkinter import scrolledtext, messagebox, simpledialog, ttk
 import ctypes, sys
+import threading
+from network_utils import NetworkSettingsTool
 
 # Check if the script is running with administrator privileges
 def is_admin():
@@ -13,79 +15,21 @@ def is_admin():
     except:
         return False
 
+# Function to launch the app as a separate thread
+def launch_network_settings():
+    def run_gui():
+        root = tk.Tk()
+        app = NetworkSettingsApp(root)
+        root.mainloop()
+
+    threading.Thread(target=run_gui, daemon=True).start()
+
 # Re-launch the script as administrator if not already elevated
-if not is_admin():
-    ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, '"' + os.path.abspath(__file__) + '"', None, 1)
-    sys.exit(0)
-
-class NetworkSettingsTool:
-    def __init__(self, history_file='network_settings_history.json'):
-        self.history_file = history_file
-        self.load_history()
-
-    def load_history(self):
-        if os.path.exists(self.history_file):
-            with open(self.history_file, 'r') as file:
-                self.history = json.load(file)
-        else:
-            self.history = []
-
-    def save_history(self):
-        with open(self.history_file, 'w') as file:
-            json.dump(self.history, file, indent=4)
-
-    def get_current_settings(self):
-        result = subprocess.run(['ipconfig', '/all'], capture_output=True, text=True)
-        return result.stdout
-
-    def get_network_interfaces(self):
-        result = subprocess.run(['netsh', 'interface', 'show', 'interface'], capture_output=True, text=True)
-        interfaces = []
-        for line in result.stdout.splitlines():
-            if 'Dedicated' in line or 'Loopback' in line or 'Wi-Fi' in line or 'Ethernet' in line:
-                parts = line.split()
-                if len(parts) > 3:
-                    interfaces.append(parts[-1])
-        return interfaces
-
-    def save_current_settings(self):
-        current_settings = self.get_current_settings()
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        self.history.append({
-            'timestamp': timestamp,
-            'settings': current_settings
-        })
-        self.save_history()
-
-    def change_ip_settings(self, interface, ip_address, subnet_mask, gateway):
-        try:
-            subprocess.run([
-                'netsh', 'interface', 'ip', 'set', 'address',
-                f'name={interface}',
-                f'static', ip_address, subnet_mask, gateway
-            ], check=True)
-            self.save_current_settings()
-            return f"Successfully changed IP settings for {interface}"
-        except subprocess.CalledProcessError as e:
-            return f"Error: {e}"
-
-    def change_dns_settings(self, interface, dns_address):
-        try:
-            subprocess.run([
-                'netsh', 'interface', 'ip', 'set', 'dns',
-                f'name={interface}',
-                'static', dns_address
-            ], check=True)
-            self.save_current_settings()
-            return f"Successfully changed DNS settings for {interface}"
-        except subprocess.CalledProcessError as e:
-            return f"Error: {e}"
-
-    def show_history(self):
-        return "\n".join([
-            f"Timestamp: {entry['timestamp']}\n{entry['settings']}\n{'-' * 40}"
-            for entry in self.history
-        ])
+if __name__ == "__main__":
+    if not is_admin():
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, '"' + os.path.abspath(__file__) + '"', None, 1)
+        sys.exit(0)
+    launch_network_settings()
 
 class NetworkSettingsApp:
     def __init__(self, root):
@@ -157,8 +101,3 @@ class NetworkSettingsApp:
 
     def get_user_input(self, prompt):
         return simpledialog.askstring("Input", prompt, parent=self.root)
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = NetworkSettingsApp(root)
-    root.mainloop()
