@@ -4,7 +4,7 @@ import grpc
 import warnings
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-import kasugai_server.python.kasugai_pb2 as kasugai__server_dot_python_dot_kasugai__pb2
+import kasugai_pb2 as kasugai__server_dot_python_dot_kasugai__pb2
 
 GRPC_GENERATED_VERSION = '1.66.2'
 GRPC_VERSION = grpc.__version__
