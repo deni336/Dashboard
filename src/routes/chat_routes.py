@@ -50,10 +50,15 @@ def create_room():
     try:
         new_room = chat_manager.create_room(room_name, room_password)
 
-        # ✅ Update global/shared `rooms` dict with the new room
+        if not new_room or 'id' not in new_room:
+            logger.error("create_room failed: new_room is None or missing 'id'")
+            return jsonify({'error': 'Failed to create room'}), 500
+
+        # ✅ Update shared room list
         rooms[new_room['id']] = new_room
 
         return jsonify({'status': 'Room created', 'room': new_room}), 200
+
     except Exception as e:
         logger.error(f"Failed to create room: {e}")
         return jsonify({'error': str(e)}), 500

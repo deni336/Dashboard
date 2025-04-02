@@ -7,7 +7,7 @@ from src.config_handler import ConfigHandler
 from src.db_handler import ChatHistory
 from src.db_utils import get_default_db_path
 from src.kasugai_client import KasugaiClient
-from protos.kasugai_pb2 import RoomType
+from kasugai_server.python.kasugai_pb2 import RoomType
 
 class ChatManager:
     def __init__(self, app, user_name):
@@ -34,12 +34,28 @@ class ChatManager:
 
     def create_room(self, room_name, password):
         try:
-            room_id = self.client.create_room(room_name, password, RoomType.CHAT, self.user.id.uuid)
+            room_id = self.client.create_room(
+                name=room_name,
+                password=password,
+                room_type=RoomType.CHAT,
+                creator_id=self.user.id.uuid
+            )
             self.logger.info(f"Room created with ID: {room_id.uuid}")
+
+            # Join the newly created room
             response = self.client.join_room(room_id, password)
             self.logger.info(f"Joined room: {response.success}, {response.message}")
+
+            return {
+                "id": room_id.uuid,
+                "name": room_name,
+                "type": "CHAT",
+                "creator": self.user.name
+            }
+
         except Exception as e:
             self.logger.error(f"Failed to create room: {e}")
+            return None
 
     def join_room(self, room_name, password=''):
         try:

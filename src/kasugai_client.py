@@ -1,7 +1,7 @@
 import grpc
 from src.global_logger import GlobalLogger
-from protos.kasugai_pb2 import Id, Room, TextMessage, MediaStream, MediaType, User, UserStatus
-from protos.kasugai_pb2_grpc import (
+from kasugai_server.python.kasugai_pb2 import Id, Room, TextMessage, MediaStream, MediaType, User, UserStatus, JoinRoomRequest
+from kasugai_server.python.kasugai_pb2_grpc import (
     UserServiceStub, RoomServiceStub, ChatServiceStub,
     MediaServiceStub, FileTransferServiceStub
 )
@@ -43,7 +43,11 @@ class KasugaiClient:
     # ===== Room Logic =====
     def create_room(self, name, password, room_type, creator_id):
         try:
-            room = Room(name=name, password=password, type=room_type, creatorId=creator_id)
+            room = Room(
+                name=name,
+                type=room_type,
+                creatorId=Id(uuid=creator_id)
+            )
             response = self.room_stub.CreateRoom(room)
             if response.success:
                 return Id(uuid=response.message)
@@ -52,16 +56,27 @@ class KasugaiClient:
             self.logger.error(f"create_room error: {e}")
             raise
 
+
     def join_room(self, room_id, password=''):
         try:
-            metadata = (('user', self.current_user.id.uuid), ('password', password))
-            response = self.room_stub.JoinRoom(Id(uuid=room_id), metadata=metadata)
+            if not isinstance(room_id.uuid, str):
+                raise ValueError("room_id must be a string UUID")
+            if not isinstance(password, str):
+                raise ValueError("password must be a string")
+
+            request = JoinRoomRequest(
+                roomId=Id(uuid=room_id.uuid),
+                password=password
+            )
+            response = self.room_stub.JoinRoom(request)
             if response.success:
                 self.current_room_id = room_id
             return response
         except Exception as e:
             self.logger.error(f"join_room error: {e}")
             raise
+
+
 
     # ===== Chat Logic =====
     def send_text_message(self, content):

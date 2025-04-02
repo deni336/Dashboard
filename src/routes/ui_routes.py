@@ -3,6 +3,7 @@ import os
 from flask import Blueprint, render_template, request, redirect, url_for, send_from_directory, session, jsonify
 from werkzeug.utils import secure_filename
 from src.global_logger import GlobalLogger
+from src.network_settings import launch_network_settings
 
 ui_bp = Blueprint('ui_bp', __name__)
 logger = GlobalLogger.get_logger("UIRoutes")
@@ -49,7 +50,6 @@ def screen_share():
 @ui_bp.route('/open_network_settings', methods=['POST'])
 def open_network_settings():
     try:
-        from network_settings import launch_network_settings
         launch_network_settings()
         return '', 204  # ✅ No Content = no page update or body render
     except Exception as e:
