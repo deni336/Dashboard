@@ -10,7 +10,7 @@ from src.config_handler import ConfigHandler
 from src.global_logger import GlobalLogger
 from src.event_handler import EventHandler
 from src.chat_manager import ChatManager
-from depricated.const import UPLOAD_FOLDER
+
 
 # Import modular routes
 from src.routes.auth_routes import auth_bp, init_auth_routes
@@ -25,7 +25,7 @@ class WebServer:
         self.config = ConfigHandler()
         self.event_handler = EventHandler()
         self.app = Flask(__name__, template_folder='../sites/templates', static_folder='../sites/static')
-        self.app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+        self.app.config['UPLOAD_FOLDER'] = self.config.get("FileTransfer", "uploadfolder")
         self.app.secret_key = secrets.token_hex(16)
 
         self.app.config['GOOGLE_CLIENT_ID'] = self.config.get('Application', 'clientid')
@@ -36,7 +36,7 @@ class WebServer:
         # Initialize modular routes
         init_auth_routes(self.app, self.oauth, self.server_connect)
         init_button_routes(self.config)
-        init_ui_routes(self.config, UPLOAD_FOLDER)
+        init_ui_routes(self.config, self.config.get("FileTransfer", "uploadfolder"))
 
         self.setup_routes()
 
