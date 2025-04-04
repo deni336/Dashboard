@@ -1,6 +1,7 @@
 waitress
 grpcio
 grpcio-tools
+grpcio-health-checking
 werkzeug
 flask-socketio
 protobuf

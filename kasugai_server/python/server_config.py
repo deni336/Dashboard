@@ -21,7 +21,9 @@ DEFAULT_CONFIG = {
 
 def get_default_config_path():
     user = getpass.getuser()
-    return fr"C:/Users/{user}/Kasugai/server/config.ini"
+    base_dir = os.path.join(os.path.expanduser("~"), "Apollo")
+    config_file = os.path.join(base_dir, "config.ini")
+    return config_file
 
 class ServerConfig:
     def __init__(self, config_file=None):

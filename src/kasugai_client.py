@@ -1,10 +1,7 @@
 import grpc
 from src.global_logger import GlobalLogger
 from kasugai_server.python.kasugai_pb2 import Id, Room, TextMessage, MediaStream, MediaType, User, UserStatus, JoinRoomRequest
-from kasugai_server.python.kasugai_pb2_grpc import (
-    UserServiceStub, RoomServiceStub, ChatServiceStub,
-    MediaServiceStub, FileTransferServiceStub
-)
+from kasugai_server.python.kasugai_pb2_grpc import UserServiceStub, RoomServiceStub, ChatServiceStub, MediaServiceStub, FileTransferServiceStub
 from google.protobuf.timestamp_pb2 import Timestamp
 import uuid
 

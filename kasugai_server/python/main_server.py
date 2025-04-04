@@ -1,7 +1,4 @@
-import grpc
-import uuid
-import time
-import threading
+import grpc, uuid, time, threading, sys
 from concurrent import futures
 from google.protobuf.timestamp_pb2 import Timestamp
 import kasugai_pb2 as pb
@@ -208,8 +205,31 @@ class ChatService(pb_grpc.ChatServiceServicer):
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details("Internal error streaming messages")
 
+logger = ServerLogger.get_logger("KasugaiServer")
+
+def command_listener(server):
+    """
+    Listens for console commands to shutdown or restart the server.
+    """
+    while True:
+        cmd = input("Enter command (shutdown/restart): ").strip().lower()
+        if cmd == "shutdown":
+            logger.info("Shutdown command received. Shutting down server gracefully.")
+            # Stop the server immediately (0 seconds grace period)
+            server.stop(0)
+            sys.exit(0)
+        elif cmd == "restart":
+            logger.info("Restart command received. Restarting server.")
+            # Stop the server and then restart after a short delay
+            server.stop(0)
+            time.sleep(1)
+            # Note: In this simple example, we call serve() recursively.
+            # In a production system, consider using an external process manager.
+            serve()
+            break
+
 def serve():
-    logger = ServerLogger.get_logger("KasugaiServer")
+    
     logger.info("Starting Kasugai gRPC server...")
     # Instantiate persistent storage.
     storage = ServerStorage()

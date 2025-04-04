@@ -1,24 +1,22 @@
 import logging
 import os
 from datetime import datetime
-from server_config import ServerConfig
+from server_config import ServerConfig, get_default_config_path
 
 class ServerLogger:
     config = ServerConfig()
 
     @classmethod
     def get_logger(cls, name):
-        user = os.getlogin()
-        file = fr"C:/Users/{user}/"
-        ldir = cls.config.get('Logging', 'path')
+        base_path = os.path.dirname(get_default_config_path())
+        log_subpath = cls.config.get('Logging', 'path')
         log_level = cls.config.get('Logging', 'loglevel')
 
-        log_dir = file + ldir
+        log_dir = os.path.join(base_path, log_subpath)
 
         logger = logging.getLogger(name)
-        logger.setLevel(getattr(logging, log_level.upper()))
+        logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
 
-        # Create a log directory if it doesn't exist
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
 
