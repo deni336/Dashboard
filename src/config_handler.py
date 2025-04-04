@@ -16,7 +16,8 @@ DEFAULT_CONFIG = {
         'loglevel': 'INFO'
     },
     'FileTransfer': {
-        'avail': ''
+        'avail': '',
+        'uploadfolder': 'kasugai/resources/'
     }
 }
 

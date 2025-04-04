@@ -10,7 +10,7 @@ from src.config_handler import ConfigHandler
 from src.global_logger import GlobalLogger
 from src.event_handler import EventHandler
 from src.chat_manager import ChatManager
-from src.const import UPLOAD_FOLDER
+from depricated.const import UPLOAD_FOLDER
 
 # Import modular routes
 from src.routes.auth_routes import auth_bp, init_auth_routes
