@@ -18,6 +18,12 @@ DEFAULT_CONFIG = {
     'FileTransfer': {
         'avail': '',
         'uploadfolder': 'kasugai/resources/'
+    },
+    'Database': {
+        'mongo_uri': 'mongodb://localhost:27017',
+        'mongo_db': 'kasugai',
+        'mongo_collection': 'chat_history',
+        'encryption_key': ''
     }
 }
 

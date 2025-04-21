@@ -53,7 +53,6 @@ class KasugaiClient:
             self.logger.error(f"create_room error: {e}")
             raise
 
-
     def join_room(self, room_id, password=''):
         try:
             if not isinstance(room_id.uuid, str):
@@ -73,8 +72,6 @@ class KasugaiClient:
             self.logger.error(f"join_room error: {e}")
             raise
 
-
-
     # ===== Chat Logic =====
     def send_text_message(self, content):
         if not self.current_user or not self.current_room_id:
@@ -90,14 +87,34 @@ class KasugaiClient:
         return self.chat_stub.SendTextMessage(message)
 
     def receive_text_messages(self):
+        """
+        Stream incoming TextMessage objects as they arrive.
+        """
         if not self.current_user or not self.current_room_id:
             raise ValueError("Not registered or not in a room")
         metadata = (('user', self.current_user.id.uuid),)
         return self.chat_stub.ReceiveTextMessages(Id(uuid=self.current_room_id), metadata=metadata)
 
+    def receive_text_message_batches(self, batch_size=10):
+        """
+        Yield lists of TextMessage objects in batches of up to batch_size.
+        """
+        if not self.current_user or not self.current_room_id:
+            raise ValueError("Not registered or not in a room")
+        metadata = (('user', self.current_user.id.uuid),)
+        stream = self.chat_stub.ReceiveTextMessages(Id(uuid=self.current_room_id), metadata=metadata)
+        batch = []
+        for message in stream:
+            batch.append(message)
+            if len(batch) >= batch_size:
+                yield batch
+                batch = []
+        if batch:
+            yield batch
+
     # ===== Media Logic =====
     def start_screen_share(self):
-        return self.media_stub.StartMediaStream(iter([
+        return self.media_stub.StartMediaStream(iter([  # could be enhanced with chunked streaming
             MediaStream(
                 id=Id(uuid=self.current_room_id),
                 senderId=self.current_user.id,
