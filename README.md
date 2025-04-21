@@ -1,12 +1,6 @@
 # Kasugai
 
-Kasugai is a distributed chat network that supports messaging, screen sharing, and dynamic file transfer. This project aims to provide a flexible and scalable communication system with additional features such as SSL, chat history, and data management.
-
-![Kasugai Logo](images.png)
-
-![GitHub license](https://img.shields.io/github/license/yourusername/yourrepo)
-![GitHub stars](https://img.shields.io/github/stars/yourusername/yourrepo)
-![GitHub issues](https://img.shields.io/github/issues/yourusername/yourrepo)
+Kasugai is a distributed chat network that supports messaging, screen sharing, and dynamic file transfer. This project provides a flexible, scalable, and secure communication system featuring OAuth-based authentication, encrypted chat history, and asynchronous message processing.
 
 ## Table of Contents
 - [Features](#features)
@@ -14,122 +8,131 @@ Kasugai is a distributed chat network that supports messaging, screen sharing, a
   - [Chat Server](#chat-server)
   - [File Transfer](#file-transfer)
   - [Chat History](#chat-history)
-  - [gRPC Code Generation](#grpc-code-generation)
-  - [Python (Web Client)](#python-web-client)
-  - [Go (Server)](#go-server)
+  - [Authentication](#authentication)
+  - [Asynchronous Processing](#asynchronous-processing)
+- [Configuration](#configuration)
+- [🚀 Quickstart](#%F0%9F%9A%80-quickstart)
+- [gRPC Code Generation](#grpc-code-generation)
+- [Testing](#testing)
+- [Roadmap](#roadmap)
 
+## 🔥 Features
+
+### Web Client
+The client is a Python Flask application providing a responsive web interface. It includes:
+- 🖱️ **Dynamic Button Macros:** Create and manage quick‑action buttons via the UI.  
+- 📊 **Real‑Time File Transfer Visualization:** Track progress of file uploads/downloads.  
+- 💬 **Live Chat Broadcast:** View and send messages to current rooms.  
+- 🛠️ **Configuration Management:** Update server settings through the front end.  
+- 🔄 **Room & Session Management:** Create, join, and switch between chat rooms.  
+- 🖥️ **Screen Sharing:** Peer‑to‑peer bi‑directional streaming of desktop sessions.
+
+### Chat Server
+- **Multi‑Threaded Listener & Broadcaster:** Handles gRPC streams for text and media in parallel.  
+- **Connected Users Directory:** Displays active participants.  
+- 🔒 **SSL/TLS Support:** Secure transport for gRPC (TLS) and HTTPS (Flask).  
+- 💼 **Factory Pattern Initialization:** Modular startup of server components.  
+- 🔑 **OAuth Authentication:** Google OAuth via `AuthManager` for secure user login.
+
+### File Transfer
+- **Bi‑Directional Streaming:** Efficient chunked transfers over gRPC.  
+- 📂 **Custom Storage Paths:** Configure file storage location via `config.ini`.  
+- 🏷️ **Transfer History:** Logs file metadata and transfer rates dynamically.
+
+### Chat History
+- **MongoDB Persistence:** NoSQL storage for encrypted message documents.  
+- 🔐 **Fernet Encryption:** Messages encrypted at rest with per‑instance key.  
+- 📈 **Indexed Timestamps:** Fast, time‑ordered retrievals via MongoDB indexes.
+
+### Authentication
+- **AuthManager Module:** Centralizes OAuth client setup and route protection.  
+- **Session Management:** Secure session cookies with Flask secret key.
+
+### Asynchronous Processing
+- **MessageProcessor Class:** Batches and queues incoming messages via `asyncio.Queue`.  
+- ⚡ **Batch Streaming:** `receive_text_message_batches()` reduces network overhead and latency.
+
+## Configuration
+All settings are stored in `~/<home>/Kasugai/config.ini`. Key sections include:
+```ini
+[WebServer]
+port = 8000
+address = localhost
+
+[Database]
+mongo_uri = mongodb://localhost:27017
+mongo_db = kasugai
+mongo_collection = chat_history
+encryption_key =  # auto‑generated on first run
+
+[Logging]
+path = kasugai/logs/
+loglevel = INFO
+
+[FileTransfer]
+avail =
+uploadfolder = kasugai/resources/
+
+[Application]
+clientid = YOUR_GOOGLE_CLIENT_ID
+clientsecret = YOUR_GOOGLE_CLIENT_SECRET
+```
 
 ## 🚀 Quickstart
 
-1. **Clone the repository:**
+1. **Clone the repository**
+   ```bash
+    git clone https://github.com/yourusername/yourrepo.git
+    cd yourrepo
+    ```  
+2. **Install prerequisites**
+   - Python 3.8+ & pip:  
     ```bash
-    git clone https://github.com/deni336/Dashboard.git
-    cd Dashboard
-    ```
-
-2. **Install dependencies:**
-    - For Go (server):
+    pip install -r requirements.txt  # includes Flask, Flask‑SocketIO, PyMongo, cryptography, authlib, gRPC
+    ```  
+   - Go (for server):  
     ```bash
-    go mod tidy
-    ```
-    - For Python (web client)
-    ```bash
-    pip install -r requriements.txt
-    ```
-
-3. **Run the server:**
-    ```bash
-    go run main.go
-    ```
-4. **Start the web client:**
-    ```bash
+    go mod tidy  # fetches dependencies for the gRPC server
+    ```  
+3. **Configure**
+   - Copy `config.ini` to `~/<home>/Kasugai/` (auto‑created on first run).  
+   - Fill in Google OAuth credentials under `[Application]`.
+4. **Run the server** (gRPC + health):  
+   ```bash
+    go run main_server.go  # or equivalent entry point
+    ```  
+5. **Start the web client**:  
+   ```bash
     python src/main.py
-    ```
-5. **Access the app:** Open your browser and navigate to `http://localhost:8008`.
-
-## 🔥 Features
-### Web Client
-The client is a web-based application managed by a Python Flask server. The web interface allows users to:
-
-- 🖱️ **Add Button Macros:** Dynamically create and manage button macros for quick actions.
-- 📊 **Visualize Dynamic File Transfers:** View and track the progress of file transfers in real-time.
-- 💬 **View Chat Broadcasts:** Monitor chat broadcasts based on the room you are in.
-- 🛠️ **Manage Configuration:** Modify the server's configuration settings through the front-end interface.
-- 🔄 **Room Management:** Switch between different rooms and view room-specific messages and broadcasts.
-- 📁 **Data Management:** Allows the user to easily store large amounts of data on the fly
-- 🖥️ **Screen Sharing:** Provides a way for users to view shared screens.
-
-### Chat Server
-- **Listener:** The server listens for incoming connections and manages multiple clients.
-- **Broadcaster:** Broadcasts messages to all connected clients in real time.
-- **Connected Users:** Displays a list of currently connected users via their IP addresses.
-- **Timestamps and History:** Tracks message timestamps and stores chat history.
-- 🔒 **SSL Certificate:** Secure communication with SSL certificates.
-- **Server Management:** Features for managing the server, including authentication and user management.
-- 🔑 **Unique Key for Authentication:** Provides unique keys for secure user authentication.
-
-### File Transfer
-- **Multi-Threaded:** Supports multiple file transfers simultaneously.
-- **Peer-to-Peer (P2P):** Direct file sharing between users.
-- 📂 **File Storage Location:** Allows setting a dedicated storage location for received files.
-- 📜 **File History:** Tracks file transfers, including filename, size, and the sender’s identity.
-#### Dynamic Transfer Rate
-- ⚡ **Adaptive Transfers:** The system starts transfers at 1024 bytes and adjusts the transfer rate dynamically based on network performance.
-
-### Chat History
-- **Database Support:** Stores chat history in a database.
-- 🗂️ **Detailed Tracking:** Logs who sent the message, when it was sent, and what was said.
+    ```  
+6. **Access**: Open `http://localhost:8000` in your browser.
 
 ## gRPC Code Generation
-### Python (Web Client):
-Generate Python gRPC code from `.proto` files:
 
+### Python (Web Client)
 ```bash
-python -m grpc_tools.protoc -I. --python_out=./output --grpc_python_out=./output kasugai.proto
-```
-This script is used for the web client, which communicates with the chat network backend via gRPC.
-
-### Go (Server):
-Generate Go gRPC code from `.proto` files:
+python -m grpc_tools.protoc -I. --python_out=./src --grpc_python_out=./src kasugai.proto
+```  
+### Go (Server)
 ```bash
-
 protoc --proto_path=. --go_out=. --go-grpc_out=. kasugai.proto
 ```
 
-## TODO:
+## Testing
+- **Unit Tests**: Run Python tests with:
+  ```bash
+    pytest tests/  # includes test_factory.py, test_auth_manager.py, etc.
+    ```
+- **Integration Tests**: Use Docker Compose (future).
 
-- [] Chat Server
-    - [X] Listener
-    - [X] Broadcaster
-    - [X] List of connected users
-    - [] SSL certificate
-    - [] Server Management system
-    - [] Auth
-    - [] Unique Key for authentication
-    - [] Chat History
-    - [] Database
-    - [] who, when, what
-- [] Screen sharing
-    - [X] Listener
-    - [] Front end work needs to be done for this also
-    - [] List  of broadcasting users
-    - [] Only broadcast when user is connected
-    - [] bi-directional stream
-- [] File Transfer
-    - [X] bi-directional stream for dynamic file sharing
-    - [] P2P 
-    - [] Pull info from the server (user info)
-    - [X] File storage location
-    - [] History (filename, size, who it came from)
+## Roadmap
+- [ ] Complete SSL/TLS server certificate support.  
+- [ ] Add user management dashboard.  
+- [ ] P2P file transfer enhancements.  
+- [ ] Automated deployment via Docker & Kubernetes.
 
-- [] Dynamic Transfer rate
-    - Starting at 1024 increase bytes transfered based on time to transfer
+---
 
-- General software
-    - [] Setup user register and login/auth
-    - [] Setup server call & wait
-
-python -m grpc_tools.protoc -I. --python_out=./output --grpc_python_out=./output kasugai.proto
+*Kasugai © 2025 – deni336*
 
 
-protoc --proto_path=. --go_out=. --go-grpc_out=. kasugai.proto
