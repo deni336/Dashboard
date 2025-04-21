@@ -1,22 +1,18 @@
-# routes/auth_routes.py
 from flask import Blueprint, redirect, session, url_for
 from src.global_logger import GlobalLogger
+from src.auth_manager import AuthManager
 
 auth_bp = Blueprint('auth_bp', __name__)
 logger = GlobalLogger.get_logger("AuthRoutes")
 
-def init_auth_routes(app, oauth, connect_callback):
-    google = oauth.register(
-        name='google',
-        client_id=app.config['GOOGLE_CLIENT_ID'],
-        client_secret=app.config['GOOGLE_CLIENT_SECRET'],
-        access_token_url='https://oauth2.googleapis.com/token',
-        authorize_url='https://accounts.google.com/o/oauth2/auth',
-        api_base_url='https://www.googleapis.com/oauth2/v1/',
-        userinfo_endpoint='https://www.googleapis.com/oauth2/v1/userinfo',
-        jwks_uri='https://www.googleapis.com/oauth2/v3/certs',
-        client_kwargs={'scope': 'openid email profile'},
-    )
+
+def init_auth_routes(app, config_handler, connect_callback):
+    """
+    Initialize authentication routes using AuthManager.
+    """
+    # Setup OAuth client via AuthManager
+    auth_manager = AuthManager(app, config_handler)
+    google = auth_manager.get_google_client()
 
     @auth_bp.route('/login')
     def login():

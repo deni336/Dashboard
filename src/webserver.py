@@ -3,14 +3,13 @@ import webbrowser
 import platform
 import threading
 import secrets
-from authlib.integrations.flask_client import OAuth
 from flask import Flask, session
 from waitress import serve
 from src.config_handler import ConfigHandler
 from src.global_logger import GlobalLogger
 from src.event_handler import EventHandler
 from src.chat_manager import ChatManager
-
+from src.auth_manager import AuthManager
 
 # Import modular routes
 from src.routes.auth_routes import auth_bp, init_auth_routes
@@ -28,13 +27,13 @@ class WebServer:
         self.app.config['UPLOAD_FOLDER'] = self.config.get("FileTransfer", "uploadfolder")
         self.app.secret_key = secrets.token_hex(16)
 
-        self.app.config['GOOGLE_CLIENT_ID'] = self.config.get('Application', 'clientid')
-        self.app.config['GOOGLE_CLIENT_SECRET'] = self.config.get('Application', 'clientsecret')
-        self.oauth = OAuth(self.app)
+        # Initialize OAuth via AuthManager
+        self.auth_manager = AuthManager(self.app, self.config)
+
         self.rooms = {}
 
         # Initialize modular routes
-        init_auth_routes(self.app, self.oauth, self.server_connect)
+        init_auth_routes(self.app, self.config, self.server_connect)
         init_button_routes(self.config)
         init_ui_routes(self.config, self.config.get("FileTransfer", "uploadfolder"))
 
