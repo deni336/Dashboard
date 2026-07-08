@@ -32,7 +32,6 @@ type Server struct {
 	streams            map[string]chan *kasugai.TextMessage
 	activeStreams      map[string]context.CancelFunc
 	activeStreamsMutex sync.Mutex
-	roomBuilder        *RoomBuilder
 	dataStore          *datastore.DataStore
 	grpcServer         *grpc.Server
 	logger             *stdlog.Logger
@@ -45,7 +44,6 @@ func NewServer(logger *stdlog.Logger, ds *datastore.DataStore) *Server {
 		rooms:         make(map[string]*Room),
 		streams:       make(map[string]chan *kasugai.TextMessage),
 		activeStreams: make(map[string]context.CancelFunc),
-		roomBuilder:   NewRoomBuilder(),
 		dataStore:     ds,
 		logger:        logger,
 	}
@@ -60,9 +58,9 @@ func (s *Server) Start(address string) error {
 
 	s.grpcServer = grpc.NewServer()
 
-	kasugai.RegisterUserServiceServer(s.grpcServer, s.UnimplementedUserServiceServer)
-	kasugai.RegisterRoomServiceServer(s.grpcServer, s.UnimplementedRoomServiceServer)
-	kasugai.RegisterChatServiceServer(s.grpcServer, s.UnimplementedChatServiceServer)
+	kasugai.RegisterUserServiceServer(s.grpcServer, s)
+	kasugai.RegisterRoomServiceServer(s.grpcServer, s)
+	kasugai.RegisterChatServiceServer(s.grpcServer, s)
 
 	// Register reflection service on gRPC server
 	reflection.Register(s.grpcServer)
@@ -78,6 +76,10 @@ func (s *Server) Start(address string) error {
 // Stop stops the gRPC server
 func (s *Server) Stop() {
 	s.logger.Info("Stopping server...")
+	if s.grpcServer == nil {
+		s.logger.Warning("Chat server was not started")
+		return
+	}
 	stopped := make(chan struct{})
 	go func() {
 		s.grpcServer.GracefulStop()
@@ -194,7 +196,9 @@ func (s *Server) CreateRoom(ctx context.Context, req *kasugai.Room) (*kasugai.Ac
 		return &kasugai.Ack{Success: false, Message: "Failed to build the room"}, status.Errorf(codes.NotFound, "Creator not found")
 	}
 
-	room, err := s.roomBuilder.
+	// A fresh builder per call is required -- reusing one across requests would
+	// mutate and hand out the same underlying Room (and its ID) every time.
+	room, err := NewRoomBuilder().
 		WithName(req.Name).
 		WithType(RoomType(req.Type)).
 		WithCreator(creator).
@@ -252,8 +256,9 @@ func (s *Server) JoinRoom(ctx context.Context, req *kasugai.Id) (*kasugai.Ack, e
 	}
 
 	client := &Participant{
-		User: s.clients[userID],
-		Role: RoleParticipant,
+		User:          s.clients[userID],
+		Role:          RoleParticipant,
+		DirectChannel: make(chan *RoomContent, 1024),
 	}
 
 	if room.Channel.CreatorId.Uuid == userID {
@@ -332,7 +337,7 @@ func (s *Server) GetRoomParticipants(ctx context.Context, req *kasugai.Id) (*kas
 	}, nil
 }
 
-func (s *Server) GetRoomList(ctx context.Context) (*kasugai.RoomList, error) {
+func (s *Server) GetRoomList(ctx context.Context, _ *emptypb.Empty) (*kasugai.RoomList, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	roomList := &kasugai.RoomList{}
@@ -357,9 +362,9 @@ func (s *Server) GetRoomList(ctx context.Context) (*kasugai.RoomList, error) {
 
 func (s *Server) SendTextMessage(ctx context.Context, req *kasugai.TextMessage) (*kasugai.Ack, error) {
 	s.mu.RLock()
-	room, ok := s.rooms[req.RecipientId.Uuid]
-	s.mu.RUnlock()
+	defer s.mu.RUnlock()
 
+	room, ok := s.rooms[req.RecipientId.Uuid]
 	if !ok {
 		return &kasugai.Ack{Success: false, Message: "Room not found"}, status.Error(codes.NotFound, "Room not found")
 	}
@@ -371,26 +376,22 @@ func (s *Server) SendTextMessage(ctx context.Context, req *kasugai.TextMessage) 
 		Timestamp: timestamppb.Now(),
 	}
 
-	select {
-	case room.Broadcast <- []*RoomContent{content}:
-		s.logger.Info(fmt.Sprintf("Message broadcast in room %s (From: %s, Content: %s)", req.RecipientId.Uuid, req.SenderId.Uuid, req.Content))
-	default:
-		s.logger.Error(fmt.Sprintf("Failed to send message: Room broadcast channel is full (Room: %s)", req.RecipientId.Uuid))
-		return &kasugai.Ack{Success: false, Message: "Room broadcast channel is full"}, status.Error(codes.ResourceExhausted, "Room broadcast channel is full")
+	// Fan out to every participant's own channel -- a plain shared channel
+	// would only ever deliver each message to one arbitrary listener, not
+	// everyone in the room.
+	for _, participant := range room.Participants {
+		select {
+		case participant.DirectChannel <- content:
+		default:
+			s.logger.Error(fmt.Sprintf("Failed to deliver message to participant %s: channel full (Room: %s)", participant.User.Id.Uuid, req.RecipientId.Uuid))
+		}
 	}
 
+	s.logger.Info(fmt.Sprintf("Message broadcast in room %s (From: %s, Content: %s)", req.RecipientId.Uuid, req.SenderId.Uuid, req.Content))
 	return &kasugai.Ack{Success: true, Message: "Message sent"}, nil
 }
 
 func (s *Server) ReceiveTextMessages(req *kasugai.Id, stream kasugai.ChatService_ReceiveTextMessagesServer) error {
-	s.mu.RLock()
-	room, ok := s.rooms[req.Uuid]
-	s.mu.RUnlock()
-
-	if !ok {
-		return status.Error(codes.NotFound, "Room not found")
-	}
-
 	md, ok := metadata.FromIncomingContext(stream.Context())
 	if !ok {
 		return status.Error(codes.InvalidArgument, "Failed to get metadata")
@@ -401,6 +402,19 @@ func (s *Server) ReceiveTextMessages(req *kasugai.Id, stream kasugai.ChatService
 		return status.Error(codes.InvalidArgument, "User ID not found in metadata")
 	}
 	userID := userIDs[0]
+
+	s.mu.RLock()
+	room, ok := s.rooms[req.Uuid]
+	if !ok {
+		s.mu.RUnlock()
+		return status.Error(codes.NotFound, "Room not found")
+	}
+	participant, ok := room.Participants[userID]
+	s.mu.RUnlock()
+
+	if !ok {
+		return status.Error(codes.NotFound, "Not a participant in this room")
+	}
 
 	// Create a new context with cancellation
 	ctx, cancel := context.WithCancel(stream.Context())
@@ -420,25 +434,23 @@ func (s *Server) ReceiveTextMessages(req *kasugai.Id, stream kasugai.ChatService
 
 	for {
 		select {
-		case contents := <-room.Broadcast:
-			for _, content := range contents {
-				if content.Type != TextMessage {
-					s.logger.Debug(fmt.Sprintf("Skipping non-text content in room %s: %v", req.Uuid, content.Type))
-					continue
-				}
-
-				textMsg, ok := content.Payload.(*kasugai.TextMessage)
-				if !ok {
-					s.logger.Error(fmt.Sprintf("Failed to convert payload to TextMessage in room %s", req.Uuid))
-					continue
-				}
-
-				if err := stream.Send(textMsg); err != nil {
-					s.logger.Error(fmt.Sprintf("Error sending message to user %s in room %s: %v", userID, req.Uuid, err))
-					return err
-				}
-				s.logger.Debug(fmt.Sprintf("Sent message to user %s in room %s: %v", userID, req.Uuid, textMsg))
+		case content := <-participant.DirectChannel:
+			if content.Type != TextMessage {
+				s.logger.Debug(fmt.Sprintf("Skipping non-text content in room %s: %v", req.Uuid, content.Type))
+				continue
 			}
+
+			textMsg, ok := content.Payload.(*kasugai.TextMessage)
+			if !ok {
+				s.logger.Error(fmt.Sprintf("Failed to convert payload to TextMessage in room %s", req.Uuid))
+				continue
+			}
+
+			if err := stream.Send(textMsg); err != nil {
+				s.logger.Error(fmt.Sprintf("Error sending message to user %s in room %s: %v", userID, req.Uuid, err))
+				return err
+			}
+			s.logger.Debug(fmt.Sprintf("Sent message to user %s in room %s: %v", userID, req.Uuid, textMsg))
 
 		case <-ctx.Done():
 			s.logger.Info(fmt.Sprintf("Stopped receiving messages for user %s in room %s", userID, req.Uuid))

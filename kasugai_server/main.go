@@ -114,6 +114,12 @@ func main() {
 
 	// Create a channel to signal server shutdown
 	shutdown := make(chan struct{})
+	var shutdownOnce sync.Once
+	signalShutdown := func() {
+		shutdownOnce.Do(func() {
+			close(shutdown)
+		})
+	}
 
 	// Start all servers concurrently
 	var wg sync.WaitGroup
@@ -125,25 +131,23 @@ func main() {
 
 	startServer := func(name string, serverStart func() error) {
 		defer wg.Done()
-		go func() {
-			if err := serverStart(); err != nil {
-				logger.Error(fmt.Sprintf("%s server failed: %v", name, err))
-				close(shutdown)
-			}
-		}()
+		if err := serverStart(); err != nil {
+			logger.Error(fmt.Sprintf("%s server failed: %v", name, err))
+			signalShutdown()
+		}
 	}
 
-	startServer("Chat", func() error {
+	go startServer("Chat", func() error {
 		chatServer = server.NewServer(logger, ds)
 		return chatServer.Start(config.ChatAddress)
 	})
 
-	startServer("File Transfer", func() error {
+	go startServer("File Transfer", func() error {
 		fileTransferServer = server.NewFileTransferServer(logger, ds)
 		return fileTransferServer.Start(config.FileTransferAddress)
 	})
 
-	startServer("Media", func() error {
+	go startServer("Media", func() error {
 		mediaServer = server.NewMediaServer(logger, ds)
 		return mediaServer.Start(config.MediaAddress)
 	})

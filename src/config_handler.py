@@ -9,20 +9,22 @@ DEFAULT_CONFIG = {
     },
     'WebServer': {
         'port': '8000',
-        'address': 'localhost'
+        'address': 'localhost',
+        'kasaddress': 'localhost',
+        'kasport': '8008',
+        'mediaport': '50052'
     },
     'Logging': {
         'path': 'kasugai/logs/',
         'loglevel': 'INFO'
     },
     'FileTransfer': {
-        'avail': '',
-        'uploadfolder': 'kasugai/resources/'
+        'uploadfolder': 'kasugai/resources/',
+        'address': 'localhost',
+        'port': '50051'
     },
     'Database': {
-        'mongo_uri': 'mongodb://localhost:27017',
-        'mongo_db': 'kasugai',
-        'mongo_collection': 'chat_history',
+        'dbpath': 'chat_history.db',
         'encryption_key': ''
     }
 }

@@ -2,3 +2,5 @@
 *.log
 *.ini
 .qodo
+__pycache__/
+*.py[cod]

@@ -3,41 +3,58 @@ import os
 import platform
 import subprocess
 import webbrowser
-from flask import Blueprint, request, render_template, session, abort
+from flask import Blueprint, request, jsonify
 from src.global_logger import GlobalLogger
+from src.button_manager import ButtonManager
 
 button_bp = Blueprint('button_bp', __name__)
 logger = GlobalLogger.get_logger("ButtonRoutes")
 
-config = None  # Will be set from WebServer
+button_manager = None  # Will be set from WebServer
 
 def init_button_routes(cfg):
-    global config
-    config = cfg
+    global button_manager
+    button_manager = ButtonManager()
 
-@button_bp.route('/save_buttons', methods=['POST'])
-def save_buttons():
-    button_name = request.form['buttonName']
-    button_link = request.form['buttonLink']
+@button_bp.route('/api/buttons', methods=['GET'])
+def list_buttons():
+    return jsonify(button_manager.get_buttons()), 200
 
-    # Fetch and append new button
-    buttons_string = config.get('Application', 'buttons')
-    new_button = f"{button_name}:{button_link}"
-    buttons_string = f"{buttons_string},{new_button}" if buttons_string else new_button
+@button_bp.route('/api/buttons', methods=['POST'])
+def add_button():
+    data = request.get_json(silent=True) or request.form
+    name = data.get('name')
+    link = data.get('link')
 
-    config.set('Application', 'buttons', buttons_string)
-    buttons = [item.split(':')[0].strip() for item in buttons_string.split(',')]
-    return render_template('index.html', buttons=buttons, user=session['profile'])
+    if not name or not link:
+        return jsonify({"error": "Button name and link/filepath are both required"}), 400
+
+    try:
+        buttons = button_manager.add_button(name, link)
+        return jsonify(buttons), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error adding button: {e}")
+        return jsonify({"error": "Failed to add button"}), 500
+
+@button_bp.route('/api/buttons/<button_name>', methods=['DELETE'])
+def remove_button(button_name):
+    try:
+        buttons = button_manager.remove_button(button_name)
+        return jsonify(buttons), 200
+    except KeyError as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        logger.error(f"Error removing button: {e}")
+        return jsonify({"error": "Failed to remove button"}), 500
 
 @button_bp.route('/button_click/<button_name>', methods=['POST'])
 def button_click(button_name):
-    buttons_string = config.get('Application', 'buttons')
-    buttons = {item.split(':', 1)[0].strip(): item.split(':', 1)[1].strip() for item in buttons_string.split(',')}
+    link = button_manager.get_link(button_name)
+    if link is None:
+        return jsonify({"error": "Button not found"}), 404
 
-    if button_name not in buttons:
-        return abort(404, description="Button not found")
-
-    link = buttons[button_name]
     try:
         if link.startswith('http://') or link.startswith('https://'):
             webbrowser.open_new_tab(link)
@@ -49,8 +66,8 @@ def button_click(button_name):
             elif platform.system() == "Darwin":
                 subprocess.Popen(['open', link])
         else:
-            return abort(404, description="File not found")
+            return jsonify({"error": "File not found"}), 404
         return '', 204
     except Exception as e:
         logger.error(f"Failed to handle button click for {link}: {e}")
-        return abort(500, description="Failed to execute the file.")
+        return jsonify({"error": "Failed to execute the file"}), 500

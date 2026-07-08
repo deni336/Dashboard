@@ -8,12 +8,19 @@ import (
 
 // DataStore active datastore object
 type DataStore struct {
-	mu            sync.RWMutex
-	users         map[string]*kasugai.User
-	rooms         map[string]*kasugai.Room
-	fileTransfers map[string]*kasugai.FileMetadata
-	activeStreams map[string]kasugai.MediaService_StartMediaStreamServer
-	activeCalls   map[string]kasugai.MediaService_ManageVoIPCallServer
+	mu                  sync.RWMutex
+	users               map[string]*kasugai.User
+	rooms               map[string]*kasugai.Room
+	fileTransfers       map[string]*kasugai.FileMetadata
+	fileData            map[string][]byte
+	activeStreams       map[string]*activeMediaStream
+	activeStreamVersion uint64
+	activeCalls         map[string]kasugai.MediaService_ManageVoIPCallServer
+}
+
+type activeMediaStream struct {
+	stream  kasugai.MediaService_StartMediaStreamServer
+	version uint64
 }
 
 var (
@@ -28,7 +35,8 @@ func GetInstance() *DataStore {
 			users:         make(map[string]*kasugai.User),
 			rooms:         make(map[string]*kasugai.Room),
 			fileTransfers: make(map[string]*kasugai.FileMetadata),
-			activeStreams: make(map[string]kasugai.MediaService_StartMediaStreamServer),
+			fileData:      make(map[string][]byte),
+			activeStreams: make(map[string]*activeMediaStream),
 			activeCalls:   make(map[string]kasugai.MediaService_ManageVoIPCallServer),
 		}
 	})
@@ -69,8 +77,8 @@ func (ds *DataStore) GetUserList() (*kasugai.UserList, bool) {
 
 // RemoveUser removes a user from the datastore
 func (ds *DataStore) RemoveUser(user *kasugai.User) bool {
-	ds.mu.RLock()
-	defer ds.mu.RUnlock()
+	ds.mu.Lock()
+	defer ds.mu.Unlock()
 
 	user, exists := ds.users[user.Id.Uuid]
 	if !exists {
@@ -154,11 +162,11 @@ func (ds *DataStore) AddRoomParticipants(user *kasugai.User, roomId *kasugai.Id)
 
 // GetRoomParticipants gets the list of participants in the datastore room
 func (ds *DataStore) GetRoomParticipants(id *kasugai.Id) (*kasugai.RoomParticipants, bool) {
-	ds.mu.Lock()
+	ds.mu.RLock()
 
 	room, exists := ds.rooms[id.Uuid]
 	if !exists {
-		ds.mu.Unlock()
+		ds.mu.RUnlock()
 		return nil, false
 	}
 
@@ -205,7 +213,8 @@ func (ds *DataStore) RemoveParticipant(id *kasugai.Id, user *kasugai.User) bool 
 func (ds *DataStore) AddFileTransfer(fileTransfer *kasugai.FileMetadata) {
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
-	ds.fileTransfers[fileTransfer.Id.Uuid] = fileTransfer
+	ds.fileTransfers[fileTransfer.Id.Uuid] = cloneFileMetadata(fileTransfer)
+	ds.fileData[fileTransfer.Id.Uuid] = nil
 }
 
 // GetFileTransfer get a file transfer node
@@ -213,35 +222,82 @@ func (ds *DataStore) GetFileTransfer(id string) (*kasugai.FileMetadata, bool) {
 	ds.mu.RLock()
 	defer ds.mu.RUnlock()
 	fileTransfer, exists := ds.fileTransfers[id]
-	return fileTransfer, exists
+	return cloneFileMetadata(fileTransfer), exists
 }
 
-// AddActiveStream stream operations
-func (ds *DataStore) AddActiveStream(senderId string, stream kasugai.MediaService_StartMediaStreamServer) error {
+// AppendFileChunk appends received chunk bytes to the accumulated data for a file transfer
+func (ds *DataStore) AppendFileChunk(fileId string, data []byte) {
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
-	if _, exists := ds.activeStreams[senderId]; exists {
-		return fmt.Errorf("media stream connection already exists for sender ID: %s", senderId)
+	ds.fileData[fileId] = append(ds.fileData[fileId], append([]byte(nil), data...)...)
+}
+
+// GetFileData retrieves the accumulated bytes for a file transfer
+func (ds *DataStore) GetFileData(fileId string) ([]byte, bool) {
+	ds.mu.RLock()
+	defer ds.mu.RUnlock()
+	data, exists := ds.fileData[fileId]
+	if !exists {
+		return nil, false
 	}
-	ds.activeStreams[senderId] = stream
-	return nil
+	return append([]byte(nil), data...), true
+}
+
+func cloneFileMetadata(src *kasugai.FileMetadata) *kasugai.FileMetadata {
+	if src == nil {
+		return nil
+	}
+
+	dst := *src
+	if src.Id != nil {
+		id := *src.Id
+		dst.Id = &id
+	}
+	if src.SenderId != nil {
+		senderID := *src.SenderId
+		dst.SenderId = &senderID
+	}
+	if src.RecipientId != nil {
+		recipientID := *src.RecipientId
+		dst.RecipientId = &recipientID
+	}
+	return &dst
+}
+
+// AddActiveStream stream operations. Overwrites any prior entry for this
+// sender so a reconnect (e.g. page refresh) doesn't get stuck behind a stale
+// registration from a connection that never got cleanly removed.
+func (ds *DataStore) AddActiveStream(senderId string, stream kasugai.MediaService_StartMediaStreamServer) uint64 {
+	ds.mu.Lock()
+	defer ds.mu.Unlock()
+	ds.activeStreamVersion++
+	version := ds.activeStreamVersion
+	ds.activeStreams[senderId] = &activeMediaStream{
+		stream:  stream,
+		version: version,
+	}
+	return version
 }
 
 // GetActiveStream get an active stream
 func (ds *DataStore) GetActiveStream(id string) (kasugai.MediaService_StartMediaStreamServer, error) {
 	ds.mu.RLock()
 	defer ds.mu.RUnlock()
-	stream, exist := ds.activeStreams[id]
+	active, exist := ds.activeStreams[id]
 	if !exist {
-		return nil, fmt.Errorf("media stream connection already exists for sender ID: %s", id)
+		return nil, fmt.Errorf("media stream connection does not exist for sender ID: %s", id)
 	}
-	return stream, nil
+	return active.stream, nil
 }
 
 // RemoveActiveStream remove active stream
-func (ds *DataStore) RemoveActiveStream(id string) {
+func (ds *DataStore) RemoveActiveStream(id string, version uint64) {
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
+	active, exists := ds.activeStreams[id]
+	if !exists || active.version != version {
+		return
+	}
 	delete(ds.activeStreams, id)
 }
 

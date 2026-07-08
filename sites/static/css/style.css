@@ -173,6 +173,210 @@ nav a:hover {
    cursor: pointer;
 }
 
+/* Settings Modal */
+.settings-content {
+   max-width: 500px;
+   color: #eee;
+}
+
+.settings-tabs {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 4px;
+   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+   margin: 15px 0;
+}
+
+.settings-tab {
+   background: none;
+   border: none;
+   color: #ccc;
+   padding: 8px 14px;
+   cursor: pointer;
+   font-weight: bold;
+   border-bottom: 2px solid transparent;
+}
+
+.settings-tab:hover {
+   color: #fff;
+}
+
+.settings-tab.active {
+   color: rgb(255, 0, 0);
+   border-bottom: 2px solid rgb(255, 0, 0);
+}
+
+.settings-section {
+   display: none;
+}
+
+.settings-section.active {
+   display: block;
+}
+
+.settings-section h3 {
+   margin-bottom: 10px;
+   color: #fff;
+}
+
+.settings-form {
+   display: flex;
+   flex-direction: column;
+   gap: 6px;
+}
+
+.settings-form label {
+   font-size: 13px;
+   color: #ccc;
+   margin-top: 6px;
+}
+
+.settings-form input,
+.settings-form select {
+   padding: 8px;
+   border: none;
+   border-radius: 2px;
+   background-color: #2a2a2a;
+   color: #eee;
+}
+
+.settings-form button {
+   margin-top: 10px;
+   padding: 8px 14px;
+   background-color: #000;
+   color: rgb(255, 0, 0);
+   border: none;
+   border-radius: 2px;
+   cursor: pointer;
+   align-self: flex-start;
+}
+
+.settings-form button:hover {
+   background-color: #222;
+}
+
+.settings-saved {
+   margin-left: 10px;
+   color: #4caf50;
+   font-weight: bold;
+   opacity: 0;
+   transition: opacity 0.3s ease;
+}
+
+.settings-saved.visible {
+   opacity: 1;
+}
+
+.settings-error {
+   color: #ff5e5e;
+   margin-top: 8px;
+   font-size: 13px;
+}
+
+.file-progress {
+   width: 100%;
+   height: 8px;
+   margin-top: 10px;
+   accent-color: rgb(255, 0, 0);
+}
+
+.settings-list {
+   list-style: none;
+   max-height: 200px;
+   overflow-y: auto;
+   margin-bottom: 15px;
+}
+
+.settings-list-item {
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   padding: 8px 10px;
+   background-color: rgba(0, 0, 0, 0.3);
+   border-radius: 2px;
+   margin-bottom: 6px;
+}
+
+.settings-list-label {
+   color: #eee;
+   font-size: 14px;
+   word-break: break-all;
+}
+
+.settings-remove-btn {
+   background-color: #000;
+   border: none;
+   color: #ff5e5e;
+   font-size: 13px;
+   font-weight: bold;
+   cursor: pointer;
+   line-height: 1.2;
+   padding: 6px 10px;
+   border-radius: 2px;
+   flex-shrink: 0;
+}
+
+.settings-remove-btn:hover {
+   color: #ff0000;
+}
+
+.settings-empty {
+   color: #aaa;
+   font-style: italic;
+   padding: 8px 0;
+}
+
+.settings-action-btn {
+   background-color: #000;
+   color: #4caf50;
+   border: none;
+   border-radius: 2px;
+   padding: 6px 10px;
+   cursor: pointer;
+   font-size: 13px;
+   flex-shrink: 0;
+}
+
+.settings-action-btn:hover {
+   background-color: #222;
+}
+
+.settings-action-btn:disabled {
+   color: #777;
+   cursor: default;
+}
+
+/* File offer chat bubble */
+#chatMessages .file-offer {
+   background-color: #1a1a1a;
+   border: 1px solid #ff5e5e;
+   border-radius: 2px;
+   padding: 8px;
+   margin: 5px 0;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   gap: 10px;
+}
+
+#chatMessages .file-offer-label {
+   font-size: 14px;
+   color: #5e5e5e;
+}
+
+#launchNetworkSettingsBtn {
+   padding: 10px 16px;
+   background-color: #000;
+   color: rgb(255, 0, 0);
+   border: none;
+   border-radius: 2px;
+   cursor: pointer;
+}
+
+#launchNetworkSettingsBtn:hover {
+   background-color: #222;
+}
+
 /* Ensure that the modal is positioned at the right side */
 #chatModal {
    display: none;
@@ -292,8 +496,15 @@ nav a:hover {
    overflow: hidden;
 }
 
-#screenVideo {
+#screenVideo,
+#remoteScreenView {
    width: 100%;
    height: 100%;
-   object-fit: cover; /* Ensure the video covers the container area */
+   object-fit: contain; /* Screen-share content should never be cropped */
+}
+
+#screenShareStatus {
+   color: #ccc;
+   font-size: 14px;
+   margin-bottom: 10px;
 }

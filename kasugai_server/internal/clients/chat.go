@@ -20,6 +20,7 @@ type KasugaiClient struct {
 	mediaService    kasugai.MediaServiceClient
 	CurrentUser     *kasugai.User
 	CurrentRoomID   *kasugai.Id
+	roomKeys        map[string]string
 	stopScreenShare chan struct{}
 }
 
@@ -35,6 +36,7 @@ func NewKasugaiClient(serverAddr string) (*KasugaiClient, error) {
 		roomService:  kasugai.NewRoomServiceClient(conn),
 		chatService:  kasugai.NewChatServiceClient(conn),
 		mediaService: kasugai.NewMediaServiceClient(conn),
+		roomKeys:     make(map[string]string),
 	}, nil
 }
 
@@ -67,11 +69,11 @@ func (c *KasugaiClient) CreateRoom(room *kasugai.Room, key string) (*kasugai.Id,
 		return nil, fmt.Errorf("user not registered")
 	}
 
-	if key == "" {
-		room.Key = "OPEN"
+	roomKey := key
+	if roomKey == "" {
+		roomKey = "OPEN"
 	}
-
-	room.Key = key
+	room.Key = roomKey
 
 	ack, err := c.roomService.CreateRoom(context.Background(), room)
 	if err != nil {
@@ -82,7 +84,9 @@ func (c *KasugaiClient) CreateRoom(room *kasugai.Room, key string) (*kasugai.Id,
 		return nil, fmt.Errorf("room creation failed: %s", ack.Message)
 	}
 
-	return &kasugai.Id{Uuid: ack.Message}, nil
+	roomID := &kasugai.Id{Uuid: ack.Message}
+	c.roomKeys[roomID.Uuid] = roomKey
+	return roomID, nil
 }
 
 func (c *KasugaiClient) JoinRoom(roomID *kasugai.Id) error {
@@ -90,8 +94,14 @@ func (c *KasugaiClient) JoinRoom(roomID *kasugai.Id) error {
 		return fmt.Errorf("user not registered")
 	}
 
+	roomKey := c.roomKeys[roomID.Uuid]
+	if roomKey == "" {
+		roomKey = "OPEN"
+	}
+
 	ctx := metadata.NewOutgoingContext(context.Background(), metadata.New(map[string]string{
 		"user": c.CurrentUser.Id.Uuid,
+		"key":  roomKey,
 	}))
 
 	ack, err := c.roomService.JoinRoom(ctx, roomID)

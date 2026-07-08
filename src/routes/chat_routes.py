@@ -38,6 +38,12 @@ def join_room():
     else:
         return jsonify({"error": "Room not found"}), 404
 
+@chat_bp.route('/api/room/participants', methods=['GET'])
+def get_room_participants():
+    if not chat_manager or not chat_manager.current_room:
+        return jsonify([]), 200
+    return jsonify(chat_manager.list_participants()), 200
+
 @chat_bp.route('/create_room', methods=['POST'])
 def create_room():
     data = request.get_json()

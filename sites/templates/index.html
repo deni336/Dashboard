@@ -10,9 +10,15 @@
     <!-- Link to custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
+    <!-- Identifies this browser session's own Kasugai user ID, so the chat/file-transfer
+         JS can tell which incoming file offers are addressed to this user. -->
+    <script>window.CURRENT_USER_ID = {{ current_user_id | tojson }};</script>
+
     <!-- Link to custom JS -->
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js" defer></script>
+    <script src="{{ url_for('static', filename='js/settings.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/file_transfer.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
-    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
 </head>
 
 <body>
@@ -21,10 +27,9 @@
 <nav>
     <ul class="nav-left">
             <li><a href="/" id="homeBtn">Home</a></li>
-            <li><a href="#" id="embeddedBrowserBtn">Browser</a></li>
             <li><a href="#" id="chatBtn">Chat</a></li>
             <li><a href="#" id="fileTransferBtn">File Transfer</a></li>
-            <li><a href="#" id="screenShareBtn" class="active">Screen Share</a></li>
+            <li><a href="{{ url_for('ui_bp.screen_share') }}" id="screenShareBtn">Screen Share</a></li>
             <li><a href="#" id="settingsBtn">Settings</a></li>
             </ul>
     <ul class="nav-right">
@@ -40,17 +45,6 @@
 </div>
 
 <!-- Modals -->
-
-<!-- Modal for Embedded Browser -->
-<div id="embeddedBrowserModal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2>Kasugai Surfer</h2>
-        <input type="text" id="embeddedBrowserUrl" placeholder="Enter a URL" />
-        <button id="loadUrlBtn">Load</button>
-        <iframe id="embeddedIframe" title="Embedded Web Browser" sandbox="allow-scripts allow-same-origin" width="100%" height="400px"></iframe>
-    </div>
-</div>
 
 <div id="chatModal">
     <div class="modal-content">
@@ -81,43 +75,103 @@
 
 
 <div id="fileTransferModal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content settings-content">
         <span class="close">&times;</span>
         <h2>File Transfer</h2>
-        <p>Content for File Transfer Modal</p>
+
+        <form id="sendFileForm" class="settings-form" enctype="multipart/form-data">
+            <label for="fileRecipient">Send to:</label>
+            <select id="fileRecipient" name="recipient_id" required>
+                <option value="">Select a room member...</option>
+            </select>
+
+            <label for="fileToSend">File:</label>
+            <input type="file" id="fileToSend" name="file" required>
+
+            <button type="submit">Send File</button>
+        </form>
+        <progress id="fileSendProgress" class="file-progress" max="100" value="0" hidden></progress>
+        <p class="settings-error" id="fileSendStatus"></p>
+
+        <h3>Incoming Files</h3>
+        <ul id="incomingFilesList" class="settings-list">
+            <li class="settings-empty">No incoming files yet.</li>
+        </ul>
+
+        <h3>Sent Files</h3>
+        <ul id="sentFilesList" class="settings-list">
+            <li class="settings-empty">No files sent yet.</li>
+        </ul>
     </div>
 </div>
 
 <div id="settingsModal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content settings-content">
         <span class="close">&times;</span>
         <h2>Settings</h2>
 
-        <form id="settingsForm" method="POST" action="/save_buttons">
-            <label for="buttonName">Button Name:</label>
-            <input type="text" id="buttonName" name="buttonName" required>
+        <div class="settings-tabs" role="tablist">
+            <button type="button" class="settings-tab active" data-tab="buttons">Buttons</button>
+            <button type="button" class="settings-tab" data-tab="appearance">Appearance</button>
+            <button type="button" class="settings-tab" data-tab="application">Application</button>
+            <button type="button" class="settings-tab" data-tab="network">Network</button>
+        </div>
 
-            <label for="buttonLink">Button Link/Filepath:</label>
-            <input type="text" id="buttonLink" name="buttonLink" required>
+        <!-- Buttons tab -->
+        <section class="settings-section active" data-section="buttons">
+            <h3>Quick-Launch Buttons</h3>
+            <ul id="buttonList" class="settings-list">
+                <li class="settings-empty">No buttons yet.</li>
+            </ul>
 
-            <button type="submit">Save</button>
-        </form>
+            <form id="addButtonForm" class="settings-form">
+                <label for="buttonName">Name</label>
+                <input type="text" id="buttonName" name="name" placeholder="e.g. Notepad" required>
 
-        <form id="backgroundForm" method="POST" action="/change_background" enctype="multipart/form-data">
-            <!-- New form for background image -->
-            <h3>Change Background Image</h3>
-            <label for="backgroundImage">Upload Background Image:</label>
-            <input type="file" id="backgroundImage" name="backgroundImage" accept="image/*" required>
+                <label for="buttonLink">Link or File Path</label>
+                <input type="text" id="buttonLink" name="link" placeholder="https://example.com or C:\path\to\file.exe" required>
 
-            <button type="submit">Change Background</button>
-        </form>
-        
-        <form id="networkSettingsForm" method="post" action="/open_network_settings">
-            <button id="launchNetworkSettingsBtn" class="btn btn-secondary">
-                Launch Network Settings
-            </button>
-        </form>
-          
+                <button type="submit">Add Button</button>
+            </form>
+            <p class="settings-error" id="buttonError"></p>
+        </section>
+
+        <!-- Appearance tab -->
+        <section class="settings-section" data-section="appearance">
+            <h3>Background Image</h3>
+            <form id="backgroundForm" enctype="multipart/form-data">
+                <label for="backgroundImage">Upload Background Image:</label>
+                <input type="file" id="backgroundImage" name="backgroundImage" accept="image/*" required>
+                <button type="submit">Change Background</button>
+            </form>
+        </section>
+
+        <!-- Application tab -->
+        <section class="settings-section" data-section="application">
+            <h3>Application Settings</h3>
+            <form id="appSettingsForm" class="settings-form">
+                <label for="logLevel">Log Level</label>
+                <select id="logLevel" name="loglevel">
+                    <option value="DEBUG">DEBUG</option>
+                    <option value="INFO">INFO</option>
+                    <option value="WARNING">WARNING</option>
+                    <option value="ERROR">ERROR</option>
+                    <option value="CRITICAL">CRITICAL</option>
+                </select>
+
+                <label for="uploadFolder">File Transfer Upload Folder</label>
+                <input type="text" id="uploadFolder" name="uploadfolder">
+
+                <button type="submit">Save Settings</button>
+                <span class="settings-saved" id="appSettingsSaved">Saved!</span>
+            </form>
+        </section>
+
+        <!-- Network tab -->
+        <section class="settings-section" data-section="network">
+            <h3>Network</h3>
+            <button type="button" id="launchNetworkSettingsBtn">Launch Network Settings</button>
+        </section>
 
     </div>
 </div>

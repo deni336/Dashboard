@@ -14,7 +14,6 @@ import (
 type Room struct {
 	Channel      *kasugai.Room
 	Participants map[string]*Participant
-	Broadcast    chan []*RoomContent
 	Description  string
 	CreatedAt    time.Time
 	mu           sync.RWMutex
@@ -72,7 +71,6 @@ func NewRoomBuilder() *RoomBuilder {
 				Id: &kasugai.Id{Uuid: uuid.New().String()},
 			},
 			Participants: make(map[string]*Participant, 0),
-			Broadcast:    make(chan []*RoomContent, 1024),
 			CreatedAt:    time.Now(),
 		},
 	}

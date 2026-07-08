@@ -7,16 +7,17 @@ class MessageProcessor:
     Processes incoming chat messages using an asyncio queue,
     batching them for efficient socket emission and database writes.
     """
-    def __init__(self, socketio, chat_history, batch_size=10, flush_interval=1.0):
+    def __init__(self, socketio, chat_history, batch_size=10, flush_interval=1.0, on_message=None):
         self.logger = GlobalLogger.get_logger("MessageProcessor")
         self.socketio = socketio
         self.chat_history = chat_history
         self.batch_size = batch_size
         self.flush_interval = flush_interval
+        self.on_message = on_message
 
         # Create a new asyncio event loop for message processing
         self.loop = asyncio.new_event_loop()
-        self.queue = asyncio.Queue(loop=self.loop)
+        self.queue = asyncio.Queue()
 
         # Start the loop in a background thread
         threading.Thread(target=self._start_loop, daemon=True).start()
@@ -24,6 +25,13 @@ class MessageProcessor:
     def _start_loop(self):
         asyncio.set_event_loop(self.loop)
         self.loop.run_until_complete(self._process_messages())
+
+    def enqueue(self, message):
+        """
+        Thread-safe way to add a message from any thread; asyncio.Queue itself
+        isn't safe to put() into from a thread other than the one running self.loop.
+        """
+        self.loop.call_soon_threadsafe(self.queue.put_nowait, message)
 
     async def _process_messages(self):
         while True:
@@ -47,6 +55,9 @@ class MessageProcessor:
             # Process the batch
             for message in batch:
                 try:
+                    if self.on_message:
+                        self.on_message(message)
+
                     # Emit to connected clients
                     self.socketio.emit('new_message', {
                         'sender': message.senderId.uuid,

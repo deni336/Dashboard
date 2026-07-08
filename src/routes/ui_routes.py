@@ -4,6 +4,9 @@ from flask import Blueprint, render_template, request, redirect, url_for, send_f
 from werkzeug.utils import secure_filename
 from src.global_logger import GlobalLogger
 from src.network_settings import launch_network_settings
+from src.button_manager import ButtonManager
+
+button_manager = ButtonManager()
 
 ui_bp = Blueprint('ui_bp', __name__)
 logger = GlobalLogger.get_logger("UIRoutes")
@@ -21,9 +24,13 @@ def index():
     if 'profile' not in session:
         return redirect(url_for('auth_bp.login'))
 
-    buttons_string = config.get('Application', 'buttons')
-    buttons = [item.split(':')[0].strip() for item in buttons_string.split(',')]
-    return render_template('index.html', buttons=buttons, user=session['profile'])
+    buttons = [b['name'] for b in button_manager.get_buttons()]
+    return render_template(
+        'index.html',
+        buttons=buttons,
+        user=session['profile'],
+        current_user_id=session.get('kasugai_user_id', '')
+    )
 
 @ui_bp.route('/resources/<path:filename>')
 def serve_resources(filename):
@@ -43,9 +50,13 @@ def change_background():
 def screen_share():
     if 'profile' not in session:
         return redirect(url_for('auth_bp.login'))
-    buttons_string = config.get('Application', 'buttons')
-    buttons = [item.split(':')[0].strip() for item in buttons_string.split(',')]
-    return render_template('screenshare.html', buttons=buttons, user=session['profile'])
+    buttons = [b['name'] for b in button_manager.get_buttons()]
+    return render_template(
+        'screenshare.html',
+        buttons=buttons,
+        user=session['profile'],
+        current_user_id=session.get('kasugai_user_id', '')
+    )
 
 @ui_bp.route('/open_network_settings', methods=['POST'])
 def open_network_settings():

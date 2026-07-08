@@ -1,284 +1,318 @@
+// Screen sharing is implemented as low-rate JPEG frame relay through the
+// existing Flask and gRPC media path. Waitress only supports Socket.IO polling
+// here, so this intentionally avoids WebRTC signaling assumptions.
+
 document.addEventListener('DOMContentLoaded', () => {
     const startScreenShareBtn = document.getElementById('startScreenShareBtn');
     const stopScreenShareBtn = document.getElementById('stopScreenShareBtn');
     const screenVideo = document.getElementById('screenVideo');
-    const viewersList = document.getElementById('viewersList');
-    const broadcastsList = document.getElementById('broadcastsList');
-    const watchBroadcastBtn = document.getElementById('watchBroadcastBtn');
+    const remoteScreenView = document.getElementById('remoteScreenView');
+    const screenShareStatus = document.getElementById('screenShareStatus');
+    const captureCanvas = document.createElement('canvas');
+
+    const FRAME_INTERVAL_MS = 500;
+    const JPEG_QUALITY = 0.55;
+    const MAX_FRAME_WIDTH = 1280;
+    const MAX_FRAME_HEIGHT = 720;
 
     let screenStream = null;
+    let captureIntervalId = null;
+    let frameInFlight = false;
 
-    // Start screen sharing
-    startScreenShareBtn.addEventListener('click', async () => {
-        try {
-            screenStream = await navigator.mediaDevices.getDisplayMedia({
-                video: {
-                    cursor: "always"
-                },
-                audio: false
-            });
-            screenVideo.srcObject = screenStream;
+    function setStatus(message) {
+        screenShareStatus.textContent = message;
+    }
 
-            // Enable Stop button and disable Start button
-            startScreenShareBtn.disabled = true;
-            stopScreenShareBtn.disabled = false;
+    function setSharingControls(isSharing) {
+        startScreenShareBtn.disabled = isSharing;
+        stopScreenShareBtn.disabled = !isSharing;
+    }
 
-            // Notify viewers about the screen share (backend implementation required)
-            notifyViewersAboutScreenShare();
-        } catch (err) {
-            console.error("Error: " + err);
+    function getScaledDimensions(width, height) {
+        const scale = Math.min(1, MAX_FRAME_WIDTH / width, MAX_FRAME_HEIGHT / height);
+        return {
+            width: Math.max(1, Math.round(width * scale)),
+            height: Math.max(1, Math.round(height * scale)),
+        };
+    }
+
+    function canvasToJpegBlob(canvas) {
+        return new Promise(resolve => {
+            canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY);
+        });
+    }
+
+    async function captureAndSendFrame() {
+        if (frameInFlight || !screenStream || !screenVideo.videoWidth || !screenVideo.videoHeight) {
+            return;
         }
-    });
 
-    // Stop screen sharing
-    stopScreenShareBtn.addEventListener('click', () => {
+        frameInFlight = true;
+        try {
+            const size = getScaledDimensions(screenVideo.videoWidth, screenVideo.videoHeight);
+            captureCanvas.width = size.width;
+            captureCanvas.height = size.height;
+
+            const ctx = captureCanvas.getContext('2d', { alpha: false });
+            ctx.drawImage(screenVideo, 0, 0, size.width, size.height);
+
+            const blob = await canvasToJpegBlob(captureCanvas);
+            if (!blob || !screenStream) {
+                return;
+            }
+
+            const response = await fetch('/api/screenshare/frame', {
+                method: 'POST',
+                headers: { 'Content-Type': 'image/jpeg' },
+                body: blob,
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                console.error('Failed to send screen frame:', error.error || response.statusText);
+            }
+        } catch (error) {
+            console.error('Error sending screen frame:', error);
+        } finally {
+            frameInFlight = false;
+        }
+    }
+
+    async function stopSharing() {
+        if (captureIntervalId) {
+            clearInterval(captureIntervalId);
+            captureIntervalId = null;
+        }
+
         if (screenStream) {
-            let tracks = screenStream.getTracks();
-            tracks.forEach(track => track.stop());
+            screenStream.getTracks().forEach(track => track.stop());
             screenStream = null;
         }
 
-        // Reset video
         screenVideo.srcObject = null;
+        setSharingControls(false);
+        setStatus(remoteScreenView.style.display === 'block'
+            ? 'Someone is sharing their screen.'
+            : 'No one is sharing right now.');
 
-        // Enable Start button and disable Stop button
-        startScreenShareBtn.disabled = false;
-        stopScreenShareBtn.disabled = true;
+        try {
+            await fetch('/api/screenshare/stop', { method: 'POST' });
+        } catch (error) {
+            console.error('Error stopping screen share:', error);
+        }
+    }
 
-        // Notify viewers that screenshare has stopped
-        notifyViewersScreenshareStopped();
-    });
+    startScreenShareBtn.addEventListener('click', async () => {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+            setStatus('Screen capture is not supported by this browser.');
+            return;
+        }
 
-    // Watch a selected broadcast
-    watchBroadcastBtn.addEventListener('click', () => {
-        const selectedBroadcast = broadcastsList.querySelector('li.selected');
-        if (selectedBroadcast) {
-            const streamId = selectedBroadcast.dataset.streamId;
-            watchBroadcastStream(streamId); // Function to watch a broadcast
+        try {
+            screenStream = await navigator.mediaDevices.getDisplayMedia({
+                video: {
+                    cursor: 'always',
+                    frameRate: { ideal: 5, max: 8 },
+                },
+                audio: false,
+            });
+
+            screenVideo.srcObject = screenStream;
+            await screenVideo.play().catch(() => {});
+
+            setSharingControls(true);
+            setStatus('Sharing your screen.');
+            captureAndSendFrame();
+            captureIntervalId = setInterval(captureAndSendFrame, FRAME_INTERVAL_MS);
+
+            const [track] = screenStream.getVideoTracks();
+            if (track) {
+                track.addEventListener('ended', stopSharing, { once: true });
+            }
+        } catch (error) {
+            if (error.name !== 'NotAllowedError') {
+                console.error('Error starting screen share:', error);
+            }
+            setSharingControls(false);
         }
     });
 
-    // Function to notify viewers about the screen share
-    function notifyViewersAboutScreenShare() {
-        // You would need to implement backend communication here
-        console.log("Notifying viewers about screen share...");
-        // E.g., make an API call to update viewers or a WebSocket implementation
+    stopScreenShareBtn.addEventListener('click', stopSharing);
+
+    const socket = io({ transports: ['polling'] });
+
+    socket.on('screen_frame', data => {
+        if (data.sender === window.CURRENT_USER_ID) {
+            return;
+        }
+        remoteScreenView.src = `data:image/jpeg;base64,${data.data}`;
+        remoteScreenView.style.display = 'block';
+        setStatus('Someone is sharing their screen.');
+    });
+
+    socket.on('screen_share_stopped', data => {
+        if (data && data.sender === window.CURRENT_USER_ID) {
+            return;
+        }
+        remoteScreenView.style.display = 'none';
+        remoteScreenView.src = '';
+        if (!screenStream) {
+            setStatus('No one is sharing right now.');
+        }
+    });
+
+    socket.on('new_message', data => {
+        let offer = null;
+        try {
+            const parsed = JSON.parse(data.content);
+            if (parsed && parsed.type === 'file_offer') {
+                offer = parsed;
+            }
+        } catch (e) {
+            // Normal chat message.
+        }
+
+        if (offer) {
+            if (offer.recipientId === window.CURRENT_USER_ID) {
+                window.KasugaiFileTransfer.addOffer(offer);
+            }
+            return;
+        }
+
+        const chatMessages = document.getElementById('chatMessages');
+        const newMessage = document.createElement('p');
+        newMessage.textContent = `${data.sender}: ${data.content}`;
+        chatMessages.appendChild(newMessage);
+    });
+
+    wireModalNavigation();
+    wireChatControls();
+    wireLogout();
+});
+
+function wireModalNavigation() {
+    const chatModal = document.getElementById('chatModal');
+    const fileTransferModal = document.getElementById('fileTransferModal');
+    const settingsModal = document.getElementById('settingsModal');
+
+    function closeAllModals() {
+        chatModal.style.display = 'none';
+        fileTransferModal.style.display = 'none';
+        settingsModal.style.display = 'none';
     }
 
-    // Function to notify viewers that the screenshare stopped
-    function notifyViewersScreenshareStopped() {
-        console.log("Notifying viewers that screenshare has stopped...");
-    }
+    document.getElementById('chatBtn').addEventListener('click', event => {
+        event.preventDefault();
+        closeAllModals();
+        chatModal.style.display = 'block';
+    });
 
-    // Function to watch a broadcasted stream
-    function watchBroadcastStream(streamId) {
-        console.log("Watching broadcast with stream ID: " + streamId);
-        // Here you would implement logic to retrieve the selected stream and play it
-    }
-});
+    document.getElementById('fileTransferBtn').addEventListener('click', event => {
+        event.preventDefault();
+        closeAllModals();
+        fileTransferModal.style.display = 'block';
+        window.KasugaiFileTransfer.openModal();
+    });
 
+    document.getElementById('settingsBtn').addEventListener('click', event => {
+        event.preventDefault();
+        closeAllModals();
+        settingsModal.style.display = 'block';
+        loadButtons();
+        loadAppSettings();
+    });
 
-document.addEventListener('DOMContentLoaded', function () {
-   // Add event listeners to all dynamically loaded buttons
-   document.querySelectorAll('.dynamic-button').forEach(button => {
-       button.addEventListener('click', function () {
-           const buttonName = this.textContent;
-           // Send the button name to the server to handle the click
-           fetch(`/button_click/${encodeURIComponent(buttonName)}`, { method: 'POST' })
-               .then(response => {
-                   if (!response.ok) {
-                       console.error('Failed to execute button action:', response.statusText);
-                   }
-               })
-               .catch(error => console.error('Error during button click:', error));
-       });
-   });
-});
+    document.getElementById('homeBtn').addEventListener('click', () => {
+        closeAllModals();
+    });
 
-// Function to populate buttons with only names (no links)
-function populateButtons(buttonNames) {
-   const container = document.getElementById('buttonContainer');
-   container.innerHTML = '';  // Clear existing buttons
-
-   buttonNames.forEach(buttonName => {
-       const buttonElement = document.createElement('button');
-       buttonElement.textContent = buttonName;
-       buttonElement.onclick = function () {
-           // Handle button click by sending the name to the server to resolve the link
-           fetch(`/button_click/${buttonName}`, { method: 'POST' })
-               .then(response => {
-                   if (!response.ok) {
-                       console.error('Failed to execute button action:', response.statusText);
-                   }
-               })
-               .catch(error => console.error('Error during button click:', error));
-       };
-       container.appendChild(buttonElement);
-   });
+    document.querySelectorAll('.close').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const modal = btn.closest('.modal, #chatModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        });
+    });
 }
 
-document.getElementById('backgroundForm').addEventListener('submit', function(event) {
-   event.preventDefault();  // Prevent the default form submission
+function wireChatControls() {
+    document.getElementById('sendChat').addEventListener('click', () => {
+        const chatInput = document.getElementById('chatInput');
+        const message = chatInput.value.trim();
+        if (!message) {
+            return;
+        }
 
-   let formData = new FormData(this);
+        fetch('/send_message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ message }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Error:', data.error);
+                }
+            })
+            .catch(error => console.error('Error:', error));
 
-   // Use Fetch API to send the form data
-   fetch('/change_background', {
-       method: 'POST',
-       body: formData
-   })
-   .then(response => {
-       if (response.ok) {
-           // Update the background image after successful upload
-           updateBackgroundImage();
-       } else {
-           alert('Failed to upload background image.');
-       }
-   })
-   .catch(error => {
-       console.error('Error:', error);
-       alert('An error occurred while uploading the background image.');
-   });
-});
+        chatInput.value = '';
+    });
 
-function updateBackgroundImage() {
-   // Force reload the background image by updating the URL with a timestamp to avoid caching
-   document.body.style.backgroundImage = `url('/static/img/bg.jpg?${new Date().getTime()}')`;
-}
+    document.getElementById('joinRoomBtn').addEventListener('click', () => {
+        const room = document.getElementById('roomSelect').value;
+        if (!room) {
+            console.error('Please select a room to join.');
+            return;
+        }
 
-// Get modals
-const chatModal = document.getElementById("chatModal");
-const fileTransferModal = document.getElementById("fileTransferModal");
-const settingsModal = document.getElementById("settingsModal");
-
-// Get buttons that open the modals
-const chatBtn = document.getElementById("chatBtn");
-const fileTransferBtn = document.getElementById("fileTransferBtn");
-const screenShareBtn = document.getElementById("screenShareBtn");
-const settingsBtn = document.getElementById("settingsBtn");
-const homeBtn = document.getElementById("homeBtn");
-
-// Get the <span> element that closes the modal
-const closeBtns = document.querySelectorAll(".close");
-var closeBtn = document.getElementsByClassName("close")[0];
-
-// Functions to open each modal
-chatBtn.onclick = function() {
-   chatModal.style.display = "block";
-}
-// Close the modal when the 'x' is clicked
-closeBtn.onclick = function() {
-   chatModal.style.display = "none";
-}
-
-// Send a chat message
-document.getElementById("sendChat").onclick = function() {
-   var message = document.getElementById("chatInput").value;
-   if (message.trim() !== "") {
-       var chatMessages = document.getElementById("chatMessages");
-       var newMessage = document.createElement("p");
-       newMessage.textContent = message;
-       chatMessages.appendChild(newMessage);
-       document.getElementById("chatInput").value = ""; // Clear the input
-   }
-}
-
-fileTransferBtn.onclick = function() {
-   fileTransferModal.style.display = "block";
-}
-
-settingsBtn.onclick = function() {
-   settingsModal.style.display = "block";
-}
-
-// Function to close all modals
-homeBtn.onclick = function() {
-   closeAllModals();
-}
-
-// Close modals when the close button (x) is clicked
-closeBtns.forEach(function(btn) {
-   btn.onclick = function() {
-       btn.parentElement.parentElement.style.display = "none";
-   }
-});
-
-// Close all modals
-function closeAllModals() {
-   chatModal.style.display = "none";
-   fileTransferModal.style.display = "none";
-   settingsModal.style.display = "none";
-}
-
-// Join Room Button Functionality
-document.getElementById('joinRoomBtn').addEventListener('click', function() {
-    const room = document.getElementById('roomSelect').value;
-    if (room) {
-        console.log(`Joining room: ${room}`);
         fetch('/join_room', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ room: room })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ room }),
         })
-        .then(response => {
-            if (response.ok) {
-                console.log(`Successfully joined room: ${room}`);
-            } else {
-                console.error(`Failed to join room: ${room}`);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-    } else {
-        console.error('Please select a room to join.');
-    }
-});
+            .then(response => {
+                if (!response.ok) {
+                    console.error(`Failed to join room: ${room}`);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    });
 
-// Create Room Button Functionality
-document.getElementById('createRoomBtn').addEventListener('click', function() {
-    const roomName = document.getElementById('newRoomName').value;
-    const roomPassword = document.getElementById('roomPassword').value;
-    if (roomName) {
-        console.log(`Creating room: ${roomName} with password: ${roomPassword}`);
+    document.getElementById('createRoomBtn').addEventListener('click', () => {
+        const roomName = document.getElementById('newRoomName').value.trim();
+        const roomPassword = document.getElementById('roomPassword').value;
+        if (!roomName) {
+            console.error('Please enter a room name.');
+            return;
+        }
+
         fetch('/create_room', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ roomName: roomName, roomPassword: roomPassword })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roomName, roomPassword }),
         })
-        .then(response => {
-            if (response.ok) {
-                console.log(`Successfully created room: ${roomName}`);
-            } else {
-                console.error(`Failed to create room: ${roomName}`);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-    } else {
-        console.error('Please enter a room name.');
-    }
-});
-
-// Logout Button Functionality
-document.getElementById('logoutBtn').addEventListener('click', function() {
-    fetch('/logout', {
-        method: 'POST'
-    })
-    .then(response => {
-        if (response.ok) {
-            console.log('Logged out successfully.');
-            window.location.href = '/'; // Redirect to home or login page
-        } else {
-            console.error('Failed to log out.');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
+            .then(response => {
+                if (!response.ok) {
+                    console.error(`Failed to create room: ${roomName}`);
+                }
+            })
+            .catch(error => console.error('Error:', error));
     });
-});
+}
+
+function wireLogout() {
+    document.getElementById('logoutBtn').addEventListener('click', event => {
+        event.preventDefault();
+        fetch('/logout', { method: 'GET' })
+            .then(response => {
+                if (response.ok) {
+                    window.location.href = '/';
+                } else {
+                    console.error('Failed to log out.');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    });
+}
