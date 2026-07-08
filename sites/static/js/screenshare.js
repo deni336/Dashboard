@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const screenVideo = document.getElementById('screenVideo');
     const remoteScreenView = document.getElementById('remoteScreenView');
     const screenShareStatus = document.getElementById('screenShareStatus');
+    const videoContainer = document.getElementById('videoContainer');
+    const fullscreenScreenShareBtn = document.getElementById('fullscreenScreenShareBtn');
     const captureCanvas = document.createElement('canvas');
 
     const FRAME_INTERVAL_MS = 500;
@@ -26,6 +28,47 @@ document.addEventListener('DOMContentLoaded', () => {
     function setSharingControls(isSharing) {
         startScreenShareBtn.disabled = isSharing;
         stopScreenShareBtn.disabled = !isSharing;
+    }
+
+    function getFullscreenElement() {
+        return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+    }
+
+    function isScreenShareFullscreen() {
+        return getFullscreenElement() === videoContainer;
+    }
+
+    function requestVideoFullscreen() {
+        if (videoContainer.requestFullscreen) {
+            return videoContainer.requestFullscreen();
+        }
+        if (videoContainer.webkitRequestFullscreen) {
+            return videoContainer.webkitRequestFullscreen();
+        }
+        if (videoContainer.msRequestFullscreen) {
+            return videoContainer.msRequestFullscreen();
+        }
+        return Promise.reject(new Error('Fullscreen is not supported by this browser.'));
+    }
+
+    function exitFullscreen() {
+        if (document.exitFullscreen) {
+            return document.exitFullscreen();
+        }
+        if (document.webkitExitFullscreen) {
+            return document.webkitExitFullscreen();
+        }
+        if (document.msExitFullscreen) {
+            return document.msExitFullscreen();
+        }
+        return Promise.resolve();
+    }
+
+    function updateFullscreenButton() {
+        const isFullscreen = isScreenShareFullscreen();
+        fullscreenScreenShareBtn.textContent = isFullscreen ? 'Exit Fullscreen' : 'Fullscreen';
+        fullscreenScreenShareBtn.setAttribute('aria-pressed', String(isFullscreen));
+        fullscreenScreenShareBtn.title = isFullscreen ? 'Exit fullscreen' : 'View screen share fullscreen';
     }
 
     function getScaledDimensions(width, height) {
@@ -138,6 +181,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     stopScreenShareBtn.addEventListener('click', stopSharing);
+
+    fullscreenScreenShareBtn.addEventListener('click', async () => {
+        try {
+            if (isScreenShareFullscreen()) {
+                await exitFullscreen();
+            } else {
+                await requestVideoFullscreen();
+            }
+            updateFullscreenButton();
+        } catch (error) {
+            console.error('Error toggling fullscreen:', error);
+            setStatus(error.message || 'Unable to toggle fullscreen.');
+        }
+    });
+
+    document.addEventListener('fullscreenchange', updateFullscreenButton);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+    document.addEventListener('msfullscreenchange', updateFullscreenButton);
+    updateFullscreenButton();
 
     const socket = io({ transports: ['polling'] });
 
