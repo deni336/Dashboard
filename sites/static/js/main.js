@@ -1,5 +1,5 @@
 // Page-specific behavior for index.html. Settings-modal behavior (buttons,
-// application settings, background image, network settings) lives in settings.js.
+// application settings, background image) lives in settings.js.
 
 const chatModal = document.getElementById("chatModal");
 const fileTransferModal = document.getElementById("fileTransferModal");

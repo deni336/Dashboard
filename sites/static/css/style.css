@@ -364,19 +364,6 @@ nav a:hover {
    color: #5e5e5e;
 }
 
-#launchNetworkSettingsBtn {
-   padding: 10px 16px;
-   background-color: #000;
-   color: rgb(255, 0, 0);
-   border: none;
-   border-radius: 2px;
-   cursor: pointer;
-}
-
-#launchNetworkSettingsBtn:hover {
-   background-color: #222;
-}
-
 /* Ensure that the modal is positioned at the right side */
 #chatModal {
    display: none;

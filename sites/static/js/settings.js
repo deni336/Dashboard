@@ -1,5 +1,5 @@
 // Shared Settings modal behavior: quick-launch buttons, application settings,
-// background image, and network settings. Included by both index.html and
+// and background image. Included by both index.html and
 // screenshare.html so the Settings modal behaves identically on each page.
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -106,17 +106,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     });
 
-    document.getElementById('launchNetworkSettingsBtn').addEventListener('click', () => {
-        fetch('/open_network_settings', { method: 'POST' })
-            .then(response => {
-                if (response.ok) {
-                    console.log('Network settings launched.');
-                } else {
-                    return response.json().then(data => console.error(data.error));
-                }
-            })
-            .catch(error => console.error('Network Settings launch failed:', error));
-    });
 });
 
 function updateBackgroundImage() {

@@ -1,9 +1,8 @@
 # routes/ui_routes.py
 import os
-from flask import Blueprint, render_template, request, redirect, url_for, send_from_directory, session, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, send_from_directory, session
 from werkzeug.utils import secure_filename
 from src.global_logger import GlobalLogger
-from src.network_settings import launch_network_settings
 from src.button_manager import ButtonManager
 
 button_manager = ButtonManager()
@@ -57,12 +56,3 @@ def screen_share():
         user=session['profile'],
         current_user_id=session.get('kasugai_user_id', '')
     )
-
-@ui_bp.route('/open_network_settings', methods=['POST'])
-def open_network_settings():
-    try:
-        launch_network_settings()
-        return '', 204  # ✅ No Content = no page update or body render
-    except Exception as e:
-        logger.error(f"Failed to launch network settings: {e}")
-        return jsonify({"error": "Failed to launch network settings"}), 500

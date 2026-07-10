@@ -1,9 +1,36 @@
 services:
+  kasugai-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: kasugai-server
+    image: kasugai-server
+    ports:
+      - "8008:8008"
+      - "50051:50051"
+      - "50052:50052"
+    restart: unless-stopped
+
   dashboard:
     build:
       context: .
       dockerfile: Dockerfile
+      target: dashboard
     image: kasugai-dashboard
+    depends_on:
+      - kasugai-server
+    environment:
+      KASUGAI_SERVER_HOST: kasugai-server
+      KASUGAI_FILE_TRANSFER_HOST: kasugai-server
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     ports:
       - "8000:8000"
+    volumes:
+      - dashboard-data:/root/Kasugai
+      - dashboard-resources:/app/kasugai/resources
     restart: unless-stopped
+
+volumes:
+  dashboard-data:
+  dashboard-resources:

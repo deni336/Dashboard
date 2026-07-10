@@ -139,14 +139,7 @@ protoc --proto_path=. --go_out=. --go-grpc_out=. kasugai.proto
 
 ## Docker
 
-Build and run the web dashboard:
-
-```bash
-docker build -t kasugai-dashboard .
-docker run --rm -p 8000:8000 kasugai-dashboard
-```
-
-Or use Docker Compose:
+Run the dashboard and Kasugai gRPC server together:
 
 ```bash
 docker compose up --build
@@ -154,4 +147,11 @@ docker compose up --build
 
 Open `http://localhost:8000`.
 
-The image starts the Flask app with Waitress using `src.wsgi:app`. It writes a container config at `/root/Kasugai/config.ini` with the web server bound to `0.0.0.0` so the port mapping works.
+For Google OAuth login, add credentials to a `.env` file before starting Compose:
+
+```ini
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
+```
+
+Compose builds two targets from the `Dockerfile`: `dashboard` for the Flask app on port `8000`, and `kasugai-server` for chat, file transfer, and media gRPC ports `8008`, `50051`, and `50052`. The dashboard writes its container config to `/root/Kasugai/config.ini` on first startup and points at the `kasugai-server` service by name.

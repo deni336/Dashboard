@@ -1,6 +1,7 @@
 *.idea
 *.log
 *.ini
+.env
 .qodo
 __pycache__/
 *.py[cod]

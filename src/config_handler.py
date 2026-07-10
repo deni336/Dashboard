@@ -5,7 +5,9 @@ import getpass
 
 DEFAULT_CONFIG = {
     'Application': {
-        'buttons': ''
+        'buttons': '',
+        'clientid': '',
+        'clientsecret': ''
     },
     'WebServer': {
         'port': '8000',
@@ -70,8 +72,11 @@ class ConfigHandler:
 
     def get(self, section, option, fallback=None):
         try:
-            return self.config.get(section, option, fallback=fallback).strip(',').strip()
-        except configparser.NoOptionError:
+            value = self.config.get(section, option, fallback=fallback)
+            if isinstance(value, str):
+                return value.strip(',').strip()
+            return value
+        except (configparser.NoOptionError, configparser.NoSectionError):
             return fallback
 
     def getint(self, section, option, fallback=None):
