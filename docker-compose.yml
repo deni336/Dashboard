@@ -1,0 +1,9 @@
+services:
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: kasugai-dashboard
+    ports:
+      - "8000:8000"
+    restart: unless-stopped

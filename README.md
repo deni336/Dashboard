@@ -136,3 +136,22 @@ protoc --proto_path=. --go_out=. --go-grpc_out=. kasugai.proto
 *Kasugai © 2025 – deni336*
 
 
+
+## Docker
+
+Build and run the web dashboard:
+
+```bash
+docker build -t kasugai-dashboard .
+docker run --rm -p 8000:8000 kasugai-dashboard
+```
+
+Or use Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+Open `http://localhost:8000`.
+
+The image starts the Flask app with Waitress using `src.wsgi:app`. It writes a container config at `/root/Kasugai/config.ini` with the web server bound to `0.0.0.0` so the port mapping works.
