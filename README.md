@@ -154,4 +154,16 @@ GOOGLE_CLIENT_ID=your-client-id
 GOOGLE_CLIENT_SECRET=your-client-secret
 ```
 
-Compose builds two targets from the `Dockerfile`: `dashboard` for the Flask app on port `8000`, and `kasugai-server` for chat, file transfer, and media gRPC ports `8008`, `50051`, and `50052`. The dashboard writes its container config to `/root/Kasugai/config.ini` on first startup and points at the `kasugai-server` service by name.
+In Google Cloud Console, configure the OAuth client with this authorized redirect URI for local Docker use:
+
+```text
+http://localhost:8000/authorize
+```
+
+If you started the containers before adding OAuth credentials, recreate the dashboard container so the persisted config is refreshed:
+
+```bash
+docker compose up --build --force-recreate dashboard
+```
+
+Compose builds two targets from the `Dockerfile`: `dashboard` for the Flask app on host port `8000`, and `kasugai-server` for chat, file transfer, and media gRPC ports `8008`, `50051`, and `50052` on the internal Compose network. The dashboard writes its container config to `/root/Kasugai/config.ini` on first startup and points at the `kasugai-server` service by name.

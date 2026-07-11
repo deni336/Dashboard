@@ -1,3 +1,5 @@
+name: kasugai
+
 services:
   kasugai-server:
     build:
@@ -5,10 +7,10 @@ services:
       dockerfile: Dockerfile
       target: kasugai-server
     image: kasugai-server
-    ports:
-      - "8008:8008"
-      - "50051:50051"
-      - "50052:50052"
+    expose:
+      - "8008"
+      - "50051"
+      - "50052"
     restart: unless-stopped
 
   dashboard:

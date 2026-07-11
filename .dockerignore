@@ -2,6 +2,8 @@
 .claude
 .qodo
 .vscode
+.env
+.env.*
 __pycache__/
 *.py[cod]
 *.pyo
@@ -18,4 +20,3 @@ dist/
 *.egg-info/
 kasugai/logs/
 kasugai/resources/
-depricated/

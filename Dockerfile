@@ -10,7 +10,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY __init__.py main.py ./
+COPY src ./src
+COPY sites ./sites
+COPY kasugai_server/python ./kasugai_server/python
+COPY docker ./docker
 
 RUN mkdir -p /root/Kasugai /app/kasugai/logs /app/kasugai/resources
 
