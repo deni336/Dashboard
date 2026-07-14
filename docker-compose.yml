@@ -24,15 +24,24 @@ services:
     environment:
       KASUGAI_SERVER_HOST: kasugai-server
       KASUGAI_FILE_TRANSFER_HOST: kasugai-server
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      DENILICENSE_API_URL: ${DENILICENSE_API_URL:-http://denilicense-api:8080}
+      DENILICENSE_ISSUER: ${DENILICENSE_ISSUER:-http://127.0.0.1:8080}
+      DENILICENSE_PRODUCT_CODE: ${DENILICENSE_PRODUCT_CODE:-KASUGAI}
     ports:
       - "8000:8000"
     volumes:
       - dashboard-data:/root/Kasugai
       - dashboard-resources:/app/kasugai/resources
+    networks:
+      - default
+      - denilicense
     restart: unless-stopped
 
 volumes:
   dashboard-data:
   dashboard-resources:
+
+networks:
+  denilicense:
+    external: true
+    name: denilicense-network

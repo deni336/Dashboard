@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
     <title>Kasugai</title>
-    <link rel="icon" type="image/jpg" href="/resources/favicon.jpg">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
     
     <!-- Link to custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
@@ -29,6 +29,7 @@
             <li><a href="/" id="homeBtn">Home</a></li>
             <li><a href="#" id="chatBtn">Chat</a></li>
             <li><a href="#" id="fileTransferBtn">File Transfer</a></li>
+            <li><a href="{{ url_for('project_bp.workspace_page') }}" id="projectsBtn">Projects</a></li>
             <li><a href="{{ url_for('ui_bp.screen_share') }}" id="screenShareBtn">Screen Share</a></li>
             <li><a href="#" id="settingsBtn">Settings</a></li>
             </ul>

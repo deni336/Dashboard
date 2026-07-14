@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Projects | Kasugai</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/project_manager.css') }}">
+    <script src="https://unpkg.com/lucide@1.24.0/dist/umd/lucide.js" defer></script>
+    <script src="{{ url_for('static', filename='js/project_manager.js') }}" defer></script>
+</head>
+
+<body class="pm-page">
+    <header class="pm-topbar">
+        <a class="pm-brand" href="{{ url_for('project_bp.workspace_page') }}">
+            <span class="pm-brand-mark"><i data-lucide="panels-top-left"></i></span>
+            <span>Kasugai Projects</span>
+        </a>
+        <nav class="pm-topnav" aria-label="Application navigation">
+            <a href="{{ url_for('ui_bp.index') }}"><i data-lucide="house"></i><span>Home</span></a>
+            <a class="active" href="{{ url_for('project_bp.workspace_page') }}"><i data-lucide="briefcase-business"></i><span>Projects</span></a>
+            <a href="{{ url_for('ui_bp.screen_share') }}"><i data-lucide="monitor-up"></i><span>Screen Share</span></a>
+        </nav>
+        <div class="pm-account">
+            <span>{{ user.email or user.name }}</span>
+            <a class="pm-icon-button" href="{{ url_for('auth_bp.logout') }}" title="Log out" aria-label="Log out">
+                <i data-lucide="log-out"></i>
+            </a>
+        </div>
+    </header>
+
+    <div class="pm-shell">
+        <aside class="pm-sidebar">
+            <div class="pm-sidebar-heading">
+                <div>
+                    <span class="pm-eyebrow">Portfolio</span>
+                    <h1>Projects</h1>
+                </div>
+                <button class="pm-icon-button pm-icon-button-accent" id="newProjectButton" type="button" title="New project" aria-label="New project">
+                    <i data-lucide="plus"></i>
+                </button>
+            </div>
+            <label class="pm-search" for="projectSearch">
+                <i data-lucide="search"></i>
+                <input id="projectSearch" type="search" placeholder="Search projects" autocomplete="off">
+            </label>
+            <div class="pm-project-list" id="projectList" aria-live="polite"></div>
+            <div class="pm-sidebar-links" id="sidebarConnections"></div>
+        </aside>
+
+        <main class="pm-main">
+            <section class="pm-empty-state" id="emptyState" hidden>
+                <i data-lucide="folder-kanban"></i>
+                <h2>No projects yet</h2>
+                <button class="pm-button pm-button-primary" type="button" data-action="new-project">
+                    <i data-lucide="plus"></i>New project
+                </button>
+            </section>
+
+            <section id="projectWorkspace" hidden>
+                <header class="pm-project-header">
+                    <div class="pm-project-identity">
+                        <div class="pm-project-code" id="projectCode">PROJECT</div>
+                        <div>
+                            <div class="pm-title-row">
+                                <h2 id="projectName">Project</h2>
+                                <span class="pm-badge" id="projectHealth">On track</span>
+                            </div>
+                            <p id="projectDescription"></p>
+                        </div>
+                    </div>
+                    <div class="pm-header-actions">
+                        <button class="pm-icon-button" type="button" data-action="edit-project" title="Edit project" aria-label="Edit project">
+                            <i data-lucide="pencil"></i>
+                        </button>
+                        <button class="pm-button pm-button-primary" type="button" data-action="add-record">
+                            <i data-lucide="plus"></i>Add item
+                        </button>
+                    </div>
+                </header>
+
+                <section class="pm-metrics" aria-label="Portfolio metrics">
+                    <div class="pm-metric"><span>Active projects</span><strong id="metricActive">0</strong></div>
+                    <div class="pm-metric"><span>At risk</span><strong id="metricRisk">0</strong></div>
+                    <div class="pm-metric"><span>Overdue work</span><strong id="metricOverdue">0</strong></div>
+                    <div class="pm-metric"><span>Open risks &amp; issues</span><strong id="metricRaid">0</strong></div>
+                </section>
+
+                <div class="pm-tabs" role="tablist" aria-label="Project views">
+                    <button class="pm-tab active" type="button" role="tab" data-tab="overview" aria-selected="true">Overview</button>
+                    <button class="pm-tab" type="button" role="tab" data-tab="work" aria-selected="false">Work plan</button>
+                    <button class="pm-tab" type="button" role="tab" data-tab="meetings" aria-selected="false">Meetings</button>
+                    <button class="pm-tab" type="button" role="tab" data-tab="raid" aria-selected="false">RAID &amp; decisions</button>
+                    <button class="pm-tab" type="button" role="tab" data-tab="stakeholders" aria-selected="false">Stakeholders</button>
+                    <button class="pm-tab" type="button" role="tab" data-tab="connections" aria-selected="false">Connections</button>
+                </div>
+
+                <section class="pm-tab-panel active" data-panel="overview">
+                    <div class="pm-overview-grid">
+                        <section class="pm-section">
+                            <div class="pm-section-heading">
+                                <div><span class="pm-eyebrow">Delivery</span><h3>Upcoming work</h3></div>
+                                <button class="pm-icon-button" type="button" data-action="add-record" title="Add work item" aria-label="Add work item"><i data-lucide="plus"></i></button>
+                            </div>
+                            <div class="pm-table-wrap">
+                                <table class="pm-table">
+                                    <thead><tr><th>Item</th><th>Owner</th><th>Due</th><th>Status</th><th></th></tr></thead>
+                                    <tbody id="overviewWork"></tbody>
+                                </table>
+                            </div>
+                        </section>
+                        <aside class="pm-project-brief">
+                            <div class="pm-section-heading"><div><span class="pm-eyebrow">Controls</span><h3>Project brief</h3></div></div>
+                            <dl id="projectBrief"></dl>
+                            <div class="pm-progress-block">
+                                <div><span>Overall progress</span><strong id="progressValue">0%</strong></div>
+                                <div class="pm-progress-track"><span id="progressBar"></span></div>
+                            </div>
+                        </aside>
+                    </div>
+                    <section class="pm-section pm-latest-meeting">
+                        <div class="pm-section-heading">
+                            <div><span class="pm-eyebrow">Governance</span><h3>Latest meeting</h3></div>
+                            <button class="pm-button pm-button-secondary" type="button" data-action="add-meeting"><i data-lucide="notebook-pen"></i>Log meeting</button>
+                        </div>
+                        <div id="latestMeeting"></div>
+                    </section>
+                </section>
+
+                <section class="pm-tab-panel" data-panel="work">
+                    <div class="pm-panel-toolbar">
+                        <div class="pm-filter-group">
+                            <button class="pm-filter active" type="button" data-work-filter="all">All</button>
+                            <button class="pm-filter" type="button" data-work-filter="task">Tasks</button>
+                            <button class="pm-filter" type="button" data-work-filter="milestone">Milestones</button>
+                        </div>
+                        <button class="pm-button pm-button-primary" type="button" data-action="add-record"><i data-lucide="plus"></i>Add work</button>
+                    </div>
+                    <div class="pm-table-wrap">
+                        <table class="pm-table pm-table-wide pm-work-table">
+                            <thead><tr><th>Type</th><th>Title</th><th>Priority</th><th>Owner</th><th>Due</th><th>Status</th><th></th></tr></thead>
+                            <tbody id="workTable"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="pm-tab-panel" data-panel="meetings">
+                    <div class="pm-panel-toolbar">
+                        <div><span class="pm-eyebrow">Meeting log</span><h3>Notes and actions</h3></div>
+                        <button class="pm-button pm-button-primary" type="button" data-action="add-meeting"><i data-lucide="plus"></i>Log meeting</button>
+                    </div>
+                    <div class="pm-meeting-list" id="meetingList"></div>
+                </section>
+
+                <section class="pm-tab-panel" data-panel="raid">
+                    <div class="pm-panel-toolbar">
+                        <div><span class="pm-eyebrow">Control log</span><h3>RAID and decisions</h3></div>
+                        <button class="pm-button pm-button-primary" type="button" data-action="add-raid"><i data-lucide="plus"></i>Add entry</button>
+                    </div>
+                    <div class="pm-raid-grid" id="raidGrid"></div>
+                </section>
+
+                <section class="pm-tab-panel" data-panel="stakeholders">
+                    <div class="pm-panel-toolbar">
+                        <div><span class="pm-eyebrow">Engagement</span><h3>Stakeholder register</h3></div>
+                        <button class="pm-button pm-button-primary" type="button" data-action="add-stakeholder"><i data-lucide="user-plus"></i>Add stakeholder</button>
+                    </div>
+                    <div class="pm-table-wrap">
+                        <table class="pm-table pm-table-wide">
+                            <thead><tr><th>Name</th><th>Role</th><th>Influence</th><th>Engagement</th><th>Contact</th><th></th></tr></thead>
+                            <tbody id="stakeholderTable"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="pm-tab-panel" data-panel="connections">
+                    <div class="pm-panel-toolbar">
+                        <div><span class="pm-eyebrow">Workspace links</span><h3>Connections</h3></div>
+                        <button class="pm-button pm-button-primary" type="button" data-action="add-connection"><i data-lucide="plug-zap"></i>Add connection</button>
+                    </div>
+                    <div class="pm-connection-grid" id="connectionGrid"></div>
+                </section>
+            </section>
+        </main>
+    </div>
+
+    <dialog class="pm-dialog" id="projectDialog">
+        <form method="dialog" id="projectForm">
+            <div class="pm-dialog-heading">
+                <div><span class="pm-eyebrow">Portfolio</span><h2 id="projectDialogTitle">New project</h2></div>
+                <button class="pm-icon-button" type="button" data-close-dialog title="Close" aria-label="Close"><i data-lucide="x"></i></button>
+            </div>
+            <input type="hidden" name="id">
+            <div class="pm-form-grid">
+                <label class="pm-field pm-field-span-2"><span>Project name</span><input name="name" maxlength="160" required></label>
+                <label class="pm-field"><span>Code</span><input name="code" maxlength="16" pattern="[A-Za-z0-9][A-Za-z0-9_-]{1,15}" required></label>
+                <label class="pm-field"><span>Status</span><select name="status"><option value="planned">Planned</option><option value="active">Active</option><option value="on_hold">On hold</option><option value="completed">Completed</option><option value="archived">Archived</option></select></label>
+                <label class="pm-field"><span>Priority</span><select name="priority"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></label>
+                <label class="pm-field"><span>Health</span><select name="health"><option value="on_track">On track</option><option value="at_risk">At risk</option><option value="off_track">Off track</option></select></label>
+                <label class="pm-field"><span>Project manager</span><input name="manager" maxlength="160"></label>
+                <label class="pm-field"><span>Sponsor</span><input name="sponsor" maxlength="160"></label>
+                <label class="pm-field"><span>Start date</span><input type="date" name="start_date"></label>
+                <label class="pm-field"><span>Target date</span><input type="date" name="target_date"></label>
+                <label class="pm-field"><span>Budget</span><input type="number" name="budget" min="0" step="0.01" value="0"></label>
+                <label class="pm-field"><span>Progress</span><input type="number" name="progress" min="0" max="100" value="0"></label>
+                <label class="pm-field pm-field-span-2"><span>Description</span><textarea name="description" rows="4" maxlength="10000"></textarea></label>
+            </div>
+            <div class="pm-form-error" data-form-error></div>
+            <div class="pm-dialog-actions">
+                <button class="pm-button pm-button-danger" type="button" id="deleteProjectButton" hidden><i data-lucide="trash-2"></i>Delete</button>
+                <span></span>
+                <button class="pm-button pm-button-secondary" type="button" data-close-dialog>Cancel</button>
+                <button class="pm-button pm-button-primary" type="submit">Save project</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog class="pm-dialog" id="recordDialog">
+        <form method="dialog" id="recordForm">
+            <div class="pm-dialog-heading">
+                <div><span class="pm-eyebrow">Project control</span><h2 id="recordDialogTitle">Add item</h2></div>
+                <button class="pm-icon-button" type="button" data-close-dialog title="Close" aria-label="Close"><i data-lucide="x"></i></button>
+            </div>
+            <input type="hidden" name="id">
+            <div class="pm-form-grid">
+                <label class="pm-field"><span>Type</span><select name="kind"><option value="task">Task</option><option value="milestone">Milestone</option><option value="risk">Risk</option><option value="assumption">Assumption</option><option value="issue">Issue</option><option value="dependency">Dependency</option><option value="decision">Decision</option></select></label>
+                <label class="pm-field"><span>Status</span><select name="status"><option value="open">Open</option><option value="in_progress">In progress</option><option value="blocked">Blocked</option><option value="monitoring">Monitoring</option><option value="resolved">Resolved</option><option value="done">Done</option></select></label>
+                <label class="pm-field pm-field-span-2"><span>Title</span><input name="title" maxlength="200" required></label>
+                <label class="pm-field"><span>Priority / impact</span><select name="priority"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></label>
+                <label class="pm-field"><span>Owner</span><input name="owner" maxlength="160"></label>
+                <label class="pm-field"><span>Due date</span><input type="date" name="due_date"></label>
+                <span></span>
+                <label class="pm-field pm-field-span-2"><span>Details</span><textarea name="details" rows="4" maxlength="12000"></textarea></label>
+                <label class="pm-field pm-field-span-2"><span>Response / rationale</span><textarea name="resolution" rows="3" maxlength="12000"></textarea></label>
+            </div>
+            <div class="pm-form-error" data-form-error></div>
+            <div class="pm-dialog-actions">
+                <button class="pm-button pm-button-danger" type="button" id="deleteRecordButton" hidden><i data-lucide="trash-2"></i>Delete</button>
+                <span></span>
+                <button class="pm-button pm-button-secondary" type="button" data-close-dialog>Cancel</button>
+                <button class="pm-button pm-button-primary" type="submit">Save item</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog class="pm-dialog pm-dialog-wide" id="meetingDialog">
+        <form method="dialog" id="meetingForm">
+            <div class="pm-dialog-heading">
+                <div><span class="pm-eyebrow">Governance</span><h2 id="meetingDialogTitle">Log meeting</h2></div>
+                <button class="pm-icon-button" type="button" data-close-dialog title="Close" aria-label="Close"><i data-lucide="x"></i></button>
+            </div>
+            <input type="hidden" name="id">
+            <div class="pm-form-grid">
+                <label class="pm-field"><span>Meeting title</span><input name="title" maxlength="200" required></label>
+                <label class="pm-field"><span>Date</span><input type="date" name="held_on" required></label>
+                <label class="pm-field pm-field-span-2"><span>Attendees</span><textarea name="attendees" rows="2" maxlength="5000"></textarea></label>
+                <label class="pm-field pm-field-span-2"><span>Notes</span><textarea name="notes" rows="6" maxlength="30000"></textarea></label>
+                <label class="pm-field"><span>Decisions</span><textarea name="decisions" rows="4" maxlength="20000"></textarea></label>
+                <label class="pm-field"><span>Action items</span><textarea name="action_items" rows="4" maxlength="20000"></textarea></label>
+                <label class="pm-field pm-field-span-2"><span>Next steps</span><textarea name="next_steps" rows="3" maxlength="20000"></textarea></label>
+            </div>
+            <div class="pm-form-error" data-form-error></div>
+            <div class="pm-dialog-actions">
+                <button class="pm-button pm-button-danger" type="button" id="deleteMeetingButton" hidden><i data-lucide="trash-2"></i>Delete</button>
+                <span></span>
+                <button class="pm-button pm-button-secondary" type="button" data-close-dialog>Cancel</button>
+                <button class="pm-button pm-button-primary" type="submit">Save notes</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog class="pm-dialog" id="stakeholderDialog">
+        <form method="dialog" id="stakeholderForm">
+            <div class="pm-dialog-heading">
+                <div><span class="pm-eyebrow">Engagement</span><h2 id="stakeholderDialogTitle">Add stakeholder</h2></div>
+                <button class="pm-icon-button" type="button" data-close-dialog title="Close" aria-label="Close"><i data-lucide="x"></i></button>
+            </div>
+            <input type="hidden" name="id">
+            <div class="pm-form-grid">
+                <label class="pm-field"><span>Name</span><input name="name" maxlength="160" required></label>
+                <label class="pm-field"><span>Role</span><input name="role" maxlength="160"></label>
+                <label class="pm-field pm-field-span-2"><span>Email</span><input type="email" name="email" maxlength="254"></label>
+                <label class="pm-field"><span>Influence</span><select name="influence"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
+                <label class="pm-field"><span>Engagement</span><select name="engagement"><option value="unaware">Unaware</option><option value="resistant">Resistant</option><option value="neutral">Neutral</option><option value="supportive">Supportive</option><option value="leading">Leading</option></select></label>
+                <label class="pm-field pm-field-span-2"><span>Notes</span><textarea name="notes" rows="4" maxlength="10000"></textarea></label>
+            </div>
+            <div class="pm-form-error" data-form-error></div>
+            <div class="pm-dialog-actions">
+                <button class="pm-button pm-button-danger" type="button" id="deleteStakeholderButton" hidden><i data-lucide="trash-2"></i>Delete</button>
+                <span></span>
+                <button class="pm-button pm-button-secondary" type="button" data-close-dialog>Cancel</button>
+                <button class="pm-button pm-button-primary" type="submit">Save stakeholder</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog class="pm-dialog" id="connectionDialog">
+        <form method="dialog" id="connectionForm">
+            <div class="pm-dialog-heading">
+                <div><span class="pm-eyebrow">Workspace</span><h2 id="connectionDialogTitle">Add connection</h2></div>
+                <button class="pm-icon-button" type="button" data-close-dialog title="Close" aria-label="Close"><i data-lucide="x"></i></button>
+            </div>
+            <input type="hidden" name="id">
+            <div class="pm-form-grid">
+                <label class="pm-field"><span>Provider</span><select name="provider"><option value="github">GitHub</option><option value="gmail">Gmail</option><option value="calendar">Calendar</option><option value="drive">Drive</option><option value="teams">Microsoft Teams</option><option value="slack">Slack</option><option value="jira">Jira</option><option value="notion">Notion</option><option value="other">Other</option></select></label>
+                <label class="pm-field"><span>Scope</span><select name="scope"><option value="project">This project</option><option value="global">All projects</option></select></label>
+                <label class="pm-field"><span>Label</span><input name="label" maxlength="120" required></label>
+                <label class="pm-field"><span>Account</span><input name="account" maxlength="254" autocomplete="off"></label>
+                <label class="pm-field pm-field-span-2"><span>URL</span><input type="url" name="url" maxlength="2048" placeholder="https://" required></label>
+            </div>
+            <div class="pm-form-error" data-form-error></div>
+            <div class="pm-dialog-actions">
+                <button class="pm-button pm-button-danger" type="button" id="deleteConnectionButton" hidden><i data-lucide="trash-2"></i>Delete</button>
+                <span></span>
+                <button class="pm-button pm-button-secondary" type="button" data-close-dialog>Cancel</button>
+                <button class="pm-button pm-button-primary" type="submit">Save connection</button>
+            </div>
+        </form>
+    </dialog>
+
+    <div class="pm-toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+
+</html>

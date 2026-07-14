@@ -5,9 +5,14 @@ import getpass
 
 DEFAULT_CONFIG = {
     'Application': {
-        'buttons': '',
-        'clientid': '',
-        'clientsecret': ''
+        'buttons': ''
+    },
+    'Licensing': {
+        'apiurl': 'http://127.0.0.1:8080',
+        'issuer': 'http://127.0.0.1:8080',
+        'productcode': 'KASUGAI',
+        'activationlabel': 'Kasugai Dashboard',
+        'deviceprivatekey': ''
     },
     'WebServer': {
         'port': '8000',
@@ -27,6 +32,7 @@ DEFAULT_CONFIG = {
     },
     'Database': {
         'dbpath': 'chat_history.db',
+        'projectdbpath': 'project_manager.db',
         'encryption_key': ''
     }
 }

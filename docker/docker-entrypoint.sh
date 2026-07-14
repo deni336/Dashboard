@@ -10,8 +10,13 @@ if [ ! -f "$CONFIG_FILE" ]; then
     cat > "$CONFIG_FILE" <<EOF
 [Application]
 buttons =
-clientid = ${GOOGLE_CLIENT_ID:-}
-clientsecret = ${GOOGLE_CLIENT_SECRET:-}
+
+[Licensing]
+apiurl = ${DENILICENSE_API_URL:-http://denilicense-api:8080}
+issuer = ${DENILICENSE_ISSUER:-http://127.0.0.1:8080}
+productcode = ${DENILICENSE_PRODUCT_CODE:-KASUGAI}
+activationlabel = ${DENILICENSE_ACTIVATION_LABEL:-Kasugai Dashboard}
+deviceprivatekey =
 
 [WebServer]
 port = 8000
@@ -31,6 +36,7 @@ port = ${KASUGAI_FILE_TRANSFER_PORT:-50051}
 
 [Database]
 dbpath = chat_history.db
+projectdbpath = project_manager.db
 encryption_key =
 EOF
 fi
@@ -59,14 +65,16 @@ set_value("FileTransfer", "uploadfolder", "/app/kasugai/resources/")
 set_value("FileTransfer", "address", os.getenv("KASUGAI_FILE_TRANSFER_HOST", "kasugai-server"))
 set_value("FileTransfer", "port", os.getenv("KASUGAI_FILE_TRANSFER_PORT", "50051"))
 
-set_value("Application", "clientid", os.getenv("GOOGLE_CLIENT_ID", ""))
-set_value("Application", "clientsecret", os.getenv("GOOGLE_CLIENT_SECRET", ""))
+set_value("Licensing", "apiurl", os.getenv("DENILICENSE_API_URL", "http://denilicense-api:8080"))
+set_value("Licensing", "issuer", os.getenv("DENILICENSE_ISSUER", "http://127.0.0.1:8080"))
+set_value("Licensing", "productcode", os.getenv("DENILICENSE_PRODUCT_CODE", "KASUGAI").upper())
+set_value("Licensing", "activationlabel", os.getenv("DENILICENSE_ACTIVATION_LABEL", "Kasugai Dashboard"))
 
 with open(config_file, "w") as file:
     config.write(file)
 
-if not config.get("Application", "clientid", fallback=""):
-    print("WARNING: GOOGLE_CLIENT_ID is not set; Google OAuth login will fail.", file=sys.stderr)
+if not config.get("Licensing", "apiurl", fallback=""):
+    print("WARNING: DENILICENSE_API_URL is not set; license login will fail.", file=sys.stderr)
 PY
 
 exec "$@"

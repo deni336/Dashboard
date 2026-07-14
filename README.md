@@ -1,169 +1,138 @@
-# Kasugai
+# Kasugai Dashboard
 
-Kasugai is a distributed chat network that supports messaging, screen sharing, and dynamic file transfer. This project provides a flexible, scalable, and secure communication system featuring OAuth-based authentication, encrypted chat history, and asynchronous message processing.
+Kasugai is a Flask dashboard and Go gRPC service for project management, chat, file transfer, and screen sharing. Access is gated by a device-bound DeniLicense activation lease.
 
-## Table of Contents
-- [Features](#features)
-  - [Web Client](#web-client)
-  - [Chat Server](#chat-server)
-  - [File Transfer](#file-transfer)
-  - [Chat History](#chat-history)
-  - [Authentication](#authentication)
-  - [Asynchronous Processing](#asynchronous-processing)
-- [Configuration](#configuration)
-- [🚀 Quickstart](#%F0%9F%9A%80-quickstart)
-- [gRPC Code Generation](#grpc-code-generation)
-- [Testing](#testing)
-- [Roadmap](#roadmap)
+## Requirements
 
-## 🔥 Features
+- Python 3.14
+- Go 1.24 or newer for the gRPC service
+- A running DeniLicense service with a product and license for the configured product code
+- Docker Desktop and Docker Compose for the container workflow
 
-### Web Client
-The client is a Python Flask application providing a responsive web interface. It includes:
-- 🖱️ **Dynamic Button Macros:** Create and manage quick‑action buttons via the UI.  
-- 📊 **Real‑Time File Transfer Visualization:** Track progress of file uploads/downloads.  
-- 💬 **Live Chat Broadcast:** View and send messages to current rooms.  
-- 🛠️ **Configuration Management:** Update server settings through the front end.  
-- 🔄 **Room & Session Management:** Create, join, and switch between chat rooms.  
-- 🖥️ **Screen Sharing:** Peer‑to‑peer bi‑directional streaming of desktop sessions.
+## DeniLicense behavior
 
-### Chat Server
-- **Multi‑Threaded Listener & Broadcaster:** Handles gRPC streams for text and media in parallel.  
-- **Connected Users Directory:** Displays active participants.  
-- 🔒 **SSL/TLS Support:** Secure transport for gRPC (TLS) and HTTPS (Flask).  
-- 💼 **Factory Pattern Initialization:** Modular startup of server components.  
-- 🔑 **OAuth Authentication:** Google OAuth via `AuthManager` for secure user login.
+Kasugai follows the DeniLicense v1.1 product integration contract:
 
-### File Transfer
-- **Bi‑Directional Streaming:** Efficient chunked transfers over gRPC.  
-- 📂 **Custom Storage Paths:** Configure file storage location via `config.ini`.  
-- 🏷️ **Transfer History:** Logs file metadata and transfer rates dynamically.
+- Account login and optional one-time claim code
+- Existing directly assigned licenses without a claim code
+- Ed25519 installation identity and activation-seat approval
+- `dllease1` signature verification using the DeniLicense JWK set
+- Exact issuer, product, installation-key, and lease-time binding
+- Proof-of-possession renewal before lease expiry
+- Entitlements accepted only from verified signed lease claims
 
-### Chat History
-- **MongoDB Persistence:** NoSQL storage for encrypted message documents.  
-- 🔐 **Fernet Encryption:** Messages encrypted at rest with per‑instance key.  
-- 📈 **Indexed Timestamps:** Fast, time‑ordered retrievals via MongoDB indexes.
+The DeniLicense package is pinned to a specific repository commit in `requirements.txt` so shared builds use the same client contract.
 
-### Authentication
-- **AuthManager Module:** Centralizes OAuth client setup and route protection.  
-- **Session Management:** Secure session cookies with Flask secret key.
+## Project workspace
 
-### Asynchronous Processing
-- **MessageProcessor Class:** Batches and queues incoming messages via `asyncio.Queue`.  
-- ⚡ **Batch Streaming:** `receive_text_message_batches()` reduces network overhead and latency.
+Open **Projects** from the dashboard navigation to manage a user-scoped portfolio. The workspace includes:
 
-## Configuration
-All settings are stored in `~/<home>/Kasugai/config.ini`. Key sections include:
+- Project status, health, priority, schedule, budget, and progress
+- Tasks and milestones with owners, due dates, and overdue indicators
+- Risk, assumption, issue, dependency, and decision logs
+- Meeting notes, attendees, decisions, action items, and next steps
+- Stakeholder influence and engagement tracking
+- Global or project-specific links for GitHub, Gmail, Calendar, Drive, Teams, Slack, Jira, Notion, and other web tools
+
+Project data is stored in `project_manager.db`. Descriptions, meeting content, RAID details, stakeholder notes, and connection account labels are encrypted at rest with the `[Database] encryption_key`. Records are scoped to the authenticated DeniLicense user.
+
+Connections are validated HTTPS/HTTP shortcuts, not OAuth integrations. Kasugai does not store third-party access tokens or passwords, and URLs containing embedded credentials are rejected.
+
+## Local setup
+
+Create an environment and install dependencies:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+Start the DeniLicense application, then create or edit `%USERPROFILE%\Kasugai\config.ini`:
+
 ```ini
-[WebServer]
-port = 8000
-address = localhost
-
-[Database]
-mongo_uri = mongodb://localhost:27017
-mongo_db = kasugai
-mongo_collection = chat_history
-encryption_key =  # auto‑generated on first run
-
-[Logging]
-path = kasugai/logs/
-loglevel = INFO
-
-[FileTransfer]
-avail =
-uploadfolder = kasugai/resources/
-
-[Application]
-clientid = YOUR_GOOGLE_CLIENT_ID
-clientsecret = YOUR_GOOGLE_CLIENT_SECRET
+[Licensing]
+apiurl = http://127.0.0.1:8080
+issuer = http://127.0.0.1:8080
+productcode = KASUGAI
+activationlabel = Kasugai Dashboard
+deviceprivatekey =
 ```
 
-## 🚀 Quickstart
+`productcode` must exactly match the DeniLicense product. `issuer` must exactly match the DeniLicense `DENILICENSE_ACTIVATION_ISSUER`; it is a signed logical identity and may differ from the address used to reach the API.
 
-1. **Clone the repository**
-   ```bash
-    git clone https://github.com/yourusername/yourrepo.git
-    cd yourrepo
-    ```  
-2. **Install prerequisites**
-   - Python 3.8+ & pip:  
-    ```bash
-    pip install -r requirements.txt  # includes Flask, Flask‑SocketIO, PyMongo, cryptography, authlib, gRPC
-    ```  
-   - Go (for server):  
-    ```bash
-    go mod tidy  # fetches dependencies for the gRPC server
-    ```  
-3. **Configure**
-   - Copy `config.ini` to `~/<home>/Kasugai/` (auto‑created on first run).  
-   - Fill in Google OAuth credentials under `[Application]`.
-4. **Run the server** (gRPC + health):  
-   ```bash
-    go run main_server.go  # or equivalent entry point
-    ```  
-5. **Start the web client**:  
-   ```bash
-    python src/main.py
-    ```  
-6. **Access**: Open `http://localhost:8000` in your browser.
+Start the Go service in one terminal:
 
-## gRPC Code Generation
-
-### Python (Web Client)
-```bash
-python -m grpc_tools.protoc -I. --python_out=./src --grpc_python_out=./src kasugai.proto
-```  
-### Go (Server)
-```bash
-protoc --proto_path=. --go_out=. --go-grpc_out=. kasugai.proto
+```powershell
+Set-Location kasugai_server
+go run .
 ```
 
-## Testing
-- **Unit Tests**: Run Python tests with:
-  ```bash
-    pytest tests/  # includes test_factory.py, test_auth_manager.py, etc.
-    ```
-- **Integration Tests**: Use Docker Compose (future).
+Start the dashboard from the repository root in another terminal:
 
-## Roadmap
-- [ ] Complete SSL/TLS server certificate support.  
-- [ ] Add user management dashboard.  
-- [ ] P2P file transfer enhancements.  
-- [ ] Automated deployment via Docker & Kubernetes.
-
----
-
-*Kasugai © 2025 – deni336*
-
-
-
-## Docker
-
-Run the dashboard and Kasugai gRPC server together:
-
-```bash
-docker compose up --build
+```powershell
+python main.py
 ```
 
 Open `http://localhost:8000`.
 
-For Google OAuth login, add credentials to a `.env` file before starting Compose:
+## Docker Compose
+
+DeniLicense v1.1 exposes its API to other containers on the external `denilicense-network`. Start DeniLicense first so that network exists:
+
+```powershell
+Set-Location ..\DeniLicense
+docker compose up --build -d --wait
+```
+
+Create a `.env` file for Kasugai:
 
 ```ini
-GOOGLE_CLIENT_ID=your-client-id
-GOOGLE_CLIENT_SECRET=your-client-secret
+DENILICENSE_API_URL=http://denilicense-api:8080
+DENILICENSE_ISSUER=http://127.0.0.1:8080
+DENILICENSE_PRODUCT_CODE=KASUGAI
 ```
 
-In Google Cloud Console, configure the OAuth client with this authorized redirect URI for local Docker use:
+Then build and start Kasugai:
 
-```text
-http://localhost:8000/authorize
+```powershell
+docker compose up --build -d
 ```
 
-If you started the containers before adding OAuth credentials, recreate the dashboard container so the persisted config is refreshed:
+Open `http://localhost:8000`. The Go ports remain internal to the Kasugai Compose network; only the dashboard port is published.
 
-```bash
-docker compose up --build --force-recreate dashboard
+If licensing environment values change, recreate the dashboard so its persisted config is refreshed:
+
+```powershell
+docker compose up --build --force-recreate -d dashboard
 ```
 
-Compose builds two targets from the `Dockerfile`: `dashboard` for the Flask app on host port `8000`, and `kasugai-server` for chat, file transfer, and media gRPC ports `8008`, `50051`, and `50052` on the internal Compose network. The dashboard writes its container config to `/root/Kasugai/config.ini` on first startup and points at the `kasugai-server` service by name.
+## Configuration
+
+The default local configuration is stored at `%USERPROFILE%\Kasugai\config.ini`. Container configuration is persisted in the `dashboard-data` volume at `/root/Kasugai/config.ini`.
+
+Important sections are:
+
+- `[Licensing]`: DeniLicense API, signed issuer, product, label, and installation key
+- `[WebServer]`: dashboard and Kasugai gRPC addresses
+- `[FileTransfer]`: upload path and file-transfer service address
+- `[Database]`: encrypted chat-history and project-workspace database settings
+- `[Logging]`: log path and level
+
+The installation private key is generated on first activation. Keep the config volume private and persistent; deleting it creates a new installation identity and may consume another activation seat.
+
+## Validation
+
+Run the focused Python tests:
+
+```powershell
+python -m unittest discover -s tests -v
+```
+
+Validate and build the container application:
+
+```powershell
+docker compose config
+docker compose build
+```

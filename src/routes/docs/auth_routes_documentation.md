@@ -1,35 +1,14 @@
 # Auth Routes Documentation
 
 ## Summary
-This function initializes authentication routes for a Flask application using OAuth2 with Google as the provider. It sets up routes for login, authorization, and logout, handling user authentication and session management.
+`init_auth_routes` registers the DeniLicense-backed login and logout routes for the Flask app.
 
-___
-## Example Usage
-```python
-from flask import Flask
-from authlib.integrations.flask_client import OAuth
-from src.routes.auth_routes import init_auth_routes
+## Flow
+- `GET /login` renders the license login form.
+- `POST /login` verifies DeniLicense account credentials, optionally claims a license code, finds a matching active product license, activates this installation, and cryptographically verifies the returned signed lease before creating the Kasugai session.
+- A Flask request guard verifies the signed lease on protected requests and renews leases nearing expiry with DeniLicense's proof-of-possession challenge flow.
+- `GET /authorize` redirects to `/login` for compatibility with older callback links.
+- `GET|POST /logout` clears the local Flask session.
 
-app = Flask(__name__)
-oauth = OAuth(app)
-
-def on_user_connected():
-    print("User connected")
-
-init_auth_routes(app, oauth, on_user_connected)
-```
-
-___
-## Code Analysis
-### Inputs
-- `app`: A Flask application instance.
-- `oauth`: An OAuth client instance from the `authlib` library.
-- `connect_callback`: A callback function to be executed after a successful login.
-### Flow
-1. Registers Google as an OAuth provider with necessary credentials and endpoints.
-2. Defines a `/login` route that redirects users to Google's OAuth authorization page.
-3. Defines an `/authorize` route that handles the OAuth callback, retrieves user information, stores it in the session, and calls the `connect_callback`.
-4. Defines a `/logout` route that clears the user session and redirects to the application's index page.
-### Outputs
-- The function does not return any value. It sets up routes within the Flask application for handling authentication.
-
+## Configuration
+The route uses `AuthManager`, which reads the DeniLicense API URL, logical activation issuer, product code, activation label, and installation key from the `[Licensing]` section of `config.ini`.

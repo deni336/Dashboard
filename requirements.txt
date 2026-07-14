@@ -1,14 +1,11 @@
 flask
 waitress
 cryptography
+denilicense @ https://github.com/deni336/DeniLicense/archive/746215a457844b0b3f0d147dbdf072f0040adec0.zip
 grpcio
 grpcio-tools
 grpcio-health-checking
 werkzeug
 flask-socketio
 protobuf
-authlib
-google-api-python-client
-google-auth-oauthlib
-google-auth-httplib2
 psutil

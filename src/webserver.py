@@ -9,7 +9,6 @@ from src.config_handler import ConfigHandler
 from src.global_logger import GlobalLogger
 from src.event_handler import EventHandler
 from src.chat_manager import ChatManager
-from src.auth_manager import AuthManager
 
 # Import modular routes
 from src.routes.auth_routes import auth_bp, init_auth_routes
@@ -19,6 +18,7 @@ from src.routes.button_routes import button_bp, init_button_routes
 from src.routes.settings_routes import settings_bp, init_settings_routes
 from src.routes.screenshare_routes import screenshare_bp
 from src.routes.ui_routes import ui_bp, init_ui_routes
+from src.routes.project_routes import project_bp, init_project_routes
 
 class WebServer:
     def __init__(self):
@@ -29,9 +29,6 @@ class WebServer:
         self.app.config['UPLOAD_FOLDER'] = self.config.get("FileTransfer", "uploadfolder")
         self.app.secret_key = secrets.token_hex(16)
 
-        # Initialize OAuth via AuthManager
-        self.auth_manager = AuthManager(self.app, self.config)
-
         self.rooms = {}
 
         # Initialize modular routes
@@ -39,6 +36,7 @@ class WebServer:
         init_button_routes(self.config)
         init_settings_routes(self.config)
         init_ui_routes(self.config, self.config.get("FileTransfer", "uploadfolder"))
+        init_project_routes(self.config)
 
         self.setup_routes()
 
@@ -50,6 +48,7 @@ class WebServer:
         self.app.register_blueprint(settings_bp)
         self.app.register_blueprint(screenshare_bp)
         self.app.register_blueprint(ui_bp)
+        self.app.register_blueprint(project_bp)
 
     def server_connect(self):
         self.logger.info('Connecting to server...')

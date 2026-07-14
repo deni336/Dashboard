@@ -1,5 +1,5 @@
 import logging
-import os, sys
+import os
 from datetime import datetime
 from src.config_handler import ConfigHandler, get_default_config_path
 
@@ -32,11 +32,14 @@ class GlobalLogger:
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] [%(name)s] %(message)s"))
 
-        # Remove previous handlers if they exist to avoid duplicate logs
-        if logger.hasHandlers():
-            logger.handlers.clear()
+        # Reinitialization happens in tests and embedded server starts. Close old
+        # file handles before replacing them so Windows can release the log file.
+        for previous_handler in list(logger.handlers):
+            logger.removeHandler(previous_handler)
+            previous_handler.close()
 
         logger.addHandler(handler)
         logger.addHandler(console_handler)
+        logger.propagate = False
 
         return logger

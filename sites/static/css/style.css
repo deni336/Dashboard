@@ -24,6 +24,83 @@ body {
    z-index: -1; /* Ensure the background is behind all elements */
 }
 
+.login-page {
+   min-height: 100%;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   background-color: #111;
+   background-image: none;
+   color: #eee;
+}
+
+.license-login {
+   width: min(420px, calc(100% - 32px));
+}
+
+.license-login-form {
+   display: flex;
+   flex-direction: column;
+   gap: 10px;
+   padding: 24px;
+   background-color: #1a1a1a;
+   border: 1px solid #333;
+}
+
+.license-login-form h1 {
+   font-size: 28px;
+   margin-bottom: 2px;
+}
+
+.license-login-meta {
+   color: #aaa;
+   font-size: 13px;
+   margin-bottom: 10px;
+   word-break: break-word;
+}
+
+.license-login-hint {
+   margin: -6px 0 8px;
+   color: #999;
+   font-size: 12px;
+   line-height: 1.4;
+}
+
+.license-login-form label {
+   color: #ccc;
+   font-size: 13px;
+}
+
+.license-login-form input {
+   padding: 10px;
+   border: none;
+   border-radius: 2px;
+   background-color: #2a2a2a;
+   color: #eee;
+}
+
+.license-login-form button {
+   margin-top: 8px;
+   padding: 10px 14px;
+   background-color: #000;
+   color: rgb(255, 0, 0);
+   border: none;
+   border-radius: 2px;
+   cursor: pointer;
+}
+
+.license-login-form button:hover {
+   background-color: #222;
+}
+
+.license-login-error {
+   padding: 10px;
+   background-color: rgba(255, 0, 0, 0.12);
+   color: #ff8a8a;
+   border: 1px solid rgba(255, 0, 0, 0.35);
+   font-size: 13px;
+}
+
 /* Navigation Bar Styles */
 nav {
    position: fixed;

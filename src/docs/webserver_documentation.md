@@ -1,36 +1,18 @@
 # WebServer Documentation
 
 ## Summary
-The `WebServer` class is responsible for setting up and running a web server using Flask, integrating OAuth for authentication, and managing routes for different functionalities. It initializes configurations, logging, and event handling, and provides methods to start and stop the server.
+The `WebServer` class sets up the Flask application, DeniLicense-backed authentication routes, project/chat/file/screen-share routes, configuration, logging, and Waitress serving.
 
-___
-## Example Usage
-```python
-web_server = WebServer()
-web_server.run()
-```
-This initializes the `WebServer`, sets up routes, and starts the server using Waitress. It also opens the default web browser to the server's URL if running on Windows.
+## Main Responsibilities
+- Creates the Flask app with the repository templates and static files.
+- Initializes route modules and registers their blueprints.
+- Initializes the encrypted project store and project-management API.
+- Connects a DeniLicense session to the Kasugai chat server only after its device-bound activation lease passes signature, issuer, product, installation-key, and time validation.
+- Revalidates protected sessions and renews leases through a signed installation-key challenge before expiry.
+- Starts Waitress on the configured address and port.
 
-___
-## Code Analysis
-### Main functionalities
-- Initializes and configures a Flask web server.
-- Integrates OAuth for authentication.
-- Sets up modular routes for different functionalities.
-- Manages server start and stop operations.
-### Methods
-- `__init__`: Initializes the server, configurations, and routes.
-- `setup_routes`: Registers blueprints for different routes.
-- `server_connect`: Connects to the server and initializes chat routes.
-- `open_browser`: Opens the default web browser to the server's URL.
-- `run`: Starts the server using Waitress.
-- `shutdown_server`: Placeholder for server shutdown logic.
-- `stop`: Stops the server and prints a message.
-### Fields
-- `logger`: Logger for the web server.
-- `config`: Configuration handler for server settings.
-- `event_handler`: Manages server events.
-- `app`: Flask application instance.
-- `oauth`: OAuth integration for authentication.
-- `rooms`: Dictionary to manage chat rooms.
-
+## Key Methods
+- `__init__`: Initializes configuration, event handling, Flask, routes, and route dependencies.
+- `setup_routes`: Registers all blueprints.
+- `server_connect`: Creates the `ChatManager` for the licensed session user.
+- `run`: Starts the Waitress web server.
