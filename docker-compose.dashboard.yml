@@ -1,39 +1,18 @@
-name: kasugai
+name: kasugai-dashboard
 
 services:
-  kasugai-server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: kasugai-server
-    image: kasugai-server-bundled:latest
-    expose:
-      - "8008"
-      - "50051"
-      - "50052"
-    volumes:
-      - server-data:/data
-    read_only: true
-    tmpfs:
-      - /tmp:size=64m,mode=1777
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    restart: unless-stopped
-
   dashboard:
     build:
       context: .
       dockerfile: Dockerfile
       target: dashboard
-    image: kasugai-dashboard
-    depends_on:
-      kasugai-server:
-        condition: service_healthy
+    image: ${KASUGAI_DASHBOARD_IMAGE:-kasugai-dashboard:latest}
     environment:
-      KASUGAI_SERVER_HOST: kasugai-server
-      KASUGAI_FILE_TRANSFER_HOST: kasugai-server
+      KASUGAI_SERVER_HOST: ${KASUGAI_SERVER_HOST:?Set KASUGAI_SERVER_HOST to the VPS or private VPN hostname}
+      KASUGAI_SERVER_PORT: ${KASUGAI_SERVER_PORT:-8008}
+      KASUGAI_FILE_TRANSFER_HOST: ${KASUGAI_FILE_TRANSFER_HOST:-${KASUGAI_SERVER_HOST}}
+      KASUGAI_FILE_TRANSFER_PORT: ${KASUGAI_FILE_TRANSFER_PORT:-50051}
+      KASUGAI_MEDIA_PORT: ${KASUGAI_MEDIA_PORT:-50052}
       KASUGAI_PUBLIC_URL: ${KASUGAI_PUBLIC_URL:-}
       KASUGAI_TRUST_PROXY: ${KASUGAI_TRUST_PROXY:-false}
       KASUGAI_SESSION_COOKIE_SECURE: ${KASUGAI_SESSION_COOKIE_SECURE:-}
@@ -69,8 +48,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  server-data:
-    name: kasugai_server-data
   dashboard-data:
     name: kasugai_dashboard-data
   dashboard-resources:

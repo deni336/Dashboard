@@ -33,10 +33,14 @@ type FileTransferServer struct {
 }
 
 func NewFileTransferServer(logger *stdlog.Logger, ds *datastore.DataStore) *FileTransferServer {
-	return &FileTransferServer{
+	server := &FileTransferServer{
 		dataStore: ds,
 		logger:    logger,
 	}
+	server.grpcServer = grpc.NewServer()
+	kasugai.RegisterFileTransferServiceServer(server.grpcServer, server)
+	reflection.Register(server.grpcServer)
+	return server
 }
 
 func (s *FileTransferServer) Start(address string) error {
@@ -44,10 +48,6 @@ func (s *FileTransferServer) Start(address string) error {
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
-
-	s.grpcServer = grpc.NewServer()
-	kasugai.RegisterFileTransferServiceServer(s.grpcServer, s)
-	reflection.Register(s.grpcServer)
 
 	s.logger.Info(fmt.Sprintf("File Transfer gRPC server started on: %s", address))
 	return s.grpcServer.Serve(lis)

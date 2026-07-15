@@ -39,7 +39,7 @@ type Server struct {
 
 // NewServer initializes a new Server.
 func NewServer(logger *stdlog.Logger, ds *datastore.DataStore) *Server {
-	return &Server{
+	server := &Server{
 		clients:       make(map[string]*kasugai.User),
 		rooms:         make(map[string]*Room),
 		streams:       make(map[string]chan *kasugai.TextMessage),
@@ -47,6 +47,12 @@ func NewServer(logger *stdlog.Logger, ds *datastore.DataStore) *Server {
 		dataStore:     ds,
 		logger:        logger,
 	}
+	server.grpcServer = grpc.NewServer()
+	kasugai.RegisterUserServiceServer(server.grpcServer, server)
+	kasugai.RegisterRoomServiceServer(server.grpcServer, server)
+	kasugai.RegisterChatServiceServer(server.grpcServer, server)
+	reflection.Register(server.grpcServer)
+	return server
 }
 
 // Start starts the gRPC server.
@@ -55,15 +61,6 @@ func (s *Server) Start(address string) error {
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
-
-	s.grpcServer = grpc.NewServer()
-
-	kasugai.RegisterUserServiceServer(s.grpcServer, s)
-	kasugai.RegisterRoomServiceServer(s.grpcServer, s)
-	kasugai.RegisterChatServiceServer(s.grpcServer, s)
-
-	// Register reflection service on gRPC server
-	reflection.Register(s.grpcServer)
 
 	s.logger.Info(fmt.Sprintf("Chat gRPC server started on: %s", address))
 	// Start serving

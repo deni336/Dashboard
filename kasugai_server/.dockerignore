@@ -1,0 +1,12 @@
+.git
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+Dockerfile*
+README.md
+*_test.go
+python
+server.log

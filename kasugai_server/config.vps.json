@@ -5,9 +5,5 @@
   "log_file": "/data/server.log",
   "log_level": "info",
   "max_clients": 100,
-  "tls_config": {
-    "enabled": false,
-    "cert_file": "",
-    "key_file": ""
-  }
+  "tls_config": {"enabled": false, "cert_file": "", "key_file": ""}
 }

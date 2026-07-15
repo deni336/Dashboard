@@ -3,7 +3,7 @@ import unittest
 from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock, patch
 
-from flask import Flask
+from flask import Blueprint, Flask
 from denilicense.client import JWK, RenewalChallenge
 from denilicense.crypto.common import b64url_encode
 from denilicense.crypto.keys import ACTIVATION_RECEIPT_SIGNER, SigningKey
@@ -12,6 +12,7 @@ from denilicense.crypto.renewal import verify_renewal_signature
 
 from src.auth_manager import AuthManager, LicenseError
 from src.routes.auth_routes import auth_bp, init_auth_routes
+from src.webserver import get_or_create_session_secret
 
 
 LICENSE_ID = "33333333-3333-4333-8333-333333333333"
@@ -50,6 +51,16 @@ class FakeAuthManager(AuthManager):
                     "productCode": "KASUGAI",
                     "state": "active",
                 }]
+            }
+        if path == f"/api/v1/licenses/{LICENSE_ID}/activations":
+            activation_id = self.config.get("Licensing", "activationid", fallback="")
+            return {
+                "items": ([{
+                    "id": activation_id,
+                    "licenseId": LICENSE_ID,
+                    "state": "active",
+                    "deviceKeyThumbprint": device_key_thumbprint(self._device_public_key_bytes()),
+                }] if activation_id else [])
             }
         if path == "/.well-known/denilicense-activation-keys.json":
             return {"keys": [JWK.from_public_key(self.signer.public_bytes).to_dict()]}
@@ -145,6 +156,15 @@ class FakeAuthManager(AuthManager):
 
 
 class AuthManagerTests(unittest.TestCase):
+    def test_web_session_secret_survives_restart(self):
+        config = FakeConfig()
+
+        first = get_or_create_session_secret(config)
+        second = get_or_create_session_secret(config)
+
+        self.assertGreaterEqual(len(first), 32)
+        self.assertEqual(second, first)
+
     def test_authentication_accepts_only_verified_signed_claims(self):
         manager = FakeAuthManager()
 
@@ -154,6 +174,127 @@ class AuthManagerTests(unittest.TestCase):
         self.assertEqual(result["claims"]["activationId"], ACTIVATION_ID)
         self.assertEqual(result["claims"]["productCode"], "KASUGAI")
         self.assertEqual(result["claims"]["entitlements"]["feature.chat"], True)
+
+    def test_second_login_reuses_persisted_activation_without_allocating_a_seat(self):
+        manager = FakeAuthManager()
+        manager.authenticate("customer@example.com", "password")
+        manager.posts.clear()
+
+        result = manager.authenticate("customer@example.com", "password")
+
+        self.assertEqual(result["claims"]["activationId"], ACTIVATION_ID)
+        self.assertNotIn(f"/api/v1/licenses/{LICENSE_ID}/activations", manager.posts)
+
+    def test_upgrade_discovers_existing_activation_for_persisted_device_key(self):
+        manager = FakeAuthManager()
+        manager.config.set("Licensing", "activationid", ACTIVATION_ID)
+        manager.config.set("Licensing", "activationlease", manager._signed_lease())
+        manager.config.set("Licensing", "activationid", "")
+
+        # Simulate an older config without a cached ID while the API still has
+        # an activation for this installation key.
+        original_get = manager._get
+        def get_with_existing_activation(path, access_token=None):
+            if path == f"/api/v1/licenses/{LICENSE_ID}/activations":
+                return {"items": [{
+                    "id": ACTIVATION_ID,
+                    "licenseId": LICENSE_ID,
+                    "state": "active",
+                    "deviceKeyThumbprint": device_key_thumbprint(manager._device_public_key_bytes()),
+                }]}
+            return original_get(path, access_token)
+        manager._get = get_with_existing_activation
+
+        result = manager.authenticate("customer@example.com", "password")
+
+        self.assertEqual(result["claims"]["activationId"], ACTIVATION_ID)
+        self.assertNotIn(f"/api/v1/licenses/{LICENSE_ID}/activations", manager.posts)
+
+    def test_activation_discovery_failure_does_not_allocate_a_new_seat(self):
+        manager = FakeAuthManager()
+        activation_path = f"/api/v1/licenses/{LICENSE_ID}/activations"
+        original_get = manager._get
+
+        def fail_activation_discovery(path, access_token=None):
+            if path == activation_path:
+                raise LicenseError("activation lookup unavailable")
+            return original_get(path, access_token)
+
+        manager._get = fail_activation_discovery
+
+        with self.assertRaisesRegex(
+            LicenseError,
+            "Could not check this installation's existing DeniLicense activations.*"
+            "no new activation was requested",
+        ):
+            manager.authenticate("customer@example.com", "password")
+
+        self.assertNotIn(activation_path, manager.posts)
+
+    def test_known_activation_renewal_failure_does_not_allocate_a_new_seat(self):
+        manager = FakeAuthManager()
+        activation_path = f"/api/v1/licenses/{LICENSE_ID}/activations"
+        manager.config.set("Licensing", "activationid", ACTIVATION_ID)
+        manager._renew_lease = Mock(side_effect=LicenseError("renewal unavailable"))
+
+        with self.assertRaisesRegex(
+            LicenseError,
+            "existing DeniLicense activation could not be renewed.*"
+            "no new activation was requested",
+        ):
+            manager.authenticate("customer@example.com", "password")
+
+        self.assertNotIn(activation_path, manager.posts)
+
+    def test_discovered_activation_renewal_failure_does_not_allocate_a_new_seat(self):
+        manager = FakeAuthManager()
+        activation_path = f"/api/v1/licenses/{LICENSE_ID}/activations"
+        original_get = manager._get
+
+        def discover_existing_activation(path, access_token=None):
+            if path == activation_path:
+                return {"items": [{
+                    "id": ACTIVATION_ID,
+                    "licenseId": LICENSE_ID,
+                    "state": "active",
+                    "deviceKeyThumbprint": device_key_thumbprint(
+                        manager._device_public_key_bytes()
+                    ),
+                }]}
+            return original_get(path, access_token)
+
+        manager._get = discover_existing_activation
+        manager._renew_lease = Mock(side_effect=LicenseError("renewal unavailable"))
+
+        with self.assertRaisesRegex(
+            LicenseError,
+            "existing DeniLicense activation could not be renewed.*"
+            "no new activation was requested",
+        ):
+            manager.authenticate("customer@example.com", "password")
+
+        self.assertNotIn(activation_path, manager.posts)
+
+    def test_mismatched_renewed_activation_does_not_allocate_a_new_seat(self):
+        manager = FakeAuthManager()
+        activation_path = f"/api/v1/licenses/{LICENSE_ID}/activations"
+        manager.config.set("Licensing", "activationid", ACTIVATION_ID)
+        manager._renew_lease = Mock(return_value=(
+            "renewed-lease",
+            Mock(
+                activation_id="66666666-6666-4666-8666-666666666666",
+                license_id=LICENSE_ID,
+            ),
+        ))
+
+        with self.assertRaisesRegex(
+            LicenseError,
+            "renewed an activation or license that does not match the existing installation.*"
+            "no new activation was requested",
+        ):
+            manager.authenticate("customer@example.com", "password")
+
+        self.assertNotIn(activation_path, manager.posts)
 
     def test_invalid_session_lease_is_replaced_by_signed_renewal(self):
         manager = FakeAuthManager()
@@ -199,6 +340,14 @@ class AuthManagerTests(unittest.TestCase):
         app.secret_key = "test-secret"
         manager = Mock(product_code="KASUGAI", api_url="https://api.example")
 
+        project_test_bp = Blueprint("project_bp", __name__)
+        project_test_bp.add_url_rule(
+            "/projects/invitations/<token>",
+            "project_invitation",
+            lambda token: token,
+        )
+        app.register_blueprint(project_test_bp)
+
         @app.route("/private")
         def private():
             return "private"
@@ -207,10 +356,31 @@ class AuthManagerTests(unittest.TestCase):
             init_auth_routes(app, FakeConfig(), lambda: None)
         app.register_blueprint(auth_bp)
 
-        response = app.test_client().get("/private")
+        client = app.test_client()
+        response = client.get("/private")
 
         self.assertEqual(response.status_code, 302)
         self.assertTrue(response.headers["Location"].endswith("/login"))
+
+        invitation = client.get("/projects/invitations/invitation-token")
+        self.assertEqual(invitation.status_code, 302)
+        with client.session_transaction() as session:
+            self.assertEqual(
+                session["post_login_url"],
+                "/projects/invitations/invitation-token",
+            )
+
+        manager.authenticate.return_value = {
+            "profile": {"id": "recipient", "email": "recipient@example.com"},
+            "claims": {"id": LICENSE_ID, "activationId": ACTIVATION_ID},
+            "lease": "signed-lease",
+        }
+        login = client.post("/login", data={
+            "email": "recipient@example.com",
+            "password": "password",
+        })
+        self.assertEqual(login.status_code, 302)
+        self.assertTrue(login.headers["Location"].endswith("/projects/invitations/invitation-token"))
 
 
 if __name__ == "__main__":

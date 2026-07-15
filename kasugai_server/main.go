@@ -104,7 +104,8 @@ func main() {
 	// Set up logging based on config.
 	logger, err := setupLogging(config)
 	if err != nil {
-		fmt.Println("Error setting up logging:", err)
+		fmt.Fprintln(os.Stderr, "Error setting up logging:", err)
+		return
 	}
 	defer logger.Close()
 
@@ -125,9 +126,11 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(3)
 
-	var chatServer *server.Server
-	var fileTransferServer *server.FileTransferServer
-	var mediaServer *server.MediaServer
+	// Construct every server before launching goroutines. This keeps shutdown from
+	// racing with pointer assignment when SIGTERM arrives immediately after start.
+	chatServer := server.NewServer(logger, ds)
+	fileTransferServer := server.NewFileTransferServer(logger, ds)
+	mediaServer := server.NewMediaServer(logger, ds)
 
 	startServer := func(name string, serverStart func() error) {
 		defer wg.Done()
@@ -138,21 +141,18 @@ func main() {
 	}
 
 	go startServer("Chat", func() error {
-		chatServer = server.NewServer(logger, ds)
 		return chatServer.Start(config.ChatAddress)
 	})
 
 	go startServer("File Transfer", func() error {
-		fileTransferServer = server.NewFileTransferServer(logger, ds)
 		return fileTransferServer.Start(config.FileTransferAddress)
 	})
 
 	go startServer("Media", func() error {
-		mediaServer = server.NewMediaServer(logger, ds)
 		return mediaServer.Start(config.MediaAddress)
 	})
 
-	logger.Info("All servers started successfully")
+	logger.Info("Server start routines launched")
 
 	// Set up signal catching
 	signals := make(chan os.Signal, 1)
@@ -167,15 +167,9 @@ func main() {
 	}
 
 	// Graceful shutdown
-	if chatServer != nil {
-		chatServer.Stop()
-	}
-	if fileTransferServer != nil {
-		fileTransferServer.Stop()
-	}
-	if mediaServer != nil {
-		mediaServer.Stop()
-	}
+	chatServer.Stop()
+	fileTransferServer.Stop()
+	mediaServer.Stop()
 
 	// Wait for all servers to finish
 	wg.Wait()

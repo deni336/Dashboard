@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"image"
+	"runtime/cgo"
 	"syscall"
 	"unsafe"
 
@@ -95,8 +96,10 @@ func Capture(x, y, width, height int) (*image.RGBA, error) {
 }
 
 func NumActiveDisplays() int {
-	var count int = 0
-	enumDisplayMonitors(win.HDC(0), nil, syscall.NewCallback(countupMonitorCallback), uintptr(unsafe.Pointer(&count)))
+	count := 0
+	handle := cgo.NewHandle(&count)
+	defer handle.Delete()
+	enumDisplayMonitors(win.HDC(0), nil, syscall.NewCallback(countupMonitorCallback), uintptr(handle))
 	return count
 }
 
@@ -104,7 +107,9 @@ func GetDisplayBounds(displayIndex int) image.Rectangle {
 	var ctx getMonitorBoundsContext
 	ctx.Index = displayIndex
 	ctx.Count = 0
-	enumDisplayMonitors(win.HDC(0), nil, syscall.NewCallback(getMonitorBoundsCallback), uintptr(unsafe.Pointer(&ctx)))
+	handle := cgo.NewHandle(&ctx)
+	defer handle.Delete()
+	enumDisplayMonitors(win.HDC(0), nil, syscall.NewCallback(getMonitorBoundsCallback), uintptr(handle))
 	return image.Rect(
 		int(ctx.Rect.Left), int(ctx.Rect.Top),
 		int(ctx.Rect.Right), int(ctx.Rect.Bottom))
@@ -127,8 +132,7 @@ func enumDisplayMonitors(hdc win.HDC, lprcClip *win.RECT, lpfnEnum uintptr, dwDa
 }
 
 func countupMonitorCallback(hMonitor win.HMONITOR, hdcMonitor win.HDC, lprcMonitor *win.RECT, dwData uintptr) uintptr {
-	var count *int
-	count = (*int)(unsafe.Pointer(dwData))
+	count := cgo.Handle(dwData).Value().(*int)
 	*count = *count + 1
 	return uintptr(1)
 }
@@ -140,8 +144,7 @@ type getMonitorBoundsContext struct {
 }
 
 func getMonitorBoundsCallback(hMonitor win.HMONITOR, hdcMonitor win.HDC, lprcMonitor *win.RECT, dwData uintptr) uintptr {
-	var ctx *getMonitorBoundsContext
-	ctx = (*getMonitorBoundsContext)(unsafe.Pointer(dwData))
+	ctx := cgo.Handle(dwData).Value().(*getMonitorBoundsContext)
 	if ctx.Count != ctx.Index {
 		ctx.Count = ctx.Count + 1
 		return uintptr(1)

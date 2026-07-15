@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Project Invitation | Kasugai</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/project_manager.css') }}">
+    <script src="https://unpkg.com/lucide@1.24.0/dist/umd/lucide.js"
+            integrity="sha384-pLX3Fl0m52MclHeHyUdLRg9l8/QW5IiesBUs9Sxxm38xj9lNZW7JqqAfp2/4ARQt"
+            crossorigin="anonymous" defer></script>
+    <script src="{{ url_for('static', filename='js/project_invitation.js') }}" defer></script>
+</head>
+
+<body class="pm-page pm-invitation-page">
+    <header class="pm-topbar pm-invitation-topbar">
+        <a class="pm-brand" href="{{ url_for('project_bp.workspace_page') }}">
+            <span class="pm-brand-mark"><i data-lucide="panels-top-left"></i></span>
+            <span>Kasugai Projects</span>
+        </a>
+        <span></span>
+        <div class="pm-account">
+            <span>{{ user.email or user.name }}</span>
+            <a class="pm-icon-button" href="{{ url_for('auth_bp.logout') }}" title="Log out" aria-label="Log out">
+                <i data-lucide="log-out"></i>
+            </a>
+        </div>
+    </header>
+
+    <main class="pm-invitation-shell">
+        <section class="pm-invitation-panel">
+            <span class="pm-invitation-icon"><i data-lucide="folder-symlink"></i></span>
+            {% if invitation %}
+                <span class="pm-eyebrow">Project invitation</span>
+                <h1>{{ invitation.project_name }}</h1>
+                <p class="pm-invitation-code">{{ invitation.project_code }}</p>
+                <dl>
+                    <div><dt>Invited by</dt><dd>{{ invitation.invited_by_email }}</dd></div>
+                    <div><dt>Access</dt><dd>{{ invitation.role | title }}</dd></div>
+                    <div><dt>Account</dt><dd>{{ user.email }}</dd></div>
+                </dl>
+                <form method="post">
+                    <a class="pm-button pm-button-secondary" href="{{ url_for('project_bp.workspace_page') }}">Decline</a>
+                    <button class="pm-button pm-button-primary" type="submit">
+                        <i data-lucide="check"></i>Accept invitation
+                    </button>
+                </form>
+            {% else %}
+                <span class="pm-eyebrow">Project invitation</span>
+                <h1>Invitation unavailable</h1>
+                <p class="pm-invitation-error">{{ error }}</p>
+                <a class="pm-button pm-button-secondary" href="{{ url_for('project_bp.workspace_page') }}">Open projects</a>
+            {% endif %}
+        </section>
+    </main>
+</body>
+
+</html>

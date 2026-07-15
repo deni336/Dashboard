@@ -22,6 +22,8 @@ def init_auth_routes(app, config_handler, connect_callback):
         }:
             return None
         if 'profile' not in session:
+            if request.method == 'GET' and request.endpoint == 'project_bp.project_invitation':
+                session['post_login_url'] = request.full_path.rstrip('?')
             return redirect(url_for('auth_bp.login'))
         try:
             license_session = auth_manager.validate_or_renew(session.get('denilicense'))
@@ -30,8 +32,13 @@ def init_auth_routes(app, config_handler, connect_callback):
             session.modified = True
         except LicenseError as exc:
             logger.warning(f"DeniLicense session rejected: {exc}")
+            post_login_url = ''
+            if request.method == 'GET' and request.endpoint == 'project_bp.project_invitation':
+                post_login_url = request.full_path.rstrip('?')
             session.clear()
             session['license_error'] = str(exc)
+            if post_login_url:
+                session['post_login_url'] = post_login_url
             return redirect(url_for('auth_bp.login'))
         return None
 
@@ -42,6 +49,7 @@ def init_auth_routes(app, config_handler, connect_callback):
         if request.method == 'POST':
             submitted_email = request.form.get('email', '').strip()
             try:
+                post_login_url = session.get('post_login_url', '')
                 result = auth_manager.authenticate(
                     submitted_email,
                     request.form.get('password', ''),
@@ -56,6 +64,8 @@ def init_auth_routes(app, config_handler, connect_callback):
                     'claims': result['claims'],
                 }
                 connect_callback()
+                if post_login_url.startswith('/') and not post_login_url.startswith('//'):
+                    return redirect(post_login_url)
                 return redirect(url_for('ui_bp.index'))
             except LicenseError as exc:
                 logger.warning(f"DeniLicense login failed: {exc}")

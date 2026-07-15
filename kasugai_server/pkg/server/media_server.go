@@ -25,10 +25,14 @@ type MediaServer struct {
 }
 
 func NewMediaServer(logger *stdlog.Logger, ds *datastore.DataStore) *MediaServer {
-	return &MediaServer{
+	server := &MediaServer{
 		dataStore: ds,
 		logger:    logger,
 	}
+	server.grpcServer = grpc.NewServer()
+	kasugai.RegisterMediaServiceServer(server.grpcServer, server)
+	reflection.Register(server.grpcServer)
+	return server
 }
 
 func (s *MediaServer) Start(address string) error {
@@ -36,10 +40,6 @@ func (s *MediaServer) Start(address string) error {
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
-
-	s.grpcServer = grpc.NewServer()
-	kasugai.RegisterMediaServiceServer(s.grpcServer, s)
-	reflection.Register(s.grpcServer)
 
 	s.logger.Info(fmt.Sprintf("Media gRPC server started on: %s", address))
 	return s.grpcServer.Serve(lis)

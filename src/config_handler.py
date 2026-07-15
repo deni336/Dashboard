@@ -7,19 +7,26 @@ DEFAULT_CONFIG = {
     'Application': {
         'buttons': ''
     },
+    'AI': {
+        'model': 'gpt-5.6-sol'
+    },
     'Licensing': {
         'apiurl': 'http://127.0.0.1:8080',
         'issuer': 'http://127.0.0.1:8080',
         'productcode': 'KASUGAI',
         'activationlabel': 'Kasugai Dashboard',
-        'deviceprivatekey': ''
+        'deviceprivatekey': '',
+        'activationid': '',
+        'activationlease': ''
     },
     'WebServer': {
         'port': '8000',
         'address': 'localhost',
         'kasaddress': 'localhost',
         'kasport': '8008',
-        'mediaport': '50052'
+        'mediaport': '50052',
+        'publicurl': '',
+        'sessionsecret': ''
     },
     'Logging': {
         'path': 'kasugai/logs/',
@@ -37,7 +44,16 @@ DEFAULT_CONFIG = {
     }
 }
 
+LEGACY_CONFIG_VALUE_MIGRATIONS = {
+    ('AI', 'model'): {
+        'gpt-5.5': 'gpt-5.6-sol',
+    },
+}
+
 def get_default_config_path():
+    configured = os.getenv("KASUGAI_CONFIG_FILE", "").strip()
+    if configured:
+        return os.path.abspath(os.path.expanduser(configured))
     user = getpass.getuser()
     base_dir = os.path.join(os.path.expanduser("~"), "Kasugai")
     config_file = os.path.join(base_dir, "config.ini")
@@ -71,6 +87,12 @@ class ConfigHandler:
                 if not self.config.has_option(section, key):
                     self.config.set(section, key, val)
                     updated = True
+                else:
+                    migrations = LEGACY_CONFIG_VALUE_MIGRATIONS.get((section, key), {})
+                    current = self.config.get(section, key).strip()
+                    if current in migrations:
+                        self.config.set(section, key, migrations[current])
+                        updated = True
         if updated:
             with open(self.config_file, 'w') as f:
                 self.config.write(f)

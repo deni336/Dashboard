@@ -7,7 +7,9 @@
     <title>Projects | Kasugai</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/project_manager.css') }}">
-    <script src="https://unpkg.com/lucide@1.24.0/dist/umd/lucide.js" defer></script>
+    <script src="https://unpkg.com/lucide@1.24.0/dist/umd/lucide.js"
+            integrity="sha384-pLX3Fl0m52MclHeHyUdLRg9l8/QW5IiesBUs9Sxxm38xj9lNZW7JqqAfp2/4ARQt"
+            crossorigin="anonymous" defer></script>
     <script src="{{ url_for('static', filename='js/project_manager.js') }}" defer></script>
 </head>
 
@@ -24,6 +26,11 @@
         </nav>
         <div class="pm-account">
             <span>{{ user.email or user.name }}</span>
+            <button class="pm-icon-button" id="openAISettingsButton" type="button"
+                    data-action="open-ai-settings" title="OpenAI API key settings"
+                    aria-label="OpenAI API key settings">
+                <i data-lucide="key-round"></i>
+            </button>
             <a class="pm-icon-button" href="{{ url_for('auth_bp.logout') }}" title="Log out" aria-label="Log out">
                 <i data-lucide="log-out"></i>
             </a>
@@ -66,15 +73,22 @@
                             <div class="pm-title-row">
                                 <h2 id="projectName">Project</h2>
                                 <span class="pm-badge" id="projectHealth">On track</span>
+                                <span class="pm-badge pm-access-badge" id="projectAccess" hidden>Viewer</span>
                             </div>
                             <p id="projectDescription"></p>
                         </div>
                     </div>
                     <div class="pm-header-actions">
-                        <button class="pm-icon-button" type="button" data-action="edit-project" title="Edit project" aria-label="Edit project">
+                        <button class="pm-button pm-button-secondary" id="assistantButton" type="button" data-action="open-assistant" data-requires="editor" hidden>
+                            <i data-lucide="bot"></i>AI copilot
+                        </button>
+                        <button class="pm-icon-button" type="button" data-action="share-project" data-requires="owner" title="Share project" aria-label="Share project">
+                            <i data-lucide="users-round"></i>
+                        </button>
+                        <button class="pm-icon-button" type="button" data-action="edit-project" data-requires="editor" title="Edit project" aria-label="Edit project">
                             <i data-lucide="pencil"></i>
                         </button>
-                        <button class="pm-button pm-button-primary" type="button" data-action="add-record">
+                        <button class="pm-button pm-button-primary" type="button" data-action="add-record" data-requires="editor">
                             <i data-lucide="plus"></i>Add item
                         </button>
                     </div>
@@ -101,7 +115,7 @@
                         <section class="pm-section">
                             <div class="pm-section-heading">
                                 <div><span class="pm-eyebrow">Delivery</span><h3>Upcoming work</h3></div>
-                                <button class="pm-icon-button" type="button" data-action="add-record" title="Add work item" aria-label="Add work item"><i data-lucide="plus"></i></button>
+                                <button class="pm-icon-button" type="button" data-action="add-record" data-requires="editor" title="Add work item" aria-label="Add work item"><i data-lucide="plus"></i></button>
                             </div>
                             <div class="pm-table-wrap">
                                 <table class="pm-table">
@@ -122,7 +136,7 @@
                     <section class="pm-section pm-latest-meeting">
                         <div class="pm-section-heading">
                             <div><span class="pm-eyebrow">Governance</span><h3>Latest meeting</h3></div>
-                            <button class="pm-button pm-button-secondary" type="button" data-action="add-meeting"><i data-lucide="notebook-pen"></i>Log meeting</button>
+                            <button class="pm-button pm-button-secondary" type="button" data-action="add-meeting" data-requires="editor"><i data-lucide="notebook-pen"></i>Log meeting</button>
                         </div>
                         <div id="latestMeeting"></div>
                     </section>
@@ -135,7 +149,7 @@
                             <button class="pm-filter" type="button" data-work-filter="task">Tasks</button>
                             <button class="pm-filter" type="button" data-work-filter="milestone">Milestones</button>
                         </div>
-                        <button class="pm-button pm-button-primary" type="button" data-action="add-record"><i data-lucide="plus"></i>Add work</button>
+                        <button class="pm-button pm-button-primary" type="button" data-action="add-record" data-requires="editor"><i data-lucide="plus"></i>Add work</button>
                     </div>
                     <div class="pm-table-wrap">
                         <table class="pm-table pm-table-wide pm-work-table">
@@ -148,7 +162,7 @@
                 <section class="pm-tab-panel" data-panel="meetings">
                     <div class="pm-panel-toolbar">
                         <div><span class="pm-eyebrow">Meeting log</span><h3>Notes and actions</h3></div>
-                        <button class="pm-button pm-button-primary" type="button" data-action="add-meeting"><i data-lucide="plus"></i>Log meeting</button>
+                        <button class="pm-button pm-button-primary" type="button" data-action="add-meeting" data-requires="editor"><i data-lucide="plus"></i>Log meeting</button>
                     </div>
                     <div class="pm-meeting-list" id="meetingList"></div>
                 </section>
@@ -156,7 +170,7 @@
                 <section class="pm-tab-panel" data-panel="raid">
                     <div class="pm-panel-toolbar">
                         <div><span class="pm-eyebrow">Control log</span><h3>RAID and decisions</h3></div>
-                        <button class="pm-button pm-button-primary" type="button" data-action="add-raid"><i data-lucide="plus"></i>Add entry</button>
+                        <button class="pm-button pm-button-primary" type="button" data-action="add-raid" data-requires="editor"><i data-lucide="plus"></i>Add entry</button>
                     </div>
                     <div class="pm-raid-grid" id="raidGrid"></div>
                 </section>
@@ -164,7 +178,7 @@
                 <section class="pm-tab-panel" data-panel="stakeholders">
                     <div class="pm-panel-toolbar">
                         <div><span class="pm-eyebrow">Engagement</span><h3>Stakeholder register</h3></div>
-                        <button class="pm-button pm-button-primary" type="button" data-action="add-stakeholder"><i data-lucide="user-plus"></i>Add stakeholder</button>
+                        <button class="pm-button pm-button-primary" type="button" data-action="add-stakeholder" data-requires="editor"><i data-lucide="user-plus"></i>Add stakeholder</button>
                     </div>
                     <div class="pm-table-wrap">
                         <table class="pm-table pm-table-wide">
@@ -177,7 +191,7 @@
                 <section class="pm-tab-panel" data-panel="connections">
                     <div class="pm-panel-toolbar">
                         <div><span class="pm-eyebrow">Workspace links</span><h3>Connections</h3></div>
-                        <button class="pm-button pm-button-primary" type="button" data-action="add-connection"><i data-lucide="plug-zap"></i>Add connection</button>
+                        <button class="pm-button pm-button-primary" type="button" data-action="add-connection" data-requires="owner"><i data-lucide="plug-zap"></i>Add connection</button>
                     </div>
                     <div class="pm-connection-grid" id="connectionGrid"></div>
                 </section>
@@ -317,6 +331,108 @@
                 <button class="pm-button pm-button-primary" type="submit">Save connection</button>
             </div>
         </form>
+    </dialog>
+
+    <dialog class="pm-dialog pm-dialog-wide" id="shareDialog">
+        <div class="pm-share-dialog">
+            <div class="pm-dialog-heading">
+                <div><span class="pm-eyebrow">Collaboration</span><h2>Share project</h2></div>
+                <button class="pm-icon-button" type="button" data-close-dialog title="Close" aria-label="Close"><i data-lucide="x"></i></button>
+            </div>
+
+            <form id="shareForm">
+                <div class="pm-share-invite-row">
+                    <label class="pm-field"><span>Email address</span><input type="email" name="email" maxlength="254" required></label>
+                    <label class="pm-field"><span>Access</span><select name="role"><option value="viewer">Viewer</option><option value="editor">Editor</option></select></label>
+                    <button class="pm-button pm-button-primary" type="submit"><i data-lucide="send"></i>Create invitation</button>
+                </div>
+                <div class="pm-form-error" data-form-error></div>
+            </form>
+
+            <section class="pm-invite-result" id="inviteResult" hidden>
+                <label class="pm-field"><span>Invitation link</span><input id="invitationUrl" readonly></label>
+                <div>
+                    <button class="pm-icon-button" id="copyInvitationButton" type="button" title="Copy invitation link" aria-label="Copy invitation link"><i data-lucide="copy"></i></button>
+                    <a class="pm-button pm-button-secondary" id="emailInvitationLink" href="#"><i data-lucide="mail"></i>Email invitation</a>
+                </div>
+            </section>
+
+            <section class="pm-share-list-section">
+                <div class="pm-section-heading"><div><span class="pm-eyebrow">Access list</span><h3>People with access</h3></div></div>
+                <div class="pm-table-wrap">
+                    <table class="pm-table pm-share-table">
+                        <thead><tr><th>Email</th><th>Access</th><th>Status</th><th>Expires</th><th></th></tr></thead>
+                        <tbody id="shareList"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </dialog>
+
+    <dialog class="pm-dialog pm-openai-key-dialog" id="openAISettingsDialog">
+        <form id="openAISettingsForm" method="dialog" autocomplete="off">
+            <div class="pm-dialog-heading">
+                <div><span class="pm-eyebrow">Personal AI connection</span><h2>OpenAI API key</h2></div>
+                <button class="pm-icon-button" type="button" data-close-dialog title="Close" aria-label="Close"><i data-lucide="x"></i></button>
+            </div>
+            <p class="pm-openai-key-help">
+                Your key is encrypted on this server and used only for your own AI requests. It is never shown again after saving.
+                Requests use the limits and billing of the OpenAI API project associated with your key.
+            </p>
+            <div class="pm-openai-key-status" id="openAIKeyStatus" role="status" aria-live="polite">Loading connection status...</div>
+            <label class="pm-field">
+                <span>New OpenAI API key</span>
+                <input id="openAIKeyInput" name="api_key" type="password" maxlength="4096"
+                       autocomplete="off" autocapitalize="none" spellcheck="false" required
+                       aria-describedby="openAIKeyHelp">
+            </label>
+            <small class="pm-openai-key-help" id="openAIKeyHelp">
+                Create or manage a key in your
+                <a class="pm-text-link" href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">OpenAI API settings</a>.
+                Saving a new key replaces only your existing personal key.
+            </small>
+            <div class="pm-form-error" data-form-error role="alert"></div>
+            <div class="pm-dialog-actions pm-openai-key-actions">
+                <button class="pm-button pm-button-danger" id="removeOpenAIKeyButton" type="button" hidden>Remove personal key</button>
+                <span></span>
+                <button class="pm-button pm-button-secondary" type="button" data-close-dialog>Cancel</button>
+                <button class="pm-button pm-button-primary" type="submit"><i data-lucide="shield-check"></i>Save key</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog class="pm-dialog pm-dialog-wide pm-ai-dialog" id="assistantDialog">
+        <div class="pm-ai-shell">
+            <div class="pm-dialog-heading">
+                <div><span class="pm-eyebrow">Project copilot</span><h2>Ask Kasugai AI</h2></div>
+                <button class="pm-icon-button" type="button" data-close-dialog title="Close" aria-label="Close"><i data-lucide="x"></i></button>
+            </div>
+            <p class="pm-ai-disclosure" id="assistantDisclosure">This project's brief, work items, meetings, and stakeholders are sent to OpenAI when you ask a question. Selected GitHub and email evidence is included when enabled. Changes are only applied after you review and confirm them.</p>
+            <div class="pm-ai-conversation" id="assistantConversation" aria-live="polite"></div>
+            <form id="assistantForm">
+                <label class="pm-field"><span>What should I review or update?</span><textarea name="message" rows="5" maxlength="5000" placeholder="Review this project, identify risks, and propose supported updates." required></textarea></label>
+                <div class="pm-ai-source-options" id="assistantSourceOptions">
+                    <label><input type="checkbox" name="include_github" checked> GitHub evidence</label>
+                    <label><input type="checkbox" name="include_email" checked> Email evidence</label>
+                </div>
+                <div class="pm-form-error" data-form-error role="alert"></div>
+                <div class="pm-dialog-actions">
+                    <span></span><span></span>
+                    <button class="pm-button pm-button-primary" type="submit"><i data-lucide="sparkles"></i>Generate preview</button>
+                </div>
+            </form>
+            <section class="pm-ai-result" id="assistantResult" hidden aria-live="polite">
+                <div id="assistantAnswer"></div>
+                <div class="pm-ai-actions" id="assistantActions"></div>
+                <div class="pm-ai-evidence" id="assistantEvidence"></div>
+                <div class="pm-ai-warnings" id="assistantWarnings"></div>
+                <div class="pm-ai-apply-status" id="assistantApplyStatus" role="status" aria-live="polite"></div>
+                <div class="pm-dialog-actions">
+                    <span></span><span></span>
+                    <button class="pm-button pm-button-primary" id="applyAssistantButton" type="button"><i data-lucide="check-check"></i>Apply selected changes</button>
+                </div>
+            </section>
+        </div>
     </dialog>
 
     <div class="pm-toast" id="toast" role="status" aria-live="polite"></div>

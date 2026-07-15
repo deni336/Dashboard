@@ -4,9 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/user"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 )
@@ -44,22 +42,22 @@ type logMessage struct {
 
 // NewLogger creates a new Logger instance
 func NewLogger(filename string, level LogLevel, consoleLog bool) (*Logger, error) {
-	currentUser, err := user.Current()
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get current user: %v", err)
+	if filename == "" {
+		return nil, fmt.Errorf("log filename is required")
 	}
-
-	usernameParts := strings.Split(currentUser.Username, "\\")
-	username := usernameParts[len(usernameParts)-1]
-
-	logDir := filepath.Join("C:\\", "Users", username, "kasugai/", "logs/")
-
-	err = os.MkdirAll(logDir, os.ModePerm)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create log directory: %v", err)
+	logPath := filename
+	if !filepath.IsAbs(logPath) {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve home directory: %w", err)
+		}
+		logPath = filepath.Join(home, "Kasugai", "logs", filename)
 	}
-
-	logPath := filepath.Join(logDir, filename)
+	logDir := filepath.Dir(logPath)
+	err := os.MkdirAll(logDir, 0750)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create log directory: %w", err)
+	}
 
 	file, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {

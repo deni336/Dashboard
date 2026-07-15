@@ -87,6 +87,10 @@ class AuthManager:
                 raise
 
         license_record = self._find_product_license(access_token)
+        saved_activation = self._reuse_saved_activation(license_record, access_token)
+        if saved_activation:
+            return self._authentication_result(user, email, license_record, *saved_activation)
+
         activation_response = self._post(
             f"/api/v1/licenses/{license_record['id']}/activations",
             {
@@ -105,6 +109,10 @@ class AuthManager:
         if claims.license_id != license_record.get('id') or claims.activation_id != activation.get('id'):
             raise LicenseError("DeniLicense returned an activation that does not match its signed lease.")
 
+        self._save_activation(activation.get('id'), lease)
+        return self._authentication_result(user, email, license_record, activation, lease, claims)
+
+    def _authentication_result(self, user, email, license_record, activation, lease, claims):
         verified_claims = self._claims_dict(claims)
         return {
             'profile': {
@@ -118,6 +126,71 @@ class AuthManager:
             'lease': lease,
             'claims': verified_claims,
         }
+
+    def _reuse_saved_activation(self, license_record, access_token):
+        activation_id = self.config.get('Licensing', 'activationid', fallback='')
+        if not activation_id:
+            try:
+                response = self._get(
+                    f"/api/v1/licenses/{license_record['id']}/activations",
+                    access_token,
+                )
+            except LicenseError as exc:
+                raise LicenseError(
+                    "Could not check this installation's existing DeniLicense activations; "
+                    f"no new activation was requested. {exc}"
+                ) from exc
+
+            items = response.get('items') if isinstance(response, dict) else None
+            if not isinstance(items, list) or any(not isinstance(item, dict) for item in items):
+                raise LicenseError(
+                    "DeniLicense returned an invalid activation list; no new activation was requested."
+                )
+            expected_thumbprint = device_key_thumbprint(self._device_public_key_bytes())
+            activation_id = next(
+                (
+                    item.get('id')
+                    for item in items
+                    if item.get('state') == 'active'
+                    and item.get('deviceKeyThumbprint') == expected_thumbprint
+                ),
+                '',
+            )
+        if not activation_id:
+            return None
+
+        saved_lease = self.config.get('Licensing', 'activationlease', fallback='')
+        if saved_lease:
+            try:
+                claims = self._verify_lease(saved_lease)
+                if (
+                    claims.activation_id == activation_id
+                    and claims.license_id == license_record.get('id')
+                    and claims.expires_at > datetime.now(UTC) + LEASE_RENEWAL_WINDOW
+                ):
+                    return {'id': activation_id, 'licenseId': claims.license_id}, saved_lease, claims
+            except LicenseError:
+                pass
+        try:
+            lease, claims = self._renew_lease(activation_id)
+        except LicenseError as exc:
+            raise LicenseError(
+                "The existing DeniLicense activation could not be renewed; "
+                f"no new activation was requested. {exc}"
+            ) from exc
+        if claims.activation_id != activation_id or claims.license_id != license_record.get('id'):
+            raise LicenseError(
+                "DeniLicense renewed an activation or license that does not match the existing "
+                "installation; "
+                "no new activation was requested."
+            )
+        self._save_activation(activation_id, lease)
+        return {'id': activation_id, 'licenseId': claims.license_id}, lease, claims
+
+    def _save_activation(self, activation_id, lease):
+        if activation_id and lease:
+            self.config.set('Licensing', 'activationid', activation_id)
+            self.config.set('Licensing', 'activationlease', lease)
 
     def validate_or_renew(self, license_session):
         if not isinstance(license_session, dict):
@@ -137,6 +210,7 @@ class AuthManager:
 
         if claims.activation_id != activation_id:
             raise LicenseError("The renewed DeniLicense lease belongs to a different activation.")
+        self._save_activation(claims.activation_id, lease)
         return {
             'licenseId': claims.license_id,
             'activationId': claims.activation_id,

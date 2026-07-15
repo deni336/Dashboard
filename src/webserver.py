@@ -5,6 +5,7 @@ import threading
 import secrets
 from flask import Flask, session
 from waitress import serve
+from werkzeug.middleware.proxy_fix import ProxyFix
 from src.config_handler import ConfigHandler
 from src.global_logger import GlobalLogger
 from src.event_handler import EventHandler
@@ -20,14 +21,40 @@ from src.routes.screenshare_routes import screenshare_bp
 from src.routes.ui_routes import ui_bp, init_ui_routes
 from src.routes.project_routes import project_bp, init_project_routes
 
+
+def get_or_create_session_secret(config):
+    session_secret = config.get("WebServer", "sessionsecret", fallback="")
+    if not session_secret:
+        session_secret = secrets.token_urlsafe(32)
+        config.set("WebServer", "sessionsecret", session_secret)
+    return session_secret
+
+
 class WebServer:
     def __init__(self):
         self.logger = GlobalLogger.get_logger("WebServer")
         self.config = ConfigHandler()
         self.event_handler = EventHandler()
         self.app = Flask(__name__, template_folder='../sites/templates', static_folder='../sites/static')
+        trust_proxy = os.getenv("KASUGAI_TRUST_PROXY", "").strip().lower() in {
+            "1", "true", "yes", "on",
+        }
+        if trust_proxy:
+            # Trust exactly one reverse proxy hop. Never enable this when clients can
+            # connect to Waitress directly, since forwarded headers are client-controlled.
+            self.app.wsgi_app = ProxyFix(
+                self.app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1,
+            )
+        secure_cookie = os.getenv("KASUGAI_SESSION_COOKIE_SECURE", "").strip().lower()
+        self.app.config.update(
+            SESSION_COOKIE_HTTPONLY=True,
+            SESSION_COOKIE_SAMESITE="Lax",
+            SESSION_COOKIE_SECURE=(
+                trust_proxy if not secure_cookie else secure_cookie in {"1", "true", "yes", "on"}
+            ),
+        )
         self.app.config['UPLOAD_FOLDER'] = self.config.get("FileTransfer", "uploadfolder")
-        self.app.secret_key = secrets.token_hex(16)
+        self.app.secret_key = get_or_create_session_secret(self.config)
 
         self.rooms = {}
 
