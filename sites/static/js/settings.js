@@ -1,16 +1,24 @@
 // Shared Settings modal behavior: quick-launch buttons, application settings,
-// and background image. Included by both index.html and
-// screenshare.html so the Settings modal behaves identically on each page.
+// and background image. Included by Home and Projects so the selected
+// background follows users across the application.
 
-document.addEventListener('DOMContentLoaded', function () {
-    updateBackgroundImage();
+function initializeSettings() {
+    updateBackgroundImage().catch(function () {
+        // A fresh installation may not have a custom background yet.
+        document.body.style.removeProperty('--kasugai-background-image');
+    });
+    const backgroundForm = document.getElementById('backgroundForm');
+    if (!backgroundForm) return;
     loadButtons();
 
     document.querySelectorAll('.settings-tab').forEach(function (tab) {
         tab.addEventListener('click', function () {
-            document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.settings-tab').forEach(t => {
+                const active = t === tab;
+                t.classList.toggle('active', active);
+                t.setAttribute('aria-selected', String(active));
+            });
             document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
-            tab.classList.add('active');
             document.querySelector(`.settings-section[data-section="${tab.dataset.tab}"]`).classList.add('active');
         });
     });
@@ -58,22 +66,39 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     });
 
-    document.getElementById('backgroundForm').addEventListener('submit', function (event) {
+    backgroundForm.addEventListener('submit', async function (event) {
         event.preventDefault();
+        const form = this;
         const formData = new FormData(this);
+        const submitButton = form.querySelector('button[type="submit"]');
+        const status = document.getElementById('backgroundStatus');
+        const originalButtonText = submitButton.textContent;
+        status.textContent = 'Uploading background...';
+        status.className = 'settings-feedback';
+        status.setAttribute('role', 'status');
+        submitButton.disabled = true;
+        submitButton.textContent = 'Uploading...';
 
-        fetch('/change_background', { method: 'POST', body: formData })
-            .then(response => {
-                if (response.ok) {
-                    updateBackgroundImage();
-                } else {
-                    alert('Failed to upload background image.');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while uploading the background image.');
+        try {
+            const response = await fetch('/change_background', {
+                method: 'POST',
+                headers: { Accept: 'application/json' },
+                body: formData,
             });
+            const result = await readBackgroundUploadResponse(response);
+            await updateBackgroundImage(result.url);
+            form.reset();
+            status.textContent = 'Background updated.';
+            status.classList.add('success');
+        } catch (error) {
+            console.error('Error updating background:', error);
+            status.textContent = error.message || 'An error occurred while uploading the background image.';
+            status.classList.add('error');
+            status.setAttribute('role', 'alert');
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = originalButtonText;
+        }
     });
 
     document.getElementById('appSettingsForm').addEventListener('submit', function (event) {
@@ -106,23 +131,69 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     });
 
-});
+}
 
-function updateBackgroundImage() {
-    const imageUrl = `/resources/bg.jpg?${new Date().getTime()}`;
-    document.body.style.backgroundImage = `url('${imageUrl}')`;
+async function readBackgroundUploadResponse(response) {
+    if (response.redirected) {
+        throw new Error('Your session expired. Sign in again before changing the background.');
+    }
+    let result;
+    try {
+        result = await response.json();
+    } catch (_error) {
+        throw new Error('Kasugai returned an invalid background upload response.');
+    }
+    if (!response.ok) {
+        throw new Error(result.error || 'Failed to upload the background image.');
+    }
+    if (!result.ok || typeof result.url !== 'string' || !result.url) {
+        throw new Error('Kasugai returned an incomplete background upload response.');
+    }
+    return result;
+}
+
+function updateBackgroundImage(backgroundUrl = '/resources/background') {
+    const imageUrl = new URL(backgroundUrl, window.location.origin);
+    imageUrl.searchParams.set('v', Date.now().toString());
+
+    return new Promise(function (resolve, reject) {
+        const image = new Image();
+        image.onload = function () {
+            document.body.style.setProperty(
+                '--kasugai-background-image',
+                `url('${imageUrl.href}')`,
+            );
+            resolve(imageUrl.href);
+        };
+        image.onerror = function () {
+            reject(new Error('The uploaded image could not be loaded.'));
+        };
+        image.src = imageUrl.href;
+    });
 }
 
 function renderButtonContainer(buttons) {
     const container = document.getElementById('buttonContainer');
     container.innerHTML = '';
+    if (buttons.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'home-empty-copy';
+        empty.textContent = 'Add the tools and links you reach for every day.';
+        container.appendChild(empty);
+        return;
+    }
     buttons.forEach(function (button) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'dynamic-button';
-        btn.textContent = button.name;
+        const icon = document.createElement('i');
+        icon.setAttribute('data-lucide', 'arrow-up-right');
+        const label = document.createElement('span');
+        label.textContent = button.name;
+        btn.append(icon, label);
         container.appendChild(btn);
     });
+    if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
 }
 
 function renderButtonList(buttons) {
@@ -193,4 +264,16 @@ function loadAppSettings() {
             document.getElementById('uploadFolder').value = settings.uploadfolder;
         })
         .catch(error => console.error('Error loading settings:', error));
+}
+
+if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', initializeSettings);
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        initializeSettings,
+        readBackgroundUploadResponse,
+        updateBackgroundImage,
+    };
 }

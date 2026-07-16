@@ -1,4 +1,4 @@
-// Shared file-transfer behavior for index.html and screenshare.html.
+// Shared file-transfer behavior inside the Team Room drawer on Home and Projects.
 
 (function () {
     const state = {
@@ -173,6 +173,7 @@
     function addFileOfferChatBubble(offer) {
         const chatMessages = byId('chatMessages');
         if (!chatMessages || byId(`file-offer-${offer.fileId}`)) return;
+        byId('chatEmptyState')?.remove();
 
         const bubble = document.createElement('div');
         bubble.className = 'file-offer';
@@ -270,6 +271,10 @@
                 setStatus(data.error || 'Failed to send file.', true);
                 return;
             }
+            if (!data.file_id || !data.name) {
+                setStatus('Kasugai returned an incomplete file-transfer response.', true);
+                return;
+            }
 
             setStatus(`Sent "${data.name}".`, false);
             state.sent.unshift({
@@ -308,7 +313,7 @@
         loadOffers();
     }
 
-    function openModal() {
+    function openPanel() {
         loadRoomParticipants();
         loadOffers();
         renderSentFilesList();
@@ -316,7 +321,9 @@
 
     window.KasugaiFileTransfer = {
         bind,
-        openModal,
+        openPanel,
+        // Backward-compatible name for older cached page scripts.
+        openModal: openPanel,
         addOffer,
         renderIncomingFilesList,
         loadRoomParticipants,

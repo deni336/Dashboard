@@ -151,11 +151,13 @@
              <!-- Appearance tab -->
              <section class="settings-section" data-section="appearance">
                  <h3>Background Image</h3>
-                 <form id="backgroundForm" enctype="multipart/form-data">
+                 <form id="backgroundForm" class="settings-form" enctype="multipart/form-data">
                      <label for="backgroundImage">Upload Background Image:</label>
-                     <input type="file" id="backgroundImage" name="backgroundImage" accept="image/*" required>
+                     <input type="file" id="backgroundImage" name="backgroundImage" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>
+                     <small class="settings-help">JPG, PNG, or WebP, up to 20 MB. Static images only.</small>
                      <button type="submit">Change Background</button>
                  </form>
+                 <p class="settings-feedback" id="backgroundStatus" role="status" aria-live="polite"></p>
              </section>
 
              <!-- Application tab -->

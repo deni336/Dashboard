@@ -4,6 +4,7 @@ import hmac
 import os
 import secrets
 import sqlite3
+import uuid
 from contextlib import contextmanager
 from datetime import UTC, date, datetime, timedelta
 
@@ -28,6 +29,8 @@ ENCRYPTED_FIELDS = {
     "project_stakeholders": {"notes"},
     "project_connections": {"account"},
     "project_shares": {"invited_email", "invited_by_email"},
+    "project_ai_sessions": {"title"},
+    "project_ai_messages": {"content", "model_context"},
 }
 
 PRIVATE_API_FIELDS = {
@@ -43,6 +46,8 @@ PRIVATE_API_FIELDS = {
         "token_hash",
     },
     "project_ai_audit": {"summary", "actions"},
+    "project_ai_sessions": {"actor_key"},
+    "project_ai_messages": {"actor_key", "project_id", "model_context", "request_id"},
 }
 
 CHILD_TABLES = {
@@ -54,6 +59,14 @@ CHILD_TABLES = {
 
 ACCESS_LEVELS = {"viewer": 0, "editor": 1, "owner": 2}
 INVITATION_LIFETIME = timedelta(days=7)
+AI_SESSION_LIMIT_PER_PROJECT = 50
+AI_SESSION_MESSAGE_LIMIT = 500
+AI_SESSION_TITLE_MAX_LENGTH = 160
+AI_SESSION_BACKEND_MAX_LENGTH = 40
+AI_SESSION_MODEL_MAX_LENGTH = 100
+AI_SESSION_MESSAGE_MAX_LENGTH = 5000
+AI_SESSION_CONTEXT_MAX_LENGTH = 5000
+AI_SESSION_PAGE_MAX_LENGTH = 200
 
 
 class ProjectStore:
@@ -219,6 +232,41 @@ class ProjectStore:
                     ON project_shares(member_owner_key, status, project_id);
                 CREATE INDEX IF NOT EXISTS project_shares_invitation_idx
                     ON project_shares(token_hash, invited_email_hash, status);
+
+                CREATE TABLE IF NOT EXISTS project_ai_sessions (
+                    id TEXT PRIMARY KEY,
+                    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                    actor_key TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    backend TEXT NOT NULL,
+                    model TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    UNIQUE(id, project_id, actor_key)
+                );
+                CREATE INDEX IF NOT EXISTS project_ai_sessions_actor_idx
+                    ON project_ai_sessions(actor_key, project_id, updated_at DESC, id);
+
+                CREATE TABLE IF NOT EXISTS project_ai_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id TEXT NOT NULL,
+                    project_id INTEGER NOT NULL,
+                    actor_key TEXT NOT NULL,
+                    turn_id TEXT NOT NULL,
+                    request_id TEXT,
+                    role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+                    content TEXT NOT NULL,
+                    model_context TEXT NOT NULL DEFAULT '',
+                    model TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(session_id, project_id, actor_key)
+                        REFERENCES project_ai_sessions(id, project_id, actor_key)
+                        ON DELETE CASCADE,
+                    UNIQUE(session_id, turn_id, role),
+                    UNIQUE(session_id, request_id, role)
+                );
+                CREATE INDEX IF NOT EXISTS project_ai_messages_session_idx
+                    ON project_ai_messages(session_id, id);
 
                 CREATE TABLE IF NOT EXISTS project_ai_audit (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -407,6 +455,396 @@ class ProjectStore:
                 "DELETE FROM project_user_credentials WHERE owner_key = ?",
                 (owner_key,),
             )
+
+    @staticmethod
+    def _ai_session_value(value, field, maximum, *, required=True, default=""):
+        if value is None:
+            value = default
+        if not isinstance(value, str):
+            raise ValueError(f"{field} must be text")
+        value = value.strip()
+        if required and not value:
+            raise ValueError(f"{field} is required")
+        if len(value) > maximum:
+            raise ValueError(f"{field} must be {maximum} characters or fewer")
+        return value
+
+    @staticmethod
+    def _ai_session_page_value(value, field, maximum):
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise ValueError(f"{field} must be an integer")
+        if not 1 <= value <= maximum:
+            raise ValueError(f"{field} must be between 1 and {maximum}")
+        return value
+
+    def _access_ai_session(
+        self, connection, actor_key, project_id, session_id, *, required="viewer"
+    ):
+        self._access_project(connection, actor_key, project_id, required=required)
+        row = connection.execute(
+            """
+            SELECT s.*, COUNT(m.id) AS message_count, MAX(m.id) AS last_message_id
+            FROM project_ai_sessions s
+            LEFT JOIN project_ai_messages m
+              ON m.session_id = s.id AND m.project_id = s.project_id
+             AND m.actor_key = s.actor_key
+            WHERE s.id = ? AND s.project_id = ? AND s.actor_key = ?
+            GROUP BY s.id
+            """,
+            (str(session_id), project_id, actor_key),
+        ).fetchone()
+        if row is None:
+            raise KeyError("AI session not found")
+        return row
+
+    def ensure_ai_session_capacity(self, actor_key, project_id, session_id=None):
+        """Fail before inference when a new session or turn cannot be persisted."""
+        with self._connect() as connection:
+            if session_id:
+                session_row = self._access_ai_session(
+                    connection, actor_key, project_id, session_id, required="editor"
+                )
+                if int(session_row["message_count"]) + 2 > AI_SESSION_MESSAGE_LIMIT:
+                    raise ValueError(
+                        f"An AI session may contain at most "
+                        f"{AI_SESSION_MESSAGE_LIMIT} messages"
+                    )
+                return
+            self._access_project(connection, actor_key, project_id, required="editor")
+            session_count = connection.execute(
+                """SELECT COUNT(*) FROM project_ai_sessions
+                   WHERE actor_key = ? AND project_id = ?""",
+                (actor_key, project_id),
+            ).fetchone()[0]
+            if session_count >= AI_SESSION_LIMIT_PER_PROJECT:
+                raise ValueError(
+                    f"An account may have at most {AI_SESSION_LIMIT_PER_PROJECT} "
+                    "AI sessions per project"
+                )
+
+    def create_ai_session(
+        self,
+        actor_key,
+        project_id,
+        title="New chat",
+        *,
+        backend="local",
+        model="",
+        session_id=None,
+    ):
+        """Create a private assistant session for an editor of a project."""
+        if title is None or (isinstance(title, str) and not title.strip()):
+            title = "New chat"
+        title = self._ai_session_value(title, "title", AI_SESSION_TITLE_MAX_LENGTH)
+        backend = self._ai_session_value(
+            backend, "backend", AI_SESSION_BACKEND_MAX_LENGTH
+        )
+        model = self._ai_session_value(
+            model, "model", AI_SESSION_MODEL_MAX_LENGTH, required=False
+        )
+        if session_id is None:
+            session_id = str(uuid.uuid4())
+        else:
+            session_id = self._ai_session_value(session_id, "session_id", 36)
+            try:
+                parsed_session_id = uuid.UUID(session_id)
+            except ValueError as exc:
+                raise ValueError("session_id must be a UUID") from exc
+            if str(parsed_session_id) != session_id.lower():
+                raise ValueError("session_id must be a canonical UUID")
+            session_id = str(parsed_session_id)
+        now = self._now()
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            self._access_project(connection, actor_key, project_id, required="editor")
+            session_count = connection.execute(
+                """SELECT COUNT(*) FROM project_ai_sessions
+                   WHERE actor_key = ? AND project_id = ?""",
+                (actor_key, project_id),
+            ).fetchone()[0]
+            if session_count >= AI_SESSION_LIMIT_PER_PROJECT:
+                raise ValueError(
+                    f"An account may have at most {AI_SESSION_LIMIT_PER_PROJECT} "
+                    "AI sessions per project"
+                )
+            if connection.execute(
+                "SELECT 1 FROM project_ai_sessions WHERE id = ?", (session_id,)
+            ).fetchone():
+                raise ValueError("The AI session identifier is unavailable")
+            connection.execute(
+                """
+                INSERT INTO project_ai_sessions
+                    (id, project_id, actor_key, title, backend, model, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    session_id,
+                    project_id,
+                    actor_key,
+                    self._encrypt(title),
+                    backend,
+                    model,
+                    now,
+                    now,
+                ),
+            )
+            row = self._access_ai_session(
+                connection, actor_key, project_id, session_id, required="editor"
+            )
+        return self._row("project_ai_sessions", row)
+
+    def ai_session_has_request(self, actor_key, project_id, session_id, request_id):
+        """Return whether an idempotent turn request is already fully stored."""
+        request_id = self._ai_session_value(request_id, "request_id", 100)
+        with self._connect() as connection:
+            self._access_ai_session(
+                connection, actor_key, project_id, session_id, required="editor"
+            )
+            rows = connection.execute(
+                """SELECT role FROM project_ai_messages
+                   WHERE session_id = ? AND project_id = ? AND actor_key = ?
+                     AND request_id = ?""",
+                (str(session_id), project_id, actor_key, request_id),
+            ).fetchall()
+        if not rows:
+            return False
+        if len(rows) != 2 or {row["role"] for row in rows} != {"user", "assistant"}:
+            raise ValueError("The AI turn request is incomplete")
+        return True
+
+    def list_ai_sessions(self, actor_key, project_id):
+        """List only the current actor's sessions for an accessible project."""
+        with self._connect() as connection:
+            self._access_project(connection, actor_key, project_id, required="viewer")
+            rows = connection.execute(
+                """
+                SELECT s.*, COUNT(m.id) AS message_count, MAX(m.id) AS last_message_id
+                FROM project_ai_sessions s
+                LEFT JOIN project_ai_messages m
+                  ON m.session_id = s.id AND m.project_id = s.project_id
+                 AND m.actor_key = s.actor_key
+                WHERE s.actor_key = ? AND s.project_id = ?
+                GROUP BY s.id
+                ORDER BY s.updated_at DESC, s.id
+                """,
+                (actor_key, project_id),
+            ).fetchall()
+        return self._rows("project_ai_sessions", rows)
+
+    def get_ai_session(
+        self,
+        actor_key,
+        project_id,
+        session_id,
+        *,
+        message_limit=100,
+        before_id=None,
+    ):
+        """Return private session metadata and one ascending page of its messages."""
+        message_limit = self._ai_session_page_value(
+            message_limit, "message_limit", AI_SESSION_PAGE_MAX_LENGTH
+        )
+        if before_id is not None:
+            before_id = self._ai_session_page_value(
+                before_id, "before_id", 9_223_372_036_854_775_807
+            )
+        with self._connect() as connection:
+            session_row = self._access_ai_session(
+                connection, actor_key, project_id, session_id, required="viewer"
+            )
+            parameters = [str(session_id), project_id, actor_key]
+            before_clause = ""
+            if before_id is not None:
+                before_clause = " AND id < ?"
+                parameters.append(before_id)
+            parameters.append(message_limit + 1)
+            rows = connection.execute(
+                f"""
+                SELECT * FROM project_ai_messages
+                WHERE session_id = ? AND project_id = ? AND actor_key = ?{before_clause}
+                ORDER BY id DESC LIMIT ?
+                """,
+                parameters,
+            ).fetchall()
+        has_more = len(rows) > message_limit
+        rows = rows[:message_limit]
+        messages = self._rows("project_ai_messages", reversed(rows))
+        return {
+            "session": self._row("project_ai_sessions", session_row),
+            "messages": messages,
+            "has_more": has_more,
+            "next_before_id": messages[0]["id"] if has_more and messages else None,
+        }
+
+    def delete_ai_session(self, actor_key, project_id, session_id):
+        """Delete only the current actor's session, even when the actor owns the project."""
+        with self._connect() as connection:
+            self._access_ai_session(
+                connection, actor_key, project_id, session_id, required="viewer"
+            )
+            cursor = connection.execute(
+                """DELETE FROM project_ai_sessions
+                   WHERE id = ? AND project_id = ? AND actor_key = ?""",
+                (str(session_id), project_id, actor_key),
+            )
+            if cursor.rowcount != 1:
+                raise KeyError("AI session not found")
+
+    def ai_session_model_history(
+        self, actor_key, project_id, session_id, *, limit=12
+    ):
+        """Build trusted model history from encrypted server-side messages."""
+        limit = self._ai_session_page_value(limit, "limit", 12)
+        with self._connect() as connection:
+            self._access_ai_session(
+                connection, actor_key, project_id, session_id, required="viewer"
+            )
+            rows = connection.execute(
+                """
+                SELECT role, content, model_context FROM project_ai_messages
+                WHERE session_id = ? AND project_id = ? AND actor_key = ?
+                ORDER BY id DESC LIMIT ?
+                """,
+                (str(session_id), project_id, actor_key, limit),
+            ).fetchall()
+        history = []
+        for row in reversed(rows):
+            content = self._decrypt(row["content"])
+            if row["role"] == "assistant":
+                model_context = self._decrypt(row["model_context"])
+                content = model_context or content
+            history.append({"role": row["role"], "content": content})
+        return history
+
+    def append_ai_turn(
+        self,
+        actor_key,
+        project_id,
+        session_id,
+        user_content,
+        assistant_content,
+        *,
+        model_context="",
+        model="",
+        request_id=None,
+    ):
+        """Atomically persist both sides of one successful assistant turn."""
+        user_content = self._ai_session_value(
+            user_content, "user_content", AI_SESSION_MESSAGE_MAX_LENGTH
+        )
+        assistant_content = self._ai_session_value(
+            assistant_content, "assistant_content", AI_SESSION_MESSAGE_MAX_LENGTH
+        )
+        if model_context is None or model_context == "":
+            model_context = assistant_content
+        model_context = self._ai_session_value(
+            model_context,
+            "model_context",
+            AI_SESSION_CONTEXT_MAX_LENGTH,
+        )
+        model = self._ai_session_value(
+            model, "model", AI_SESSION_MODEL_MAX_LENGTH, required=False
+        )
+        if request_id is None:
+            request_id = str(uuid.uuid4())
+        request_id = self._ai_session_value(request_id, "request_id", 100)
+        turn_id = str(uuid.uuid4())
+        now = self._now()
+
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            session_row = self._access_ai_session(
+                connection, actor_key, project_id, session_id, required="editor"
+            )
+            existing = connection.execute(
+                """
+                SELECT * FROM project_ai_messages
+                WHERE session_id = ? AND project_id = ? AND actor_key = ?
+                  AND request_id = ?
+                ORDER BY id
+                """,
+                (str(session_id), project_id, actor_key, request_id),
+            ).fetchall()
+            if existing:
+                if len(existing) != 2 or {row["role"] for row in existing} != {
+                    "user", "assistant"
+                }:
+                    raise ValueError("The AI turn request is incomplete")
+                existing_by_role = {row["role"]: row for row in existing}
+                if (
+                    self._decrypt(existing_by_role["user"]["content"]) != user_content
+                    or self._decrypt(existing_by_role["assistant"]["content"])
+                    != assistant_content
+                    or self._decrypt(existing_by_role["assistant"]["model_context"])
+                    != model_context
+                ):
+                    raise ValueError("request_id has already been used for another AI turn")
+                saved_session = self._row("project_ai_sessions", session_row)
+                return {
+                    "session": saved_session,
+                    "turn_id": existing[0]["turn_id"],
+                    "messages": self._rows("project_ai_messages", existing),
+                }
+
+            message_count = int(session_row["message_count"])
+            if message_count + 2 > AI_SESSION_MESSAGE_LIMIT:
+                raise ValueError(
+                    f"An AI session may contain at most {AI_SESSION_MESSAGE_LIMIT} messages"
+                )
+            pinned_model = str(session_row["model"] or "")
+            if pinned_model and model and pinned_model != model:
+                raise ValueError("The AI session is pinned to a different model")
+            effective_model = pinned_model or model
+            if not pinned_model and effective_model:
+                connection.execute(
+                    """UPDATE project_ai_sessions SET model = ?
+                       WHERE id = ? AND project_id = ? AND actor_key = ?""",
+                    (effective_model, str(session_id), project_id, actor_key),
+                )
+
+            rows = []
+            for role, content, context, message_model in (
+                ("user", user_content, "", ""),
+                ("assistant", assistant_content, model_context, effective_model),
+            ):
+                cursor = connection.execute(
+                    """
+                    INSERT INTO project_ai_messages
+                        (session_id, project_id, actor_key, turn_id, request_id, role,
+                         content, model_context, model, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        str(session_id),
+                        project_id,
+                        actor_key,
+                        turn_id,
+                        request_id,
+                        role,
+                        self._encrypt(content),
+                        self._encrypt(context),
+                        message_model,
+                        now,
+                    ),
+                )
+                rows.append(connection.execute(
+                    "SELECT * FROM project_ai_messages WHERE id = ?",
+                    (cursor.lastrowid,),
+                ).fetchone())
+            connection.execute(
+                """UPDATE project_ai_sessions SET updated_at = ?
+                   WHERE id = ? AND project_id = ? AND actor_key = ?""",
+                (now, str(session_id), project_id, actor_key),
+            )
+            saved_session_row = self._access_ai_session(
+                connection, actor_key, project_id, session_id, required="editor"
+            )
+
+        return {
+            "session": self._row("project_ai_sessions", saved_session_row),
+            "turn_id": turn_id,
+            "messages": self._rows("project_ai_messages", rows),
+        }
 
     def portfolio(self, actor_key):
         self.ensure_default_connections(actor_key)

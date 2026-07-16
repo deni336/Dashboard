@@ -1,160 +1,75 @@
-// Page-specific behavior for index.html. Settings-modal behavior (buttons,
-// application settings, background image) lives in settings.js.
+// Home shell behavior. Collaboration lives in team_room.js and appearance /
+// shortcut persistence lives in settings.js.
 
-const chatModal = document.getElementById("chatModal");
-const fileTransferModal = document.getElementById("fileTransferModal");
-const settingsModal = document.getElementById("settingsModal");
+(function () {
+    'use strict';
 
-const chatBtn = document.getElementById("chatBtn");
-const fileTransferBtn = document.getElementById("fileTransferBtn");
-const settingsBtn = document.getElementById("settingsBtn");
-const homeBtn = document.getElementById("homeBtn");
+    let settingsReturnFocus = null;
 
-function closeAllModals() {
-    chatModal.style.display = "none";
-    fileTransferModal.style.display = "none";
-    settingsModal.style.display = "none";
-}
-
-chatBtn.onclick = function () {
-    closeAllModals();
-    chatModal.style.display = "block";
-};
-
-fileTransferBtn.onclick = function () {
-    closeAllModals();
-    fileTransferModal.style.display = "block";
-    window.KasugaiFileTransfer.openModal();
-};
-
-settingsBtn.onclick = function () {
-    closeAllModals();
-    settingsModal.style.display = "block";
-    loadButtons();
-    loadAppSettings();
-};
-
-homeBtn.onclick = function () {
-    closeAllModals();
-};
-
-document.querySelectorAll(".close").forEach(function (btn) {
-    btn.onclick = function () {
-        const modal = btn.closest(".modal, #chatModal");
-        if (modal) {
-            modal.style.display = "none";
-        }
-    };
-});
-
-// ---------- Chat ----------
-
-document.getElementById("sendChat").onclick = function () {
-    const message = document.getElementById("chatInput").value;
-    if (message.trim() !== "") {
-        fetch('/send_message', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ 'message': message })
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    console.error('Error:', data.error);
-                } else {
-                    console.log('Success:', data.status);
-                }
-            })
-            .catch((error) => console.error('Error:', error));
-
-        document.getElementById("chatInput").value = "";
-    }
-};
-
-// Waitress can't serve WebSocket upgrades, so stick to long-polling to match the server.
-const socket = io({ transports: ['polling'] });
-
-socket.on('new_message', function (data) {
-    // File-transfer offers are smuggled through the chat channel as JSON
-    // content tagged type:"file_offer" (see ChatManager.send_file_offer).
-    // Every room member receives the broadcast; only render it here if it's
-    // actually addressed to this user.
-    let offer = null;
-    try {
-        const parsed = JSON.parse(data.content);
-        if (parsed && parsed.type === 'file_offer') {
-            offer = parsed;
-        }
-    } catch (e) {
-        // Not JSON -- a normal chat message, fall through.
+    function byId(id) {
+        return document.getElementById(id);
     }
 
-    if (offer) {
-        if (offer.recipientId === window.CURRENT_USER_ID) {
-            window.KasugaiFileTransfer.addOffer(offer);
-        }
-        return;
+    function selectSettingsSection(name) {
+        const requested = document.querySelector(`.settings-tab[data-tab="${name}"]`)
+            || document.querySelector('.settings-tab');
+        if (!requested) return;
+        document.querySelectorAll('.settings-tab').forEach(tab => {
+            const active = tab === requested;
+            tab.classList.toggle('active', active);
+            tab.setAttribute('aria-selected', String(active));
+        });
+        document.querySelectorAll('.settings-section').forEach(section => {
+            section.classList.toggle('active', section.dataset.section === requested.dataset.tab);
+        });
     }
 
-    const chatMessages = document.getElementById("chatMessages");
-    const newMessage = document.createElement("p");
-    newMessage.textContent = data.sender + ": " + data.content;
-    chatMessages.appendChild(newMessage);
-});
-
-document.getElementById('joinRoomBtn').addEventListener('click', function () {
-    const room = document.getElementById('roomSelect').value;
-    if (!room) {
-        console.error('Please select a room to join.');
-        return;
+    function openSettings(section, opener) {
+        const modal = byId('settingsModal');
+        if (!modal) return;
+        window.KasugaiTeamRoom?.close({ restoreFocus: false });
+        settingsReturnFocus = opener && opener.focus ? opener : document.activeElement;
+        selectSettingsSection(section || 'buttons');
+        modal.hidden = false;
+        modal.setAttribute('aria-hidden', 'false');
+        void modal.offsetWidth;
+        modal.classList.add('is-open');
+        byId('settingsBtn')?.setAttribute('aria-expanded', 'true');
+        loadButtons();
+        loadAppSettings();
+        window.setTimeout(() => modal.querySelector('.close')?.focus(), 0);
     }
-    fetch('/join_room', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ room: room })
-    })
-        .then(response => {
-            if (response.ok) {
-                console.log(`Successfully joined room: ${room}`);
-            } else {
-                console.error(`Failed to join room: ${room}`);
+
+    function closeSettings(options) {
+        const modal = byId('settingsModal');
+        if (!modal || modal.hidden) return;
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        byId('settingsBtn')?.setAttribute('aria-expanded', 'false');
+        window.setTimeout(() => {
+            if (!modal.classList.contains('is-open')) modal.hidden = true;
+        }, 180);
+        if (!options || options.restoreFocus !== false) settingsReturnFocus?.focus?.();
+    }
+
+    function initializeHomeShell() {
+        const settingsButton = byId('settingsBtn');
+        settingsButton?.addEventListener('click', () => openSettings('buttons', settingsButton));
+        document.querySelectorAll('[data-open-settings]').forEach(button => {
+            button.addEventListener('click', () => openSettings(button.dataset.openSettings, button));
+        });
+        byId('settingsModal')?.querySelector('.close')?.addEventListener('click', () => closeSettings());
+        byId('settingsModal')?.addEventListener('click', event => {
+            if (event.target === event.currentTarget) closeSettings();
+        });
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && byId('settingsModal')?.classList.contains('is-open')) {
+                closeSettings();
             }
-        })
-        .catch(error => console.error('Error:', error));
-});
-
-document.getElementById('createRoomBtn').addEventListener('click', function () {
-    const roomName = document.getElementById('newRoomName').value;
-    const roomPassword = document.getElementById('roomPassword').value;
-    if (!roomName) {
-        console.error('Please enter a room name.');
-        return;
+        });
+        if (window.lucide) window.lucide.createIcons();
     }
-    fetch('/create_room', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomName: roomName, roomPassword: roomPassword })
-    })
-        .then(response => {
-            if (response.ok) {
-                console.log(`Successfully created room: ${roomName}`);
-            } else {
-                console.error(`Failed to create room: ${roomName}`);
-            }
-        })
-        .catch(error => console.error('Error:', error));
-});
 
-// ---------- Logout ----------
-
-document.getElementById('logoutBtn').addEventListener('click', function () {
-    fetch('/logout', { method: 'GET' })
-        .then(response => {
-            if (response.ok) {
-                window.location.href = '/';
-            } else {
-                console.error('Failed to log out.');
-            }
-        })
-        .catch(error => console.error('Error:', error));
-});
+    document.addEventListener('DOMContentLoaded', initializeHomeShell);
+    window.KasugaiSettingsModal = { open: openSettings, close: closeSettings };
+})();

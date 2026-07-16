@@ -65,7 +65,6 @@ class FakeHTTPResponse:
 class ProjectAssistantEmailTests(unittest.TestCase):
     def setUp(self):
         self.environment = patch.dict(os.environ, {
-            "OPENAI_API_KEY": "test-key",
             "KASUGAI_IMAP_HOST": "imap.example.com",
             "KASUGAI_IMAP_PORT": "993",
             "KASUGAI_IMAP_USERNAME": "projects@example.com",
@@ -190,7 +189,7 @@ class ProjectAssistantEmailTests(unittest.TestCase):
 
 class ProjectAssistantSourceLimitTests(unittest.TestCase):
     def setUp(self):
-        self.environment = patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
+        self.environment = patch.dict(os.environ, {})
         self.environment.start()
         self.addCleanup(self.environment.stop)
         self.assistant = ProjectAssistant()
@@ -363,28 +362,40 @@ class ProjectAssistantSourceLimitTests(unittest.TestCase):
         self.assertIn("compacted", self.assistant._last_context_warning)
 
 
-class ProjectAssistantOpenAIResponseTests(unittest.TestCase):
+class ProjectAssistantCompatibleEndpointTests(unittest.TestCase):
     def setUp(self):
-        self.environment = patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"})
+        self.environment = patch.dict(os.environ, {
+            "KASUGAI_AI_BASE_URL": "http://ollama:11434/v1/",
+            "KASUGAI_AI_MODEL": "gpt-oss:20b",
+            "KASUGAI_AI_API_KEY": "",
+            "KASUGAI_AI_TIMEOUT_SECONDS": "",
+            "KASUGAI_AI_REQUEST_BUDGET_SECONDS": "",
+        })
         self.environment.start()
         self.addCleanup(self.environment.stop)
-        self.assistant = ProjectAssistant()
+        self.assistant = ProjectAssistant(api_key="")
 
-    def test_completed_response_parses_structured_output(self):
+    def test_chat_completion_parses_structured_output(self):
         result = self.assistant._parse_openai_response(json.dumps({
-            "status": "completed",
-            "output": [{"type": "message", "content": [{
-                "type": "output_text",
-                "text": '{"summary":"Ready","answer":"Done","actions":[]}',
-            }]}],
+            "choices": [{
+                "finish_reason": "stop",
+                "message": {
+                    "role": "assistant",
+                    "content": '{"summary":"Ready","answer":"Done","actions":[]}',
+                },
+            }],
         }).encode())
 
         self.assertEqual(result["summary"], "Ready")
 
-    def test_responses_request_uses_current_model_and_strict_nonstored_output(self):
+    def test_chat_request_uses_configured_endpoint_model_and_strict_schema(self):
         response = FakeHTTPResponse(json.dumps({
-            "status": "completed",
-            "output_text": '{"summary":"Ready","answer":"Done","actions":[]}',
+            "choices": [{
+                "finish_reason": "stop",
+                "message": {
+                    "content": '{"summary":"Ready","answer":"Done","actions":[]}',
+                },
+            }],
         }).encode())
 
         with patch("src.project_ai.urllib.request.urlopen", return_value=response) as request:
@@ -396,35 +407,115 @@ class ProjectAssistantOpenAIResponseTests(unittest.TestCase):
                 [],
             )
 
-        sent = json.loads(request.call_args.args[0].data)
-        self.assertEqual(sent["model"], "gpt-5.6-sol")
-        self.assertFalse(sent["store"])
-        self.assertEqual(sent["reasoning"], {"effort": "medium"})
-        self.assertEqual(sent["safety_identifier"], "a" * 64)
-        self.assertTrue(sent["text"]["format"]["strict"])
+        upstream_request = request.call_args.args[0]
+        sent = json.loads(upstream_request.data)
+        self.assertEqual(upstream_request.full_url, "http://ollama:11434/v1/chat/completions")
+        self.assertIsNone(upstream_request.get_header("Authorization"))
+        self.assertEqual(sent["model"], "gpt-oss:20b")
+        self.assertEqual([item["role"] for item in sent["messages"]], ["system", "user"])
+        self.assertIn("untrusted data", sent["messages"][0]["content"])
+        user_input = json.loads(sent["messages"][1]["content"])
+        self.assertEqual(user_input["request"], "Review the project")
+        self.assertFalse(sent["stream"])
+        self.assertEqual(sent["temperature"], 0)
+        self.assertEqual(sent["reasoning_effort"], "medium")
+        self.assertEqual(sent["user"], "a" * 64)
+        self.assertTrue(sent["response_format"]["json_schema"]["strict"])
+        self.assertFalse(
+            sent["response_format"]["json_schema"]["schema"]["additionalProperties"]
+        )
         self.assertEqual(result["summary"], "Ready")
 
-    def test_incomplete_and_refused_responses_are_clear_errors(self):
-        with self.assertRaisesRegex(ProjectAIError, "max_output_tokens"):
+    def test_no_api_key_is_required_and_service_credentials_are_optional(self):
+        self.assertTrue(self.assistant.configured)
+        self.assertEqual(self.assistant.api_key, "")
+        with patch.dict(os.environ, {"KASUGAI_AI_BASE_URL": ""}):
+            default_endpoint = ProjectAssistant(api_key="")
+        self.assertEqual(default_endpoint.base_url, "http://ollama:11434/v1")
+
+        response = FakeHTTPResponse(b'{}')
+        protected = ProjectAssistant(api_key="service-secret")
+        with patch("src.project_ai.urllib.request.urlopen", return_value=response) as request:
+            protected._openai_post(b"{}")
+        self.assertEqual(
+            request.call_args.args[0].get_header("Authorization"),
+            "Bearer service-secret",
+        )
+
+    def test_explicit_model_is_pinned_and_environment_supplies_the_default(self):
+        with patch.dict(os.environ, {"KASUGAI_AI_MODEL": ""}):
+            self.assertEqual(ProjectAssistant("custom-local", api_key="").model, "custom-local")
+        with patch.dict(os.environ, {"KASUGAI_AI_MODEL": "environment-local"}):
+            self.assertEqual(ProjectAssistant("argument-local", api_key="").model, "argument-local")
+            self.assertEqual(ProjectAssistant(api_key="").model, "environment-local")
+
+    def test_base_url_is_normalized_and_unsafe_values_are_rejected(self):
+        assistant = ProjectAssistant(api_key="", base_url="https://models.example/v1/")
+        self.assertEqual(assistant.base_url, "https://models.example/v1")
+        self.assertEqual(
+            assistant.chat_completions_url,
+            "https://models.example/v1/chat/completions",
+        )
+
+        for value in (
+            "",
+            "ftp://models.example/v1",
+            "http://user:password@models.example/v1",
+            "http://models.example/v1?tenant=a",
+            "http://models.example/v1#fragment",
+            "http://models.example:invalid/v1",
+            "http://models.example/v1 with-space",
+        ):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ProjectAIError, "KASUGAI_AI_BASE_URL"):
+                    ProjectAssistant(api_key="", base_url=value)
+
+    def test_local_inference_budget_is_configurable_and_bounded(self):
+        with patch.dict(os.environ, {
+            "KASUGAI_AI_TIMEOUT_SECONDS": "345",
+            "KASUGAI_AI_REQUEST_BUDGET_SECONDS": "400",
+        }):
+            assistant = ProjectAssistant(api_key="")
+        self.assertEqual(assistant.timeout_seconds, 345.0)
+        self.assertEqual(assistant.request_budget_seconds, 400.0)
+
+        for name, value in (
+            ("KASUGAI_AI_TIMEOUT_SECONDS", "4"),
+            ("KASUGAI_AI_TIMEOUT_SECONDS", "not-a-number"),
+            ("KASUGAI_AI_TIMEOUT_SECONDS", "nan"),
+            ("KASUGAI_AI_REQUEST_BUDGET_SECONDS", "1201"),
+        ):
+            with self.subTest(name=name, value=value), patch.dict(os.environ, {name: value}):
+                with self.assertRaisesRegex(ProjectAIError, name):
+                    ProjectAssistant(api_key="")
+
+    def test_incomplete_and_refused_completions_are_clear_errors(self):
+        with self.assertRaisesRegex(ProjectAIError, "token limit"):
             self.assistant._parse_openai_response(json.dumps({
-                "status": "incomplete",
-                "incomplete_details": {"reason": "max_output_tokens"},
+                "choices": [{"finish_reason": "length", "message": {"content": ""}}],
             }).encode())
         with self.assertRaisesRegex(ProjectAIError, "declined"):
             self.assistant._parse_openai_response(json.dumps({
-                "status": "completed",
-                "output": [{"content": [{"type": "refusal", "refusal": "Cannot comply"}]}],
+                "choices": [{
+                    "finish_reason": "stop",
+                    "message": {"content": "", "refusal": "Cannot comply"},
+                }],
             }).encode())
 
-    def test_transient_openai_error_is_retried_once(self):
+        for payload in ({}, {"choices": []}, {"choices": [{"message": {"content": "[]"}}]}):
+            with self.subTest(payload=payload):
+                with self.assertRaises(ProjectAIError):
+                    self.assistant._parse_openai_response(json.dumps(payload).encode())
+
+    def test_transient_endpoint_error_is_retried_once(self):
         error = urllib.error.HTTPError(
-            "https://api.openai.com/v1/responses",
+            "http://ollama:11434/v1/chat/completions",
             429,
             "Too Many Requests",
             {"Retry-After": "0"},
             io.BytesIO(b'{"error":{"message":"Slow down"}}'),
         )
-        success = FakeHTTPResponse(b'{"status":"completed","output_text":"{}"}')
+        success = FakeHTTPResponse(b'{"choices":[]}')
 
         with patch("src.project_ai.urllib.request.urlopen", side_effect=[error, success]) as request:
             with patch("src.project_ai.time.sleep") as sleep:
@@ -436,7 +527,7 @@ class ProjectAssistantOpenAIResponseTests(unittest.TestCase):
 
     def test_http_error_exposes_only_structured_error_message(self):
         error = urllib.error.HTTPError(
-            "https://api.openai.com/v1/responses",
+            "http://ollama:11434/v1/chat/completions",
             400,
             "Bad Request",
             {},
@@ -444,19 +535,19 @@ class ProjectAssistantOpenAIResponseTests(unittest.TestCase):
         )
 
         with patch("src.project_ai.urllib.request.urlopen", side_effect=error):
-            with self.assertRaisesRegex(ProjectAIError, r"OpenAI request failed \(400\)$"):
+            with self.assertRaisesRegex(ProjectAIError, r"AI endpoint request failed \(400\)$"):
                 self.assistant._openai_post(b"{}")
 
-    def test_authentication_errors_never_echo_exact_or_masked_api_keys(self):
-        personal_key = "sk-proj-privatevalueabcd"
-        assistant = ProjectAssistant(api_key=personal_key)
+    def test_endpoint_errors_never_echo_configured_credentials(self):
+        service_key = "sk-proj-privatevalueabcd"
+        assistant = ProjectAssistant(api_key=service_key)
         error = urllib.error.HTTPError(
-            "https://api.openai.com/v1/responses",
+            "http://ollama:11434/v1/chat/completions",
             401,
             "Unauthorized",
             {},
             io.BytesIO(
-                f'{{"error":{{"message":"Bad {personal_key}; shown as sk-proj-****abcd"}}}}'.encode()
+                f'{{"error":{{"message":"Bad {service_key}; shown as sk-proj-****abcd"}}}}'.encode()
             ),
         )
 
@@ -465,12 +556,12 @@ class ProjectAssistantOpenAIResponseTests(unittest.TestCase):
                 assistant._openai_post(b"{}")
 
         message = str(raised.exception)
-        self.assertNotIn(personal_key, message)
+        self.assertNotIn(service_key, message)
         self.assertNotIn("abcd", message)
-        self.assertIn("Replace it in AI settings", message)
+        self.assertIn("Check KASUGAI_AI_API_KEY", message)
         self.assertEqual(
             request.call_args.args[0].get_header("Authorization"),
-            f"Bearer {personal_key}",
+            f"Bearer {service_key}",
         )
 
     def test_upstream_calls_use_and_enforce_the_remaining_request_budget(self):

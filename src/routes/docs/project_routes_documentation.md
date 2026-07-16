@@ -28,7 +28,7 @@
 - `POST /api/projects/<id>/stakeholders` and `PATCH|DELETE /api/project-stakeholders/<id>` maintain the stakeholder register.
 - `POST /api/project-connections` and `PATCH|DELETE /api/project-connections/<id>` maintain global or project-scoped links. Connection changes require owner access.
 
-## AI Copilot
+## Ask Kasugai
 
 - `GET|PUT|DELETE /api/project-ai/settings` reads status, saves, or removes the authenticated user's encrypted personal OpenAI API key. Status responses never contain the key.
 - `POST /api/projects/<id>/assistant/preview` sends bounded workspace context to the OpenAI Responses API and returns a signed, non-mutating proposal.

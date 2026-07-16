@@ -349,6 +349,18 @@ class ProjectRouteTests(unittest.TestCase):
     def setUp(self):
         with project_routes_module._ai_requests_lock:
             project_routes_module._ai_requests.clear()
+        project_routes_module._clear_ai_readiness_cache()
+        self.ai_readiness_probe = patch.object(
+            project_routes_module,
+            "_probe_local_ai_models",
+            return_value={
+                "ready": True,
+                "readiness_status": "ready",
+                "message": None,
+            },
+        )
+        self.ai_readiness_probe.start()
+        self.addCleanup(self.ai_readiness_probe.stop)
         for owner_key in ("route-user", "editor-user", "tenant-b"):
             project_routes_module.store.delete_openai_api_key(owner_key)
         with self.client.session_transaction() as session:
@@ -418,11 +430,24 @@ class ProjectRouteTests(unittest.TestCase):
         response = self.client.get("/projects")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Ask Kasugai AI", response.data)
-        self.assertIn(b"OpenAI API key settings", response.data)
-        self.assertIn(b'<form id="openAISettingsForm" method="dialog"', response.data)
-        self.assertIn(b'type="password"', response.data)
-        self.assertIn(b'autocomplete="off"', response.data)
+        self.assertIn(b"Ask Kasugai", response.data)
+        self.assertIn(b"js/settings.js", response.data)
+        self.assertIn(
+            b'<aside class="pm-ai-drawer" id="assistantDialog" role="complementary"',
+            response.data,
+        )
+        self.assertIn(b'aria-controls="assistantDialog"', response.data)
+        self.assertIn(b'aria-expanded="false"', response.data)
+        self.assertIn(b'class="pm-ai-composer" id="assistantForm"', response.data)
+        self.assertNotRegex(
+            response.data.decode("utf-8"),
+            r"<dialog[^>]+id=\"assistantDialog\"",
+        )
+        self.assertIn(b"AI model", response.data)
+        self.assertIn(b"no personal API key is required", response.data)
+        self.assertIn(b'id="removeLegacyOpenAIKeyButton"', response.data)
+        self.assertIn(b'id="assistantSessionSelect"', response.data)
+        self.assertNotIn(b'<form id="openAISettingsForm"', response.data)
         self.assertIn(b"Apply selected changes", response.data)
         self.assertIn("default-src 'self'", response.headers["Content-Security-Policy"])
         self.assertEqual(response.headers["X-Frame-Options"], "DENY")
@@ -447,6 +472,8 @@ class ProjectRouteTests(unittest.TestCase):
 
         with patch.dict(os.environ, {
             "OPENAI_API_KEY": deployment_key,
+            "KASUGAI_AI_PROVIDER": "openai",
+            "KASUGAI_AI_BASE_URL": "https://api.openai.com/v1",
             "KASUGAI_AI_ALLOWED_USERS": "route@example.com",
         }):
             cross_origin = self.client.put(
@@ -490,6 +517,7 @@ class ProjectRouteTests(unittest.TestCase):
                 f"/api/projects/{first_project['id']}"
             ).get_json()["capabilities"]["ai_copilot"])
             with patch("src.routes.project_routes.ProjectAssistant") as assistant_class:
+                assistant_class.return_value.model = "gpt-5.6-sol"
                 assistant_class.return_value.propose.return_value = proposal
                 preview = self.client.post(
                     f"/api/projects/{first_project['id']}/assistant/preview",
@@ -516,6 +544,7 @@ class ProjectRouteTests(unittest.TestCase):
             )
             self.assertEqual(second_saved.get_json()["credential_source"], "personal")
             with patch("src.routes.project_routes.ProjectAssistant") as assistant_class:
+                assistant_class.return_value.model = "gpt-5.6-sol"
                 assistant_class.return_value.propose.return_value = proposal
                 preview = self.client.post(
                     f"/api/projects/{second_project['id']}/assistant/preview",
@@ -561,6 +590,8 @@ class ProjectRouteTests(unittest.TestCase):
 
         with patch.dict(os.environ, {
             "OPENAI_API_KEY": "sk-deployment-fallback-key",
+            "KASUGAI_AI_PROVIDER": "openai",
+            "KASUGAI_AI_BASE_URL": "https://api.openai.com/v1",
             "KASUGAI_AI_ALLOWED_USERS": "route@example.com",
         }):
             settings = self.client.get("/api/project-ai/settings").get_json()
@@ -583,6 +614,132 @@ class ProjectRouteTests(unittest.TestCase):
             self.assertEqual(removed["credential_source"], "deployment")
 
         self.assertEqual(self.client.delete(f"/api/projects/{project['id']}").status_code, 204)
+
+    def test_local_ai_uses_server_side_user_sessions_without_personal_keys(self):
+        proposal = {
+            "summary": "Local review",
+            "answer": "The local model found no unsupported changes.",
+            "actions": [],
+            "evidence": [],
+            "warnings": [],
+            "model": "gpt-oss:20b",
+            "created_at": "2026-07-15T00:00:00Z",
+        }
+        local_environment = {
+            "KASUGAI_AI_PROVIDER": "ollama",
+            "KASUGAI_AI_BASE_URL": "http://ollama:11434/v1",
+            "KASUGAI_AI_MODEL": "gpt-oss:20b",
+            "KASUGAI_AI_API_KEY": "",
+        }
+
+        with patch.dict(os.environ, local_environment):
+            settings = self.client.get("/api/project-ai/settings").get_json()
+            self.assertTrue(settings["configured"])
+            self.assertEqual(settings["provider"], "ollama")
+            self.assertEqual(settings["model"], "gpt-oss:20b")
+            self.assertEqual(settings["session_scope"], "user")
+            self.assertFalse(settings["personal_key_configured"])
+            self.assertEqual(
+                self.client.put(
+                    "/api/project-ai/settings",
+                    json={"api_key": "sk-must-not-be-stored"},
+                ).status_code,
+                403,
+            )
+            project_routes_module.store.set_openai_api_key(
+                "route-user", "sk-legacy-key-to-remove"
+            )
+            legacy_settings = self.client.get("/api/project-ai/settings").get_json()
+            self.assertTrue(legacy_settings["personal_key_configured"])
+            removed_legacy = self.client.delete("/api/project-ai/settings").get_json()
+            self.assertFalse(removed_legacy["personal_key_configured"])
+            self.assertEqual(
+                project_routes_module.store.openai_api_key("route-user"), ""
+            )
+
+            project = self.client.post(
+                "/api/projects", json=project_values("AI-LOCAL")
+            ).get_json()
+            with patch("src.routes.project_routes.ProjectAssistant") as assistant_class:
+                assistant = assistant_class.return_value
+                assistant.model = "gpt-oss:20b"
+                assistant.propose.return_value = proposal
+                first = self.client.post(
+                    f"/api/projects/{project['id']}/assistant/preview",
+                    json={
+                        "message": "Review locally",
+                        "history": [{"role": "user", "content": "Untrusted history"}],
+                    },
+                )
+                self.assertEqual(first.status_code, 200)
+                first_result = first.get_json()
+                session_id = first_result["session"]["id"]
+                self.assertEqual(
+                    [message["role"] for message in first_result["messages"]],
+                    ["user", "assistant"],
+                )
+                self.assertEqual(
+                    assistant_class.call_args.kwargs,
+                    {
+                        "api_key": "",
+                        "base_url": "http://ollama:11434/v1",
+                    },
+                )
+                self.assertEqual(assistant.propose.call_args.kwargs["history"], [])
+
+                second = self.client.post(
+                    f"/api/projects/{project['id']}/assistant/preview",
+                    json={"message": "Continue", "session_id": session_id},
+                )
+                self.assertEqual(second.status_code, 200)
+                trusted_history = assistant.propose.call_args.kwargs["history"]
+                self.assertEqual(
+                    trusted_history,
+                    [
+                        {"role": "user", "content": "Review locally"},
+                        {
+                            "role": "assistant",
+                            "content": "The local model found no unsupported changes.",
+                        },
+                    ],
+                )
+
+            listed = self.client.get(
+                f"/api/projects/{project['id']}/assistant/sessions"
+            ).get_json()["sessions"]
+            self.assertEqual([item["id"] for item in listed], [session_id])
+            detail = self.client.get(
+                f"/api/projects/{project['id']}/assistant/sessions/{session_id}"
+            ).get_json()
+            self.assertEqual(len(detail["messages"]), 4)
+
+            with self.client.session_transaction() as session:
+                session["profile"] = {"id": "tenant-b", "email": "tenant-b@example.com"}
+            self.assertEqual(
+                self.client.get(
+                    f"/api/projects/{project['id']}/assistant/sessions/{session_id}"
+                ).status_code,
+                404,
+            )
+
+            with self.client.session_transaction() as session:
+                session["profile"] = {"id": "route-user", "email": "route@example.com"}
+            self.assertEqual(
+                self.client.delete(
+                    f"/api/projects/{project['id']}/assistant/sessions/{session_id}"
+                ).status_code,
+                204,
+            )
+            self.assertEqual(
+                self.client.get(
+                    f"/api/projects/{project['id']}/assistant/sessions"
+                ).get_json()["sessions"],
+                [],
+            )
+            self.assertEqual(
+                self.client.delete(f"/api/projects/{project['id']}").status_code,
+                204,
+            )
 
     def test_ai_changes_require_a_signed_preview_and_confirmation(self):
         project = self.client.post("/api/projects", json=project_values("AI-1")).get_json()
@@ -897,21 +1054,30 @@ class ProjectRouteTests(unittest.TestCase):
             session["profile"] = {"id": "editor-user", "email": "editor@example.com"}
         self.assertEqual(self.client.post(invitation_path).status_code, 302)
         editor_key = "sk-shared-editor-personal-api-key"
-        self.assertEqual(
-            self.client.put(
-                "/api/project-ai/settings", json={"api_key": editor_key}
-            ).status_code,
-            200,
-        )
+        with patch.dict(os.environ, {
+            "KASUGAI_AI_PROVIDER": "openai",
+            "KASUGAI_AI_BASE_URL": "https://api.openai.com/v1",
+        }):
+            self.assertEqual(
+                self.client.put(
+                    "/api/project-ai/settings", json={"api_key": editor_key}
+                ).status_code,
+                200,
+            )
 
         proposal = {
             "summary": "No changes", "answer": "No changes are needed.", "actions": [],
             "evidence": [], "warnings": [], "model": "gpt-5.6-sol",
             "created_at": "2026-07-14T00:00:00Z",
         }
-        with patch.dict(os.environ, {"KASUGAI_AI_ALLOWED_USERS": ""}), patch(
+        with patch.dict(os.environ, {
+            "KASUGAI_AI_PROVIDER": "openai",
+            "KASUGAI_AI_BASE_URL": "https://api.openai.com/v1",
+            "KASUGAI_AI_ALLOWED_USERS": "",
+        }), patch(
             "src.routes.project_routes.ProjectAssistant"
         ) as assistant_class:
+            assistant_class.return_value.model = "gpt-5.6-sol"
             assistant_class.return_value.propose.return_value = proposal
             response = self.client.post(
                 f"/api/projects/{project['id']}/assistant/preview",
@@ -923,7 +1089,11 @@ class ProjectRouteTests(unittest.TestCase):
         self.assertEqual(propose.call_args.args[2], [])
         self.assertFalse(propose.call_args.kwargs["include_github"])
         self.assertFalse(propose.call_args.kwargs["include_email"])
-        self.client.delete("/api/project-ai/settings")
+        with patch.dict(os.environ, {
+            "KASUGAI_AI_PROVIDER": "openai",
+            "KASUGAI_AI_BASE_URL": "https://api.openai.com/v1",
+        }):
+            self.client.delete("/api/project-ai/settings")
 
         with self.client.session_transaction() as session:
             session["profile"] = {"id": "route-user", "email": "route@example.com"}

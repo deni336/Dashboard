@@ -94,17 +94,21 @@ class ChatManager:
                 # Start listening for batched messages
                 self.start_batch_listening()
                 self.start_media_channel()
+            return bool(response.success)
         except Exception as e:
             self.logger.error(f"Failed to join room: {e}")
+            return False
 
     def send_message(self, content):
         try:
             response = self.client.send_text_message(content)
             self.logger.info(f"Send Message: Success={response.success}, Message={response.message}")
+            return bool(response.success)
         except grpc.RpcError as e:
             self.logger.error(f"gRPC Error sending message: {e}")
         except Exception as e:
             self.logger.error(f"Unexpected error sending message: {str(e)}")
+        return False
 
     def list_participants(self):
         """

@@ -13,10 +13,19 @@ const state = {
     projectSearch: "",
     assistantPreview: null,
     assistantHistory: [],
+    assistantSessions: [],
+    assistantSessionId: null,
+    assistantSessionLoadGeneration: 0,
+    assistantSessionsLoadGeneration: 0,
+    assistantMessagesHaveMore: false,
+    assistantMessagesBeforeId: null,
     assistantProjectId: null,
     assistantRequestGeneration: 0,
     assistantAbortController: null,
+    assistantPendingRequest: null,
     assistantApplying: false,
+    assistantReadiness: null,
+    assistantDrawerGeneration: 0,
     aiSettings: null,
 };
 
@@ -48,6 +57,159 @@ const raidKinds = ["risk", "assumption", "issue", "dependency", "decision"];
 const closedStatuses = new Set(["done", "resolved"]);
 
 const byId = (id) => document.getElementById(id);
+
+const assistantDrawerCloseDelayMs = 240;
+let assistantDrawerReturnFocus = null;
+let assistantDrawerHideTimer = null;
+let assistantDrawerTransitionHandler = null;
+
+function setAssistantDrawerState(drawer, open) {
+    if (!drawer) return;
+    if (open) {
+        drawer.hidden = false;
+    }
+    drawer.setAttribute("aria-hidden", open ? "false" : "true");
+    drawer.classList.toggle("is-open", open);
+    drawer.toggleAttribute("inert", !open);
+}
+
+function assistantDrawerIsOpen(drawer = byId("assistantDialog")) {
+    return Boolean(
+        drawer
+        && !drawer.hidden
+        && drawer.getAttribute("aria-hidden") === "false",
+    );
+}
+
+function cancelAssistantDrawerHide(drawer) {
+    if (assistantDrawerHideTimer !== null) {
+        window.clearTimeout(assistantDrawerHideTimer);
+        assistantDrawerHideTimer = null;
+    }
+    if (assistantDrawerTransitionHandler) {
+        drawer.removeEventListener("transitionend", assistantDrawerTransitionHandler);
+        assistantDrawerTransitionHandler = null;
+    }
+}
+
+function setAssistantTriggerExpanded(expanded) {
+    document.querySelectorAll('[data-action="open-assistant"]').forEach((trigger) => {
+        trigger.setAttribute("aria-expanded", expanded ? "true" : "false");
+    });
+}
+
+function openAssistantDrawer(opener = document.activeElement) {
+    const drawer = byId("assistantDialog");
+    cancelAssistantDrawerHide(drawer);
+    if (opener && !drawer.contains(opener)) {
+        assistantDrawerReturnFocus = opener;
+    }
+    setAssistantDrawerState(drawer, true);
+    setAssistantTriggerExpanded(true);
+    document.body.classList.add("pm-ai-drawer-open");
+    // Flush the drawer's off-screen base state so adding .is-open animates it in.
+    drawer.classList.remove("is-open");
+    void drawer.offsetWidth;
+    drawer.classList.add("is-open");
+    const generation = ++state.assistantDrawerGeneration;
+    window.requestAnimationFrame(() => {
+        if (!assistantDrawerIsOpen(drawer) || generation !== state.assistantDrawerGeneration) return;
+        if (document.activeElement !== opener && !drawer.contains(document.activeElement)) return;
+        const closeButton = drawer.querySelector("[data-close-dialog]");
+        closeButton?.focus({ preventScroll: true });
+    });
+    return generation;
+}
+
+function closeAssistantDrawer({ restoreFocus } = {}) {
+    const drawer = byId("assistantDialog");
+    if (!assistantDrawerIsOpen(drawer)) return true;
+    if (state.assistantApplying) {
+        showToast("Selected changes are still being applied", true);
+        return false;
+    }
+
+    const focusWasInDrawer = drawer.contains(document.activeElement);
+    const shouldRestoreFocus = restoreFocus ?? focusWasInDrawer;
+    const preferredFocusTarget = (
+        assistantDrawerReturnFocus?.isConnected
+        && !assistantDrawerReturnFocus.disabled
+        && !drawer.contains(assistantDrawerReturnFocus)
+    ) ? assistantDrawerReturnFocus : null;
+    const fallbackFocusTarget = document.querySelector(
+        '[data-action="open-assistant"]:not([hidden]):not(:disabled)',
+    );
+    if (shouldRestoreFocus) {
+        const focusTarget = preferredFocusTarget || fallbackFocusTarget;
+        if (focusTarget) {
+            focusTarget.focus({ preventScroll: true });
+        } else if (focusWasInDrawer && typeof document.activeElement?.blur === "function") {
+            document.activeElement.blur();
+        }
+    }
+    state.assistantDrawerGeneration += 1;
+    invalidateAssistantPreview();
+    drawer.querySelectorAll(
+        ".pm-ai-session-toolbar button, .pm-ai-session-toolbar select, #loadOlderAssistantMessagesButton",
+    ).forEach((control) => { control.disabled = false; });
+    setAssistantDrawerState(drawer, false);
+    setAssistantTriggerExpanded(false);
+    document.body.classList.remove("pm-ai-drawer-open");
+
+    const finishClose = () => {
+        if (drawer.getAttribute("aria-hidden") !== "true") return;
+        drawer.hidden = true;
+        cancelAssistantDrawerHide(drawer);
+    };
+    assistantDrawerTransitionHandler = (event) => {
+        if (event.target === drawer && event.propertyName === "transform") {
+            finishClose();
+        }
+    };
+    drawer.addEventListener("transitionend", assistantDrawerTransitionHandler);
+    assistantDrawerHideTimer = window.setTimeout(finishClose, assistantDrawerCloseDelayMs);
+
+    return true;
+}
+
+function assistantDrawerRequestMatches(generation, currentGeneration, drawerOpen) {
+    return generation === currentGeneration && Boolean(drawerOpen);
+}
+
+function assistantDrawerRequestIsCurrent(generation) {
+    return assistantDrawerRequestMatches(
+        generation,
+        state.assistantDrawerGeneration,
+        assistantDrawerIsOpen(),
+    );
+}
+
+function closeAssistantDrawerForProjectChange(nextProjectId) {
+    if (!assistantDrawerIsOpen()) return true;
+    const currentProjectId = state.assistantProjectId == null
+        ? null
+        : Number(state.assistantProjectId);
+    const normalizedNextProjectId = nextProjectId == null
+        ? null
+        : Number(nextProjectId);
+    if (currentProjectId === normalizedNextProjectId) return true;
+    if (state.assistantApplying) {
+        showToast("Wait for the selected project changes to finish applying.", true);
+        return false;
+    }
+    return closeAssistantDrawer({ restoreFocus: false });
+}
+
+function requestUUID() {
+    if (typeof window.crypto?.randomUUID === "function") {
+        return window.crypto.randomUUID();
+    }
+    const bytes = window.crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = [...bytes].map((value) => value.toString(16).padStart(2, "0"));
+    return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10).join("")}`;
+}
 
 function permissions() {
     return state.workspace?.permissions || {
@@ -171,7 +333,10 @@ async function api(url, options = {}) {
         : { error: `Request failed (${response.status})` };
 
     if (!response.ok) {
-        throw new Error(payload.error || `Request failed (${response.status})`);
+        const error = new Error(payload.error || `Request failed (${response.status})`);
+        error.status = response.status;
+        error.payload = payload;
+        throw error;
     }
     return payload;
 }
@@ -524,6 +689,7 @@ function renderWorkspace() {
 
 async function loadWorkspace(projectId) {
     const requestedProjectId = Number(projectId);
+    if (!closeAssistantDrawerForProjectChange(requestedProjectId)) return;
     state.selectedProjectId = requestedProjectId;
     renderPortfolio();
     const workspace = await api(`/api/projects/${requestedProjectId}`);
@@ -540,6 +706,7 @@ async function loadPortfolio(preferredProjectId = state.selectedProjectId) {
     const project = state.portfolio.projects.find((item) => item.id === preferred)
         || state.portfolio.projects[0]
         || null;
+    if (!closeAssistantDrawerForProjectChange(project?.id || null)) return;
     state.selectedProjectId = project?.id || null;
     renderPortfolio();
     if (project) {
@@ -565,64 +732,272 @@ async function refreshCurrent() {
     renderWorkspace();
 }
 
-function renderOpenAISettings() {
-    const settings = state.aiSettings || {};
-    const status = byId("openAIKeyStatus");
-    status.classList.toggle("configured", Boolean(settings.configured));
-    status.classList.toggle("error", Boolean(settings.credential_error));
-    if (settings.credential_error) {
-        status.textContent = "Your stored personal key cannot be read. Replace or remove it before using AI.";
-    } else if (settings.credential_source === "personal") {
-        status.textContent = `Your personal OpenAI API key is saved. It will be verified when you generate an AI preview. Model: ${settings.model || "OpenAI"}.`;
-    } else if (settings.credential_source === "deployment") {
-        status.textContent = `A server-provided OpenAI API key is configured. Add a personal key to use your own API project. Model: ${settings.model || "OpenAI"}.`;
-    } else {
-        status.textContent = "No OpenAI API key is configured for your account.";
+function aiIsReady(settings = state.aiSettings) {
+    return Boolean(settings?.configured && settings?.ready === true);
+}
+
+function aiReadinessMessage(settings = state.aiSettings) {
+    if (typeof settings?.message === "string" && settings.message.trim()) {
+        return settings.message.trim();
     }
-    byId("removeOpenAIKeyButton").hidden = !settings.personal_key_configured;
+    if (!settings || !Object.prototype.hasOwnProperty.call(settings, "ready")) {
+        return "Kasugai could not verify live model readiness. Update or restart the Kasugai dashboard, then check the model status again.";
+    }
+    if (!settings.configured) {
+        return "The AI model is not configured. Start the private model service before using Ask Kasugai.";
+    }
+    if (settings.readiness_status === "model_missing") {
+        return `The model runner is online, but ${settings.model || "the configured model"} is not installed. Pull the model, then check again.`;
+    }
+    if (settings.readiness_status === "unavailable") {
+        return "The AI model runner cannot be reached. Start the private model service, then check again.";
+    }
+    return "The AI model is not ready. Check the model service and try again.";
+}
+
+function selectAssistantReadiness(sessionId, sessionReadiness, defaultSettings) {
+    return sessionId ? sessionReadiness : defaultSettings;
+}
+
+function effectiveAssistantReadiness() {
+    return selectAssistantReadiness(
+        state.assistantSessionId,
+        state.assistantReadiness,
+        state.aiSettings,
+    );
+}
+
+function aiCredentialErrorMessage(settings = state.aiSettings) {
+    if (settings?.provider === "openai") {
+        return "Your saved personal OpenAI API key cannot be read. Replace or remove it before using the hosted assistant.";
+    }
+    if (settings?.provider === "disabled") {
+        return "A previously saved OpenAI API key cannot be read. It is not used while AI is disabled and can be removed here.";
+    }
+    return "A previously saved OpenAI API key cannot be read. It is not used by the local model and can be removed here.";
+}
+
+function aiUsesHostedProvider(settings = state.aiSettings) {
+    return settings?.provider === "openai";
+}
+
+function assistantDisclosureText({ sessionId, readiness, backend, model }) {
+    if (!aiIsReady(readiness)) {
+        const historyNotice = sessionId
+            ? "You can still read or delete this saved conversation."
+            : "You can still browse or delete saved conversations.";
+        return `No project data is being sent to an AI model. ${aiReadinessMessage(readiness)} ${historyNotice}`;
+    }
+    const processing = backend === "openai"
+        ? `the hosted OpenAI ${model} model`
+        : `the private local ${model} model`;
+    return `When you generate a preview, this project's brief, work items, meetings, and stakeholders are processed by ${processing}. Selected GitHub and email evidence is included when enabled. Your conversation is isolated from other users. Changes are only applied after you review and confirm them.`;
+}
+
+function assistantSessionReadinessUrl(projectId, sessionId) {
+    return `/api/projects/${projectId}/assistant/sessions/${encodeURIComponent(sessionId)}?limit=1`;
+}
+
+function renderAISettings() {
+    const settings = state.aiSettings || {};
+    const status = byId("aiModelStatus");
+    const help = byId("aiModelHelp");
+    const removeLegacyKey = byId("removeLegacyOpenAIKeyButton");
+    const hostedKeyForm = byId("openAISettingsForm");
+    const removeHostedKey = byId("removeOpenAIKeyButton");
+    const isHostedOpenAI = aiUsesHostedProvider(settings);
+    const isDisabled = settings.provider === "disabled";
+    const ready = aiIsReady(settings);
+    const readinessError = new Set(["unauthorized", "credential_error", "needs_api_key"])
+        .has(settings.readiness_status);
+    status.classList.toggle("configured", ready);
+    status.classList.toggle(
+        "error",
+        Boolean(settings.credential_error) || !settings.configured || readinessError,
+    );
+    status.classList.toggle(
+        "unavailable",
+        Boolean(settings.configured) && !ready && !settings.credential_error && !readinessError,
+    );
+    hostedKeyForm.hidden = !isHostedOpenAI;
+    byId("localAISettingsActions").hidden = isHostedOpenAI;
+    removeHostedKey.hidden = !isHostedOpenAI || !settings.personal_key_configured;
+    removeLegacyKey.hidden = isHostedOpenAI || !settings.personal_key_configured;
+    byId("openAIKeyLabel").textContent = settings.personal_key_configured
+        ? "Replacement personal OpenAI API key"
+        : "Personal OpenAI API key";
     byId("openAIKeyInput").placeholder = settings.personal_key_configured
-        ? "Enter a new key to replace your personal key"
+        ? "Enter a new key to replace your saved key"
         : "Enter your OpenAI API key";
+    byId("saveOpenAIKeyLabel").textContent = settings.personal_key_configured
+        ? "Replace key"
+        : "Save key";
+    help.textContent = isDisabled
+        ? "The core Kasugai services are running without an AI model service. Start the private Ollama overlay to enable Ask Kasugai."
+        : isHostedOpenAI
+            ? "Kasugai uses the hosted OpenAI API with your encrypted personal key or the server-provided fallback. Conversation history remains isolated by authenticated Kasugai user."
+            : "Kasugai can use a downloaded OpenAI open-weight model through its private local runner. Each authenticated user has separate project chat sessions; no personal API key is required.";
+    if (settings.credential_error) {
+        status.textContent = aiCredentialErrorMessage(settings);
+    } else if (ready) {
+        const provider = settings.provider_label || settings.provider || "Local model runner";
+        const legacyNotice = !isHostedOpenAI && settings.personal_key_configured
+            ? " A previously saved hosted-API key remains encrypted but is not used; you may remove it below."
+            : "";
+        const credentialNotice = isHostedOpenAI
+            ? settings.credential_source === "personal"
+                ? " Your personal API key is active."
+                : " The server-provided API key is active; saving a personal key overrides it for your account."
+            : "";
+        status.textContent = `${provider} is ready with ${settings.model || "gpt-oss"}.${credentialNotice} Conversation history is stored privately for your authenticated Kasugai account.${legacyNotice}`;
+    } else {
+        status.textContent = aiReadinessMessage(settings);
+    }
 }
 
-async function loadOpenAISettings() {
-    state.aiSettings = await api("/api/project-ai/settings");
-    renderOpenAISettings();
-    return state.aiSettings;
+function setAISettings(settings) {
+    state.aiSettings = settings;
+    if (!state.assistantSessionId) {
+        state.assistantReadiness = settings;
+    }
+    renderAISettings();
+    renderAssistantDisclosure();
 }
 
-async function openOpenAISettingsDialog() {
-    const dialog = byId("openAISettingsDialog");
-    const form = byId("openAISettingsForm");
-    form.reset();
-    form.querySelector("[data-form-error]").textContent = "";
-    byId("openAIKeyStatus").textContent = "Loading connection status...";
-    byId("openAIKeyStatus").className = "pm-openai-key-status";
-    byId("removeOpenAIKeyButton").hidden = true;
+async function loadAISettings({ drawerGeneration } = {}) {
+    const settings = await api("/api/project-ai/settings");
+    if (
+        drawerGeneration !== undefined
+        && !assistantDrawerRequestIsCurrent(drawerGeneration)
+    ) return null;
+    setAISettings(settings);
+    return settings;
+}
+
+async function openAISettingsDialog() {
+    const dialog = byId("aiSettingsDialog");
+    const hostedKeyForm = byId("openAISettingsForm");
+    hostedKeyForm.reset();
+    hostedKeyForm.querySelector("[data-ai-key-error]").textContent = "";
+    hostedKeyForm.hidden = true;
+    byId("localAISettingsActions").hidden = true;
+    byId("aiModelStatus").textContent = "Loading model status...";
+    byId("aiModelStatus").className = "pm-ai-model-status";
     openDialog(dialog);
     try {
-        await loadOpenAISettings();
-        form.elements.api_key.focus();
+        await loadAISettings();
+        if (state.aiSettings?.provider === "openai") {
+            byId("openAIKeyInput").focus();
+        }
     } catch (error) {
-        form.querySelector("[data-form-error]").textContent = error.message;
+        byId("aiModelStatus").textContent = error.message;
+        byId("aiModelStatus").classList.add("error");
     }
-}
-
-function resetAssistantForCredentialChange() {
-    invalidateAssistantPreview();
-    state.assistantHistory = [];
-    state.assistantProjectId = null;
-    renderAssistantConversation();
 }
 
 function renderAssistantDisclosure() {
-    const source = state.aiSettings?.credential_source;
-    const credentialText = source === "personal"
-        ? "using your personal OpenAI API key"
-        : source === "deployment"
-            ? "using the server-provided OpenAI API key"
-            : "using the API key configured for your account";
-    byId("assistantDisclosure").textContent = `This project's brief, work items, meetings, and stakeholders are sent to OpenAI ${credentialText}. Selected GitHub and email evidence is included when enabled. OpenAI API usage belongs to the API project associated with that key. Changes are only applied after you review and confirm them.`;
+    const selectedSession = state.assistantSessions.find(
+        (chat) => chat.id === state.assistantSessionId,
+    );
+    const readiness = effectiveAssistantReadiness();
+    const backend = readiness?.provider
+        || selectedSession?.backend
+        || state.aiSettings?.provider
+        || "ollama";
+    const model = readiness?.model
+        || selectedSession?.model
+        || state.aiSettings?.model
+        || "gpt-oss";
+    const disclosure = byId("assistantDisclosure");
+    const ready = aiIsReady(readiness);
+    disclosure.classList.toggle("unavailable", !ready);
+    disclosure.dataset.readinessStatus = readiness?.readiness_status || "unknown";
+    disclosure.textContent = assistantDisclosureText({
+        sessionId: state.assistantSessionId,
+        readiness,
+        backend,
+        model,
+    });
+}
+
+function wireAISettings() {
+    const dialog = byId("aiSettingsDialog");
+    const hostedForm = byId("openAISettingsForm");
+    const hostedInput = byId("openAIKeyInput");
+    const hostedRemove = byId("removeOpenAIKeyButton");
+    const hostedError = hostedForm.querySelector("[data-ai-key-error]");
+
+    function setHostedBusy(busy) {
+        hostedForm.toggleAttribute("aria-busy", busy);
+        hostedForm.querySelectorAll("button, input").forEach((control) => {
+            control.disabled = busy;
+        });
+    }
+
+    function finishCredentialChange(settings, message) {
+        setAISettings(settings);
+        hostedInput.value = "";
+        showToast(message);
+    }
+
+    hostedForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const apiKey = hostedInput.value;
+        hostedInput.value = "";
+        hostedError.textContent = "";
+        setHostedBusy(true);
+        try {
+            const settings = await api("/api/project-ai/settings", {
+                method: "PUT",
+                body: { api_key: apiKey },
+            });
+            finishCredentialChange(settings, "Personal OpenAI API key saved");
+        } catch (requestError) {
+            hostedError.textContent = requestError.message;
+        } finally {
+            hostedInput.value = "";
+            setHostedBusy(false);
+            hostedInput.focus();
+        }
+    });
+
+    hostedRemove.addEventListener("click", async () => {
+        if (!window.confirm("Remove your personal OpenAI API key from Kasugai?")) return;
+        hostedInput.value = "";
+        hostedError.textContent = "";
+        setHostedBusy(true);
+        try {
+            const settings = await api("/api/project-ai/settings", { method: "DELETE" });
+            const message = settings.credential_source === "deployment"
+                ? "Personal key removed; the server-provided key is now active"
+                : "Personal OpenAI API key removed";
+            finishCredentialChange(settings, message);
+        } catch (requestError) {
+            hostedError.textContent = requestError.message;
+        } finally {
+            hostedInput.value = "";
+            setHostedBusy(false);
+        }
+    });
+
+    byId("removeLegacyOpenAIKeyButton").addEventListener("click", async () => {
+        if (!window.confirm("Permanently remove the saved personal OpenAI API key?")) return;
+        const button = byId("removeLegacyOpenAIKeyButton");
+        button.disabled = true;
+        try {
+            setAISettings(await api("/api/project-ai/settings", { method: "DELETE" }));
+            showToast("Saved OpenAI API key removed");
+        } catch (error) {
+            showToast(error.message, true);
+        } finally {
+            button.disabled = false;
+        }
+    });
+
+    dialog.addEventListener("close", () => {
+        hostedInput.value = "";
+        hostedError.textContent = "";
+    });
 }
 
 function resetDialog(dialogId, formId) {
@@ -945,6 +1320,7 @@ function wireDeletes() {
         if (!project || !window.confirm(`Delete ${project.name} and all of its project records?`)) {
             return;
         }
+        if (!closeAssistantDrawerForProjectChange(null)) return;
         try {
             await api(`/api/projects/${project.id}`, { method: "DELETE" });
             byId("projectDialog").close();
@@ -1097,12 +1473,13 @@ function wireActions() {
             return;
         }
 
-        const action = event.target.closest("[data-action]")?.dataset.action;
+        const actionElement = event.target.closest("[data-action]");
+        const action = actionElement?.dataset.action;
         if (!action) {
             return;
         }
         if (action === "open-ai-settings") {
-            await openOpenAISettingsDialog();
+            await openAISettingsDialog();
         } else if (action === "new-project") {
             openProjectDialog();
         } else if (action === "share-project") {
@@ -1133,22 +1510,19 @@ function wireActions() {
             }
         } else if (action === "open-assistant") {
             if (canEdit()) {
-                if (!state.workspace?.capabilities?.ai_copilot) {
-                    await openOpenAISettingsDialog();
+                if (assistantDrawerIsOpen()) {
+                    closeAssistantDrawer();
                     return;
                 }
-                try {
-                    await loadOpenAISettings();
-                } catch (error) {
-                    showToast(error.message, true);
-                    return;
-                }
-                if (!state.aiSettings?.configured) {
-                    await openOpenAISettingsDialog();
-                    return;
-                }
+                window.KasugaiTeamRoom?.close({ restoreFocus: false });
                 if (state.assistantProjectId !== state.selectedProjectId) {
                     state.assistantHistory = [];
+                    state.assistantSessions = [];
+                    state.assistantSessionId = null;
+                    state.assistantMessagesHaveMore = false;
+                    state.assistantMessagesBeforeId = null;
+                    state.assistantPendingRequest = null;
+                    state.assistantReadiness = null;
                     state.assistantProjectId = state.selectedProjectId;
                 }
                 invalidateAssistantPreview();
@@ -1156,9 +1530,42 @@ function wireActions() {
                 assistantForm.reset();
                 assistantForm.querySelector("[data-form-error]").textContent = "";
                 byId("assistantSourceOptions").hidden = !canUseAssistantSources();
-                renderAssistantDisclosure();
+                renderAssistantSessions();
                 renderAssistantConversation();
-                byId("assistantDialog").showModal();
+                renderAssistantDisclosure();
+                const drawerGeneration = openAssistantDrawer(actionElement);
+                try {
+                    await loadAISettings({ drawerGeneration });
+                } catch (error) {
+                    if (!assistantDrawerRequestIsCurrent(drawerGeneration)) return;
+                    setAISettings({
+                        ...(state.aiSettings || {}),
+                        configured: false,
+                        ready: false,
+                        readiness_status: "unavailable",
+                        message: `Could not load the current AI model status: ${error.message}`,
+                    });
+                    showToast(error.message, true);
+                }
+                if (!assistantDrawerRequestIsCurrent(drawerGeneration)) return;
+                try {
+                    await loadAssistantSessions({ drawerGeneration });
+                } catch (error) {
+                    if (!assistantDrawerRequestIsCurrent(drawerGeneration)) return;
+                    startNewAssistantSession();
+                    assistantForm.querySelector("[data-form-error]").textContent = `Could not load saved conversations: ${error.message}`;
+                    showToast(error.message, true);
+                }
+                if (!assistantDrawerRequestIsCurrent(drawerGeneration)) return;
+                renderAssistantDisclosure();
+                const drawer = byId("assistantDialog");
+                const closeButton = drawer.querySelector("[data-close-dialog]");
+                if (
+                    document.activeElement === drawer
+                    || document.activeElement === closeButton
+                ) {
+                    assistantForm.elements.message.focus({ preventScroll: true });
+                }
             }
         }
     });
@@ -1201,102 +1608,20 @@ function wireActions() {
 
     document.querySelectorAll("[data-close-dialog]").forEach((button) => {
         button.addEventListener("click", () => {
-            const dialog = button.closest("dialog");
-            if (dialog.id === "assistantDialog" && state.assistantApplying) {
-                showToast("Selected changes are still being applied", true);
+            if (button.closest("#assistantDialog")) {
+                closeAssistantDrawer();
                 return;
             }
-            dialog.close();
+            const dialog = button.closest("dialog");
+            dialog?.close();
         });
     });
     document.querySelectorAll("dialog").forEach((dialog) => {
         dialog.addEventListener("click", (event) => {
             if (event.target === dialog) {
-                if (dialog.id === "assistantDialog" && state.assistantApplying) {
-                    showToast("Selected changes are still being applied", true);
-                    return;
-                }
                 dialog.close();
             }
         });
-    });
-}
-
-function wireOpenAISettings() {
-    const dialog = byId("openAISettingsDialog");
-    const form = byId("openAISettingsForm");
-    const input = byId("openAIKeyInput");
-    const remove = byId("removeOpenAIKeyButton");
-
-    function setBusy(busy) {
-        form.toggleAttribute("aria-busy", busy);
-        form.querySelectorAll("button, input").forEach((control) => {
-            control.disabled = busy;
-        });
-    }
-
-    async function finishCredentialChange(settings, message) {
-        state.aiSettings = settings;
-        renderOpenAISettings();
-        resetAssistantForCredentialChange();
-        if (state.selectedProjectId) {
-            try {
-                await refreshCurrent();
-            } catch (error) {
-                showToast(`${message}, but the workspace could not refresh: ${error.message}`, true);
-                return;
-            }
-        }
-        showToast(message);
-    }
-
-    form.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const error = form.querySelector("[data-form-error]");
-        const apiKey = input.value;
-        input.value = "";
-        error.textContent = "";
-        setBusy(true);
-        try {
-            const settings = await api("/api/project-ai/settings", {
-                method: "PUT",
-                body: { api_key: apiKey },
-            });
-            await finishCredentialChange(settings, "Personal OpenAI API key saved");
-        } catch (requestError) {
-            error.textContent = requestError.message;
-        } finally {
-            input.value = "";
-            setBusy(false);
-            input.focus();
-        }
-    });
-
-    remove.addEventListener("click", async () => {
-        if (!window.confirm("Remove your personal OpenAI API key from Kasugai?")) {
-            return;
-        }
-        const error = form.querySelector("[data-form-error]");
-        input.value = "";
-        error.textContent = "";
-        setBusy(true);
-        try {
-            const settings = await api("/api/project-ai/settings", { method: "DELETE" });
-            const message = settings.credential_source === "deployment"
-                ? "Personal key removed; the server-provided key is now active"
-                : "Personal OpenAI API key removed";
-            await finishCredentialChange(settings, message);
-        } catch (requestError) {
-            error.textContent = requestError.message;
-        } finally {
-            input.value = "";
-            setBusy(false);
-        }
-    });
-
-    dialog.addEventListener("close", () => {
-        input.value = "";
-        form.querySelector("[data-form-error]").textContent = "";
     });
 }
 
@@ -1306,9 +1631,9 @@ function renderAssistantPreview(proposal) {
         source.label || source.source || source.evidence_id,
     ]));
     byId("assistantAnswer").innerHTML = `
-        <h3>${escapeHtml(proposal.summary || "AI review")}</h3>
+        <h3>${escapeHtml(proposal.summary || "Kasugai review")}</h3>
         <p>${escapeHtml(proposal.answer || "")}</p>
-        <small>Model: ${escapeHtml(proposal.model || "OpenAI")}</small>`;
+        <small>Model: ${escapeHtml(proposal.model || "Local AI")}</small>`;
     byId("assistantActions").innerHTML = proposal.actions.length
         ? proposal.actions.map((action, index) => {
             const target = action.record_id
@@ -1323,7 +1648,7 @@ function renderAssistantPreview(proposal) {
                     <strong>${escapeHtml(displayLabel(action.type))}</strong>
                 </label>
                 ${target ? `<span>Target: ${escapeHtml(target)}</span>` : ""}
-                <span>${escapeHtml(action.reason || "Proposed by the assistant")}</span>
+                <span>${escapeHtml(action.reason || "Proposed by Ask Kasugai")}</span>
                 <span class="pm-ai-action-sources">Basis: ${escapeHtml(
                     sourceLabels.length ? sourceLabels.join(", ") : "your request",
                 )}</span>
@@ -1343,8 +1668,18 @@ function renderAssistantPreview(proposal) {
     byId("assistantWarnings").innerHTML = (proposal.warnings || []).map((warning) => `<div>${escapeHtml(warning)}</div>`).join("");
     byId("applyAssistantButton").hidden = !proposal.actions.length;
     byId("applyAssistantButton").disabled = false;
-    byId("assistantResult").hidden = false;
+    const result = byId("assistantResult");
+    result.hidden = false;
     refreshIcons();
+    window.requestAnimationFrame(() => {
+        if (!assistantDrawerIsOpen()) return;
+        result.scrollIntoView({
+            block: "start",
+            behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+                ? "auto"
+                : "smooth",
+        });
+    });
 }
 
 function selectedAssistantActions() {
@@ -1384,91 +1719,449 @@ function setAssistantApplying(applying) {
     }
 }
 
-function renderAssistantConversation() {
+function renderAssistantSessions() {
+    const select = byId("assistantSessionSelect");
+    select.innerHTML = [
+        '<option value="">New chat</option>',
+        ...state.assistantSessions.map((chat) => (
+            `<option value="${escapeHtml(chat.id)}">${escapeHtml(chat.title || "Untitled chat")}</option>`
+        )),
+    ].join("");
+    select.value = state.assistantSessionId || "";
+    byId("deleteAssistantSessionButton").hidden = !state.assistantSessionId;
+}
+
+function setAssistantMessagePage(result, prefix = false) {
+    const incoming = (result.messages || []).map((message) => ({
+        id: message.id,
+        role: message.role,
+        content: message.content,
+    }));
+    if (prefix) {
+        const existingIds = new Set(state.assistantHistory.map((message) => message.id));
+        state.assistantHistory = [
+            ...incoming.filter((message) => !existingIds.has(message.id)),
+            ...state.assistantHistory,
+        ];
+    } else {
+        state.assistantHistory = incoming;
+    }
+    state.assistantMessagesHaveMore = Boolean(
+        result.has_more ?? result.messages_has_more,
+    );
+    state.assistantMessagesBeforeId = (
+        result.next_before_id ?? result.messages_before_id ?? null
+    );
+}
+
+async function loadAssistantSession(sessionId, { drawerGeneration } = {}) {
+    const loadGeneration = ++state.assistantSessionLoadGeneration;
+    const drawerRequestIsCurrent = () => (
+        drawerGeneration === undefined
+        || assistantDrawerRequestIsCurrent(drawerGeneration)
+    );
+    if (!sessionId) {
+        if (!drawerRequestIsCurrent()) return false;
+        state.assistantSessionId = null;
+        state.assistantReadiness = state.aiSettings;
+        state.assistantHistory = [];
+        state.assistantMessagesHaveMore = false;
+        state.assistantMessagesBeforeId = null;
+        renderAssistantSessions();
+        renderAssistantConversation();
+        renderAssistantDisclosure();
+        return true;
+    }
+    const projectId = state.selectedProjectId;
+    const result = await api(`/api/projects/${projectId}/assistant/sessions/${encodeURIComponent(sessionId)}`);
+    if (
+        projectId !== state.selectedProjectId
+        || loadGeneration !== state.assistantSessionLoadGeneration
+        || !drawerRequestIsCurrent()
+    ) return false;
+    state.assistantSessionId = result.session.id;
+    state.assistantReadiness = result.readiness || null;
+    setAssistantMessagePage(result);
+    renderAssistantSessions();
+    renderAssistantConversation();
+    renderAssistantDisclosure();
+    return true;
+}
+
+async function loadAssistantSessions({ drawerGeneration } = {}) {
+    const loadGeneration = ++state.assistantSessionsLoadGeneration;
+    const projectId = state.selectedProjectId;
+    const result = await api(`/api/projects/${projectId}/assistant/sessions`);
+    if (
+        projectId !== state.selectedProjectId
+        || loadGeneration !== state.assistantSessionsLoadGeneration
+        || (
+            drawerGeneration !== undefined
+            && !assistantDrawerRequestIsCurrent(drawerGeneration)
+        )
+    ) return false;
+    state.assistantSessions = result.sessions || [];
+    const selectedStillExists = state.assistantSessions.some(
+        (chat) => chat.id === state.assistantSessionId,
+    );
+    const nextSessionId = selectedStillExists
+        ? state.assistantSessionId
+        : state.assistantSessions[0]?.id || null;
+    renderAssistantSessions();
+    return loadAssistantSession(nextSessionId, { drawerGeneration });
+}
+
+function startNewAssistantSession() {
+    invalidateAssistantPreview();
+    state.assistantPendingRequest = null;
+    state.assistantSessionLoadGeneration += 1;
+    state.assistantSessionId = null;
+    state.assistantReadiness = state.aiSettings;
+    state.assistantHistory = [];
+    state.assistantMessagesHaveMore = false;
+    state.assistantMessagesBeforeId = null;
+    byId("assistantForm").querySelector("[data-form-error]").textContent = "";
+    renderAssistantSessions();
+    renderAssistantConversation();
+    renderAssistantDisclosure();
+    const drawer = byId("assistantDialog");
+    if (assistantDrawerIsOpen(drawer) && drawer.contains(document.activeElement)) {
+        byId("assistantForm").elements.message.focus({ preventScroll: true });
+    }
+}
+
+function renderAssistantConversation({ scrollToEnd = true } = {}) {
     const conversation = byId("assistantConversation");
     conversation.innerHTML = state.assistantHistory.map((message) => `
         <div class="pm-ai-message ${escapeHtml(message.role)}">${escapeHtml(message.content)}</div>`).join("");
-    conversation.scrollTop = conversation.scrollHeight;
+    if (scrollToEnd) {
+        const drawerBody = byId("assistantDrawerBody");
+        drawerBody.scrollTop = drawerBody.scrollHeight;
+    }
+    const loadOlder = byId("loadOlderAssistantMessagesButton");
+    loadOlder.hidden = !state.assistantSessionId || !state.assistantMessagesHaveMore;
 }
 
-function assistantHistoryContext(proposal) {
-    const answer = String(proposal.answer || proposal.summary || "");
-    if (!(proposal.actions || []).length) {
-        return answer.slice(0, 5000);
+async function reloadAssistantReadiness({ drawerGeneration } = {}) {
+    const projectId = state.selectedProjectId;
+    const sessionId = state.assistantSessionId;
+    if (!sessionId) {
+        await loadAISettings({ drawerGeneration });
+        return drawerGeneration === undefined || assistantDrawerRequestIsCurrent(drawerGeneration)
+            ? effectiveAssistantReadiness()
+            : null;
     }
-    const actions = proposal.actions.map((action) => ({
-        type: action.type,
-        record_id: action.record_id,
-        fields: action.fields,
-        evidence_refs: action.evidence_refs || [],
-    }));
-    return `${answer}\n\nProposed actions from this turn:\n${JSON.stringify(actions)}`.slice(0, 5000);
+    const result = await api(assistantSessionReadinessUrl(projectId, sessionId));
+    if (
+        projectId !== state.selectedProjectId
+        || sessionId !== state.assistantSessionId
+        || (
+            drawerGeneration !== undefined
+            && !assistantDrawerRequestIsCurrent(drawerGeneration)
+        )
+    ) {
+        return null;
+    }
+    state.assistantReadiness = result.readiness || null;
+    renderAssistantDisclosure();
+    return state.assistantReadiness;
+}
+
+function markAssistantReadinessUnavailable(message) {
+    const unavailable = {
+        ...(effectiveAssistantReadiness() || {}),
+        ready: false,
+        readiness_status: "unavailable",
+        message,
+    };
+    if (state.assistantSessionId) {
+        state.assistantReadiness = unavailable;
+    } else {
+        state.aiSettings = unavailable;
+        state.assistantReadiness = unavailable;
+    }
+    renderAssistantDisclosure();
 }
 
 function wireAssistant() {
     const form = byId("assistantForm");
-    form.addEventListener("input", invalidateAssistantPreview);
-    form.addEventListener("change", invalidateAssistantPreview);
+    byId("assistantSessionSelect").addEventListener("change", async (event) => {
+        const drawerGeneration = state.assistantDrawerGeneration;
+        invalidateAssistantPreview();
+        state.assistantPendingRequest = null;
+        form.querySelector("[data-form-error]").textContent = "";
+        const selectionControls = [
+            ...form.elements,
+            ...byId("assistantDialog").querySelectorAll(
+                ".pm-ai-session-toolbar button, .pm-ai-session-toolbar select, #loadOlderAssistantMessagesButton",
+            ),
+        ];
+        selectionControls.forEach((control) => { control.disabled = true; });
+        form.setAttribute("aria-busy", "true");
+        try {
+            await loadAssistantSession(event.target.value || null, { drawerGeneration });
+        } catch (error) {
+            if (!assistantDrawerRequestIsCurrent(drawerGeneration)) return;
+            showToast(error.message, true);
+            renderAssistantSessions();
+        } finally {
+            if (assistantDrawerRequestIsCurrent(drawerGeneration)) {
+                selectionControls.forEach((control) => { control.disabled = false; });
+                form.removeAttribute("aria-busy");
+            }
+        }
+    });
+    byId("newAssistantSessionButton").addEventListener("click", startNewAssistantSession);
+    byId("loadOlderAssistantMessagesButton").addEventListener("click", async () => {
+        const button = byId("loadOlderAssistantMessagesButton");
+        const projectId = state.selectedProjectId;
+        const sessionId = state.assistantSessionId;
+        const beforeId = state.assistantMessagesBeforeId;
+        const drawerGeneration = state.assistantDrawerGeneration;
+        if (!sessionId || !beforeId || button.disabled) return;
+        button.disabled = true;
+        const drawerBody = byId("assistantDrawerBody");
+        const previousHeight = drawerBody.scrollHeight;
+        const previousTop = drawerBody.scrollTop;
+        try {
+            const result = await api(
+                `/api/projects/${projectId}/assistant/sessions/${encodeURIComponent(sessionId)}?limit=100&before_id=${encodeURIComponent(beforeId)}`,
+            );
+            if (
+                projectId !== state.selectedProjectId
+                || sessionId !== state.assistantSessionId
+                || !assistantDrawerRequestIsCurrent(drawerGeneration)
+            ) return;
+            state.assistantReadiness = result.readiness || null;
+            setAssistantMessagePage(result, true);
+            renderAssistantConversation({ scrollToEnd: false });
+            drawerBody.scrollTop = previousTop + drawerBody.scrollHeight - previousHeight;
+        } catch (error) {
+            if (assistantDrawerRequestIsCurrent(drawerGeneration)) {
+                showToast(error.message, true);
+            }
+        } finally {
+            if (assistantDrawerRequestIsCurrent(drawerGeneration)) {
+                button.disabled = false;
+            }
+        }
+    });
+    byId("deleteAssistantSessionButton").addEventListener("click", async () => {
+        const sessionId = state.assistantSessionId;
+        if (!sessionId || !window.confirm("Delete this private Ask Kasugai conversation?")) return;
+        const projectId = state.selectedProjectId;
+        const drawerGeneration = state.assistantDrawerGeneration;
+        invalidateAssistantPreview();
+        state.assistantPendingRequest = null;
+        const deletionControls = [
+            ...form.elements,
+            ...byId("assistantDialog").querySelectorAll(
+                ".pm-ai-session-toolbar button, .pm-ai-session-toolbar select, #loadOlderAssistantMessagesButton",
+            ),
+        ];
+        deletionControls.forEach((control) => { control.disabled = true; });
+        form.setAttribute("aria-busy", "true");
+        try {
+            await api(
+                `/api/projects/${projectId}/assistant/sessions/${encodeURIComponent(sessionId)}`,
+                { method: "DELETE" },
+            );
+            if (projectId !== state.selectedProjectId) return;
+            if (!assistantDrawerRequestIsCurrent(drawerGeneration)) {
+                if (assistantDrawerIsOpen() && state.assistantProjectId === projectId) {
+                    await loadAssistantSessions({
+                        drawerGeneration: state.assistantDrawerGeneration,
+                    });
+                }
+                return;
+            }
+            state.assistantSessionId = null;
+            state.assistantHistory = [];
+            state.assistantMessagesHaveMore = false;
+            state.assistantMessagesBeforeId = null;
+            await loadAssistantSessions({ drawerGeneration });
+            showToast("Ask Kasugai conversation deleted");
+        } catch (error) {
+            if (assistantDrawerRequestIsCurrent(drawerGeneration)) {
+                showToast(error.message, true);
+            }
+        } finally {
+            if (assistantDrawerRequestIsCurrent(drawerGeneration)) {
+                deletionControls.forEach((control) => { control.disabled = false; });
+                form.removeAttribute("aria-busy");
+            }
+        }
+    });
+    form.addEventListener("input", () => {
+        state.assistantPendingRequest = null;
+        invalidateAssistantPreview();
+    });
+    form.addEventListener("change", () => {
+        state.assistantPendingRequest = null;
+        invalidateAssistantPreview();
+    });
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
         const submit = form.querySelector('button[type="submit"]');
         const error = form.querySelector("[data-form-error]");
         const message = form.elements.message.value.trim();
+        if (submit.disabled) return;
         invalidateAssistantPreview();
         const requestGeneration = state.assistantRequestGeneration;
+        const drawerGeneration = state.assistantDrawerGeneration;
         const requestProjectId = state.selectedProjectId;
+        const readinessProjectId = state.selectedProjectId;
+        const readinessSessionId = state.assistantSessionId;
+        const controls = [
+            ...form.elements,
+            ...byId("assistantDialog").querySelectorAll(
+                ".pm-ai-session-toolbar button, .pm-ai-session-toolbar select, #loadOlderAssistantMessagesButton",
+            ),
+        ];
+        const setRequestBusy = (busy) => {
+            controls.forEach((control) => { control.disabled = busy; });
+            form.classList.toggle("pm-ai-form-busy", busy);
+            form.toggleAttribute("aria-busy", busy);
+        };
+        setRequestBusy(true);
+        error.textContent = "Checking AI model readiness...";
+        try {
+            await reloadAssistantReadiness({ drawerGeneration });
+        } catch (settingsError) {
+            if (
+                requestGeneration !== state.assistantRequestGeneration
+                || !assistantDrawerRequestIsCurrent(drawerGeneration)
+            ) return;
+            const readinessError = `Could not check AI model readiness: ${settingsError.message}`;
+            markAssistantReadinessUnavailable(readinessError);
+            error.textContent = readinessError;
+            setRequestBusy(false);
+            return;
+        }
+        if (
+            requestGeneration !== state.assistantRequestGeneration
+            || !assistantDrawerRequestIsCurrent(drawerGeneration)
+        ) return;
+        if (
+            readinessProjectId !== state.selectedProjectId
+            || readinessSessionId !== state.assistantSessionId
+        ) {
+            error.textContent = "The selected conversation changed. Try again.";
+            setRequestBusy(false);
+            return;
+        }
+        const readiness = effectiveAssistantReadiness();
+        if (!aiIsReady(readiness)) {
+            renderAssistantDisclosure();
+            error.textContent = aiReadinessMessage(readiness);
+            setRequestBusy(false);
+            return;
+        }
+        const requestKey = JSON.stringify({
+            project_id: requestProjectId,
+            session_id: state.assistantSessionId,
+            message,
+            include_github: form.elements.include_github.checked,
+            include_email: form.elements.include_email.checked,
+        });
+        if (state.assistantPendingRequest?.key !== requestKey) {
+            state.assistantPendingRequest = {
+                key: requestKey,
+                requestId: requestUUID(),
+                newSessionId: state.assistantSessionId
+                    ? null
+                    : requestUUID(),
+            };
+        }
+        const pendingRequest = state.assistantPendingRequest;
         const controller = new AbortController();
         state.assistantAbortController = controller;
-        const controls = [...form.elements];
-        controls.forEach((control) => { control.disabled = true; });
-        form.classList.add("pm-ai-form-busy");
-        form.setAttribute("aria-busy", "true");
         error.textContent = "";
         try {
-            const result = await api(`/api/projects/${state.selectedProjectId}/assistant/preview`, {
+            const result = await api(`/api/projects/${requestProjectId}/assistant/preview`, {
                 method: "POST",
                 body: {
                     message,
                     include_github: form.elements.include_github.checked,
                     include_email: form.elements.include_email.checked,
-                    history: state.assistantHistory.slice(-12).map((item) => ({
-                        role: item.role,
-                        content: item.context || item.content,
-                    })),
+                    session_id: state.assistantSessionId,
+                    new_session_id: pendingRequest.newSessionId,
+                    request_id: pendingRequest.requestId,
                 },
                 signal: controller.signal,
             });
-            if (requestGeneration !== state.assistantRequestGeneration || requestProjectId !== state.selectedProjectId) {
+            if (
+                requestGeneration !== state.assistantRequestGeneration
+                || !assistantDrawerRequestIsCurrent(drawerGeneration)
+                || requestProjectId !== state.selectedProjectId
+            ) {
                 return;
             }
-            state.assistantPreview = result;
+            state.assistantPreview = {
+                proposal: result.proposal,
+                signature: result.signature,
+            };
             const assistantReply = String(
                 result.proposal.answer
                 || result.proposal.summary
                 || "No narrative response was returned.",
             ).slice(0, 5000);
-            state.assistantHistory.push(
-                { role: "user", content: message },
-                {
-                    role: "assistant",
-                    content: assistantReply,
-                    context: assistantHistoryContext(result.proposal),
-                },
-            );
-            state.assistantHistory = state.assistantHistory.slice(-12);
+            if (result.session) {
+                state.assistantSessionId = result.session.id;
+                state.assistantReadiness = {
+                    ...(state.assistantReadiness || state.aiSettings || {}),
+                    provider: result.session.backend || state.aiSettings?.provider,
+                    model: result.session.model || state.aiSettings?.model,
+                    current_provider: state.aiSettings?.provider,
+                };
+                state.assistantSessions = [
+                    result.session,
+                    ...state.assistantSessions.filter((chat) => chat.id !== result.session.id),
+                ];
+            }
+            if (Array.isArray(result.messages)) {
+                setAssistantMessagePage(result);
+            } else {
+                state.assistantHistory = [
+                    ...state.assistantHistory,
+                    { role: "user", content: message },
+                    { role: "assistant", content: assistantReply },
+                ].slice(-100);
+                state.assistantMessagesHaveMore = false;
+                state.assistantMessagesBeforeId = null;
+            }
+            renderAssistantSessions();
             renderAssistantConversation();
+            renderAssistantDisclosure();
             renderAssistantPreview(result.proposal);
+            state.assistantPendingRequest = null;
             form.elements.message.value = "";
         } catch (requestError) {
-            if (requestError.name !== "AbortError" && requestGeneration === state.assistantRequestGeneration) {
+            if (
+                requestError.name !== "AbortError"
+                && requestGeneration === state.assistantRequestGeneration
+                && assistantDrawerRequestIsCurrent(drawerGeneration)
+            ) {
+                if (requestError.status === 409) {
+                    try {
+                        await loadAssistantSessions({ drawerGeneration });
+                    } catch (reloadError) {
+                        if (assistantDrawerRequestIsCurrent(drawerGeneration)) {
+                            showToast(reloadError.message, true);
+                        }
+                    }
+                    if (!assistantDrawerRequestIsCurrent(drawerGeneration)) return;
+                    state.assistantPendingRequest = null;
+                }
                 error.textContent = requestError.message;
             }
         } finally {
-            if (requestGeneration === state.assistantRequestGeneration) {
+            if (
+                requestGeneration === state.assistantRequestGeneration
+                && assistantDrawerRequestIsCurrent(drawerGeneration)
+            ) {
                 state.assistantAbortController = null;
-                controls.forEach((control) => { control.disabled = false; });
-                form.classList.remove("pm-ai-form-busy");
-                form.removeAttribute("aria-busy");
+                setRequestBusy(false);
             }
         }
     });
@@ -1488,10 +2181,10 @@ function wireAssistant() {
                 body: { ...state.assistantPreview, selected_actions: selectedActions },
             });
             setAssistantApplying(false);
-            byId("assistantDialog").close();
+            closeAssistantDrawer();
             try {
                 await refreshCurrent();
-                showToast(`${result.applied} AI-proposed change${result.applied === 1 ? "" : "s"} applied`);
+                showToast(`${result.applied} Ask Kasugai change${result.applied === 1 ? "" : "s"} applied`);
             } catch (refreshError) {
                 showToast(`Changes were applied, but the workspace could not refresh: ${refreshError.message}`, true);
             }
@@ -1501,19 +2194,23 @@ function wireAssistant() {
             setAssistantApplying(false);
         }
     });
-    byId("assistantDialog").addEventListener("cancel", (event) => {
-        if (state.assistantApplying) {
-            event.preventDefault();
-            showToast("Selected changes are still being applied", true);
-        }
+    document.addEventListener("keydown", (event) => {
+        if (
+            event.key !== "Escape"
+            || event.defaultPrevented
+            || event.isComposing
+            || !assistantDrawerIsOpen()
+            || document.querySelector("dialog[open]")
+        ) return;
+        event.preventDefault();
+        closeAssistantDrawer();
     });
-    byId("assistantDialog").addEventListener("close", invalidateAssistantPreview);
 }
 
 async function initialize() {
     wireForms();
     wireDeletes();
-    wireOpenAISettings();
+    wireAISettings();
     wireActions();
     wireAssistant();
     refreshIcons();
@@ -1522,7 +2219,7 @@ async function initialize() {
         const requestedProject = new URLSearchParams(window.location.search).get("project");
         await Promise.all([
             loadPortfolio(requestedProject || undefined),
-            loadOpenAISettings().catch(() => null),
+            loadAISettings().catch(() => null),
         ]);
     } catch (error) {
         showToast(error.message, true);
@@ -1530,4 +2227,21 @@ async function initialize() {
     }
 }
 
-document.addEventListener("DOMContentLoaded", initialize);
+if (typeof document !== "undefined") {
+    document.addEventListener("DOMContentLoaded", initialize);
+}
+
+if (typeof module !== "undefined" && module.exports) {
+    module.exports = {
+        aiCredentialErrorMessage,
+        aiIsReady,
+        aiReadinessMessage,
+        aiUsesHostedProvider,
+        assistantDisclosureText,
+        assistantDrawerIsOpen,
+        assistantDrawerRequestMatches,
+        assistantSessionReadinessUrl,
+        selectAssistantReadiness,
+        setAssistantDrawerState,
+    };
+}

@@ -3,173 +3,186 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>Kasugai</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Home | Kasugai</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
-    
-    <!-- Link to custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    
-    <!-- Identifies this browser session's own Kasugai user ID, so the chat/file-transfer
-         JS can tell which incoming file offers are addressed to this user. -->
-    <script>window.CURRENT_USER_ID = {{ current_user_id | tojson }};</script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/team_room.css') }}">
 
-    <!-- Link to custom JS -->
+    <script>window.CURRENT_USER_ID = {{ current_user_id | tojson }};</script>
+    <script src="https://unpkg.com/lucide@1.24.0/dist/umd/lucide.js"
+            integrity="sha384-pLX3Fl0m52MclHeHyUdLRg9l8/QW5IiesBUs9Sxxm38xj9lNZW7JqqAfp2/4ARQt"
+            crossorigin="anonymous" defer></script>
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js" defer></script>
     <script src="{{ url_for('static', filename='js/settings.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/file_transfer.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/team_room.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
 </head>
 
-<body>
-    
-<!-- Custom navigation bar -->
-<nav>
-    <ul class="nav-left">
-            <li><a href="/" id="homeBtn">Home</a></li>
-            <li><a href="#" id="chatBtn">Chat</a></li>
-            <li><a href="#" id="fileTransferBtn">File Transfer</a></li>
-            <li><a href="{{ url_for('project_bp.workspace_page') }}" id="projectsBtn">Projects</a></li>
-            <li><a href="{{ url_for('ui_bp.screen_share') }}" id="screenShareBtn">Screen Share</a></li>
-            <li><a href="#" id="settingsBtn">Settings</a></li>
-            </ul>
-    <ul class="nav-right">
-        <li><a href="#" id="logoutBtn">Logout</a></li>
-        </ul>
-</nav>
+<body class="app-page home-page">
+    <header class="app-topbar">
+        <a class="app-brand" href="{{ url_for('ui_bp.index') }}" aria-label="Kasugai home">
+            <span class="app-brand-mark"><i data-lucide="panels-top-left"></i></span>
+            <span>Kasugai</span>
+        </a>
 
-<!-- Button container on the left side -->
-<div class="button-container" id="buttonContainer">
-    {% for button in buttons %}
-        <button type="button" class="dynamic-button">{{ button }}</button>
-    {% endfor %}
-</div>
+        <nav class="app-primary-nav" aria-label="Application navigation">
+            <a class="active" href="{{ url_for('ui_bp.index') }}" aria-current="page">
+                <i data-lucide="house"></i><span>Home</span>
+            </a>
+            <a href="{{ url_for('project_bp.workspace_page') }}">
+                <i data-lucide="briefcase-business"></i><span>Projects</span>
+            </a>
+        </nav>
 
-<!-- Modals -->
-
-<div id="chatModal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2>Chat</h2>
-        <!-- Dropdown to Join Public Room -->
-        <label for="roomSelect">Join Public Room:</label>
-        <select id="roomSelect">
-            <option value="">Select a room...</option>
-            <!-- More rooms can be added dynamically -->
-        </select>
-        <button id="joinRoomBtn">Join Room</button>
-        
-        <!-- Button to Create a Private Room -->
-        <h3>Create a Private Room</h3>
-        <label for="newRoomName">Room Name:</label>
-        <input type="text" id="newRoomName" required>
-        <label for="roomPassword">Password (optional):</label>
-        <input type="password" id="roomPassword">
-        <button id="createRoomBtn">Create Room</button>
-        
-        <div id="chatMessages"></div>
-        <!-- Chat Input Area -->
-        <textarea id="chatInput" placeholder="Type your message here..."></textarea>
-        <button id="sendChat">Send</button>
-    </div>
-</div>
-
-
-<div id="fileTransferModal" class="modal">
-    <div class="modal-content settings-content">
-        <span class="close">&times;</span>
-        <h2>File Transfer</h2>
-
-        <form id="sendFileForm" class="settings-form" enctype="multipart/form-data">
-            <label for="fileRecipient">Send to:</label>
-            <select id="fileRecipient" name="recipient_id" required>
-                <option value="">Select a room member...</option>
-            </select>
-
-            <label for="fileToSend">File:</label>
-            <input type="file" id="fileToSend" name="file" required>
-
-            <button type="submit">Send File</button>
-        </form>
-        <progress id="fileSendProgress" class="file-progress" max="100" value="0" hidden></progress>
-        <p class="settings-error" id="fileSendStatus"></p>
-
-        <h3>Incoming Files</h3>
-        <ul id="incomingFilesList" class="settings-list">
-            <li class="settings-empty">No incoming files yet.</li>
-        </ul>
-
-        <h3>Sent Files</h3>
-        <ul id="sentFilesList" class="settings-list">
-            <li class="settings-empty">No files sent yet.</li>
-        </ul>
-    </div>
-</div>
-
-<div id="settingsModal" class="modal">
-    <div class="modal-content settings-content">
-        <span class="close">&times;</span>
-        <h2>Settings</h2>
-
-        <div class="settings-tabs" role="tablist">
-            <button type="button" class="settings-tab active" data-tab="buttons">Buttons</button>
-            <button type="button" class="settings-tab" data-tab="appearance">Appearance</button>
-            <button type="button" class="settings-tab" data-tab="application">Application</button>
+        <div class="app-account">
+            <button class="app-action-button team-room-trigger" id="teamRoomButton" type="button"
+                    data-team-room-trigger aria-controls="teamRoomDrawer" aria-expanded="false">
+                <i data-lucide="messages-square"></i><span>Team Room</span>
+                <span class="team-room-activity-badge" data-team-room-activity hidden></span>
+            </button>
+            <button class="app-icon-button" id="settingsBtn" type="button"
+                    aria-controls="settingsModal" aria-expanded="false" title="Settings" aria-label="Settings">
+                <i data-lucide="settings"></i>
+            </button>
+            <span class="app-account-name">{{ user.email or user.name }}</span>
+            <a class="app-icon-button" id="logoutBtn" href="{{ url_for('auth_bp.logout') }}"
+               title="Log out" aria-label="Log out"><i data-lucide="log-out"></i></a>
         </div>
+    </header>
 
-        <!-- Buttons tab -->
-        <section class="settings-section active" data-section="buttons">
-            <h3>Quick-Launch Buttons</h3>
-            <ul id="buttonList" class="settings-list">
-                <li class="settings-empty">No buttons yet.</li>
-            </ul>
-
-            <form id="addButtonForm" class="settings-form">
-                <label for="buttonName">Name</label>
-                <input type="text" id="buttonName" name="name" placeholder="e.g. Notepad" required>
-
-                <label for="buttonLink">Link or File Path</label>
-                <input type="text" id="buttonLink" name="link" placeholder="https://example.com or C:\path\to\file.exe" required>
-
-                <button type="submit">Add Button</button>
-            </form>
-            <p class="settings-error" id="buttonError"></p>
+    <main class="home-shell">
+        <section class="home-hero">
+            <div class="home-hero-copy">
+                <span class="app-eyebrow">Personal workspace</span>
+                <h1>Your work, in one place.</h1>
+                <p>Move projects forward, meet with your team, and keep the tools you use most close at hand.</p>
+                <div class="home-hero-actions">
+                    <a class="app-button app-button-primary" href="{{ url_for('project_bp.workspace_page') }}">
+                        <i data-lucide="briefcase-business"></i>Open projects
+                    </a>
+                    <button class="app-button app-button-secondary" type="button" data-team-room-trigger
+                            aria-controls="teamRoomDrawer" aria-expanded="false">
+                        <i data-lucide="messages-square"></i>Open Team Room
+                    </button>
+                </div>
+            </div>
+            <div class="home-hero-orbit" aria-hidden="true">
+                <span class="orbit-card orbit-card-projects"><i data-lucide="list-checks"></i></span>
+                <span class="orbit-card orbit-card-chat"><i data-lucide="message-circle"></i></span>
+                <span class="orbit-card orbit-card-share"><i data-lucide="monitor-up"></i></span>
+                <span class="orbit-core"><i data-lucide="panels-top-left"></i></span>
+            </div>
         </section>
 
-        <!-- Appearance tab -->
-        <section class="settings-section" data-section="appearance">
-            <h3>Background Image</h3>
-            <form id="backgroundForm" enctype="multipart/form-data">
-                <label for="backgroundImage">Upload Background Image:</label>
-                <input type="file" id="backgroundImage" name="backgroundImage" accept="image/*" required>
-                <button type="submit">Change Background</button>
-            </form>
+        <section class="home-content-grid" aria-label="Workspace shortcuts">
+            <article class="home-panel home-shortcuts-panel">
+                <header class="home-panel-heading">
+                    <div>
+                        <span class="app-eyebrow">Quick access</span>
+                        <h2>Shortcuts</h2>
+                    </div>
+                    <button class="app-icon-button" type="button" data-open-settings="buttons"
+                            title="Manage shortcuts" aria-label="Manage shortcuts">
+                        <i data-lucide="plus"></i>
+                    </button>
+                </header>
+                <div class="button-container" id="buttonContainer">
+                    {% for button in buttons %}
+                        <button type="button" class="dynamic-button">
+                            <i data-lucide="arrow-up-right"></i><span>{{ button }}</span>
+                        </button>
+                    {% endfor %}
+                    {% if not buttons %}
+                        <p class="home-empty-copy">Add the tools and links you reach for every day.</p>
+                    {% endif %}
+                </div>
+            </article>
+
+            <a class="home-destination-card" href="{{ url_for('project_bp.workspace_page') }}">
+                <span class="home-card-icon"><i data-lucide="briefcase-business"></i></span>
+                <span class="app-eyebrow">Plan and deliver</span>
+                <h2>Projects</h2>
+                <p>Keep work, meetings, decisions, risks, and stakeholders together.</p>
+                <span class="home-card-link">View portfolio <i data-lucide="arrow-right"></i></span>
+            </a>
+
+            <button class="home-destination-card" type="button" data-team-room-trigger
+                    aria-controls="teamRoomDrawer" aria-expanded="false">
+                <span class="home-card-icon"><i data-lucide="users-round"></i></span>
+                <span class="app-eyebrow">Work together</span>
+                <h2>Team Room</h2>
+                <p>Chat, send a file, or share your screen without switching contexts.</p>
+                <span class="home-card-link">Start collaborating <i data-lucide="arrow-right"></i></span>
+            </button>
         </section>
+    </main>
 
-        <!-- Application tab -->
-        <section class="settings-section" data-section="application">
-            <h3>Application Settings</h3>
-            <form id="appSettingsForm" class="settings-form">
-                <label for="logLevel">Log Level</label>
-                <select id="logLevel" name="loglevel">
-                    <option value="DEBUG">DEBUG</option>
-                    <option value="INFO">INFO</option>
-                    <option value="WARNING">WARNING</option>
-                    <option value="ERROR">ERROR</option>
-                    <option value="CRITICAL">CRITICAL</option>
-                </select>
+    {% include '_team_room.html' %}
 
-                <label for="uploadFolder">File Transfer Upload Folder</label>
-                <input type="text" id="uploadFolder" name="uploadfolder">
+    <section class="modal settings-modal" id="settingsModal" role="dialog" aria-modal="true"
+             aria-labelledby="settingsTitle" hidden>
+        <div class="modal-content settings-content">
+            <header class="modal-heading">
+                <div><span class="app-eyebrow">Workspace</span><h2 id="settingsTitle">Settings</h2></div>
+                <button class="app-icon-button close" type="button" title="Close settings" aria-label="Close settings">
+                    <i data-lucide="x"></i>
+                </button>
+            </header>
 
-                <button type="submit">Save Settings</button>
-                <span class="settings-saved" id="appSettingsSaved">Saved!</span>
-            </form>
-        </section>
+            <div class="settings-tabs" role="tablist" aria-label="Settings sections">
+                <button type="button" class="settings-tab active" data-tab="buttons" role="tab" aria-selected="true">Shortcuts</button>
+                <button type="button" class="settings-tab" data-tab="appearance" role="tab" aria-selected="false">Appearance</button>
+                <button type="button" class="settings-tab" data-tab="application" role="tab" aria-selected="false">Application</button>
+            </div>
 
-    </div>
-</div>
+            <section class="settings-section active" data-section="buttons" role="tabpanel">
+                <h3>Quick-launch shortcuts</h3>
+                <p class="settings-help">Keep frequently used links and local tools on your Home screen.</p>
+                <ul id="buttonList" class="settings-list"><li class="settings-empty">No shortcuts yet.</li></ul>
+                <form id="addButtonForm" class="settings-form">
+                    <label for="buttonName">Name</label>
+                    <input type="text" id="buttonName" name="name" placeholder="e.g. Reporting portal" required>
+                    <label for="buttonLink">Link or file path</label>
+                    <input type="text" id="buttonLink" name="link" placeholder="https://example.com or C:\path\to\tool.exe" required>
+                    <button class="app-button app-button-primary" type="submit">Add shortcut</button>
+                </form>
+                <p class="settings-error" id="buttonError"></p>
+            </section>
 
+            <section class="settings-section" data-section="appearance" role="tabpanel">
+                <h3>Background image</h3>
+                <p class="settings-help">Your background is shared across Home, Projects, and Team Room.</p>
+                <form id="backgroundForm" class="settings-form" enctype="multipart/form-data">
+                    <label for="backgroundImage">Choose an image</label>
+                    <input type="file" id="backgroundImage" name="backgroundImage"
+                           accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>
+                    <small class="settings-help">Static images only · JPG, PNG, or WebP · up to 20 MB.</small>
+                    <button class="app-button app-button-primary" type="submit">Update background</button>
+                </form>
+                <p class="settings-feedback" id="backgroundStatus" role="status" aria-live="polite"></p>
+            </section>
+
+            <section class="settings-section" data-section="application" role="tabpanel">
+                <h3>Application settings</h3>
+                <form id="appSettingsForm" class="settings-form">
+                    <label for="logLevel">Log level</label>
+                    <select id="logLevel" name="loglevel">
+                        <option value="DEBUG">DEBUG</option><option value="INFO">INFO</option>
+                        <option value="WARNING">WARNING</option><option value="ERROR">ERROR</option>
+                        <option value="CRITICAL">CRITICAL</option>
+                    </select>
+                    <label for="uploadFolder">File download folder</label>
+                    <input type="text" id="uploadFolder" name="uploadfolder">
+                    <div class="settings-save-row">
+                        <button class="app-button app-button-primary" type="submit">Save settings</button>
+                        <span class="settings-saved" id="appSettingsSaved">Saved</span>
+                    </div>
+                </form>
+            </section>
+        </div>
+    </section>
 </body>
 
 </html>

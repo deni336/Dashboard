@@ -1,0 +1,208 @@
+<aside class="team-room-drawer" id="teamRoomDrawer" role="complementary"
+       aria-labelledby="teamRoomTitle" aria-hidden="true" tabindex="-1"
+       data-current-user-id="{{ current_user_id }}" hidden>
+    <div class="team-room-shell">
+        <header class="team-room-header">
+            <div class="team-room-heading">
+                <span class="team-room-heading-mark" aria-hidden="true">
+                    <i data-lucide="messages-square"></i>
+                </span>
+                <div>
+                    <span class="team-room-eyebrow">Collaboration</span>
+                    <div class="team-room-title-row">
+                        <h2 id="teamRoomTitle">Team Room</h2>
+                        <span class="team-room-connection-pill" id="roomConnectionBadge">
+                            <span class="team-room-connection-dot" aria-hidden="true"></span>
+                            <span id="roomConnectionText">Not connected</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="team-room-header-actions">
+                <button class="team-room-button team-room-button-secondary team-room-share-button"
+                        id="startScreenShareBtn" type="button" disabled>
+                    <i data-lucide="monitor-up" aria-hidden="true"></i>
+                    <span>Share screen</span>
+                </button>
+                <button class="team-room-icon-button" id="teamRoomCloseButton" type="button"
+                        title="Close Team Room" aria-label="Close Team Room">
+                    <i data-lucide="x" aria-hidden="true"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="team-room-body">
+            <section class="team-room-room-controls" aria-labelledby="teamRoomRoomHeading">
+                <div class="team-room-section-heading">
+                    <div>
+                        <span class="team-room-eyebrow">Workspace</span>
+                        <h3 id="teamRoomRoomHeading">Choose a room</h3>
+                    </div>
+                    <button class="team-room-button team-room-button-quiet" id="toggleCreateRoomBtn" type="button"
+                            aria-controls="createRoomPanel" aria-expanded="false">
+                        <i data-lucide="message-square-plus" aria-hidden="true"></i>
+                        <span>New room</span>
+                    </button>
+                </div>
+
+                <div class="team-room-join-row">
+                    <label class="team-room-field team-room-room-picker" for="roomSelect">
+                        <span class="team-room-visually-hidden">Room</span>
+                        <select id="roomSelect">
+                            <option value="">Select a room...</option>
+                        </select>
+                    </label>
+                    <label class="team-room-field team-room-join-password" for="joinRoomPassword">
+                        <span class="team-room-visually-hidden">Private room password</span>
+                        <input id="joinRoomPassword" type="password" placeholder="Password (optional)" autocomplete="current-password"
+                               aria-label="Private room password">
+                    </label>
+                    <button class="team-room-button team-room-button-secondary" id="joinRoomBtn" type="button">
+                        Join
+                    </button>
+                </div>
+
+                <div class="team-room-create-panel" id="createRoomPanel" role="region"
+                     aria-label="Create a private room" hidden>
+                    <label class="team-room-field" for="newRoomName">
+                        <span>Room name</span>
+                        <input id="newRoomName" type="text" maxlength="120" autocomplete="off"
+                               placeholder="e.g. Project launch">
+                    </label>
+                    <label class="team-room-field" for="roomPassword">
+                        <span>Password <small>optional</small></span>
+                        <input id="roomPassword" type="password" autocomplete="new-password"
+                               placeholder="Private room password">
+                    </label>
+                    <button class="team-room-button team-room-button-primary" id="createRoomBtn" type="button">
+                        <i data-lucide="plus" aria-hidden="true"></i>
+                        Create room
+                    </button>
+                </div>
+                <p class="team-room-inline-status" id="roomActionStatus" role="status" aria-live="polite"></p>
+            </section>
+
+            <section class="team-room-screen-section" id="screenShareStage"
+                     aria-labelledby="teamRoomScreenHeading" hidden>
+                <div class="team-room-screen-toolbar">
+                    <div class="team-room-screen-copy">
+                        <span class="team-room-presence-dot" aria-hidden="true"></span>
+                        <div>
+                            <span class="team-room-eyebrow">Live in this room</span>
+                            <h3 id="teamRoomScreenHeading">Screen share</h3>
+                        </div>
+                    </div>
+                    <div class="team-room-screen-actions">
+                        <p id="screenShareStatus" role="status" aria-live="polite">A room member is sharing.</p>
+                        <button class="team-room-button team-room-stop-button" id="stopScreenShareBtn" type="button"
+                                title="Stop sharing" disabled hidden>
+                            <i data-lucide="square" aria-hidden="true"></i>
+                            <span>Stop</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="team-room-screen-stage" aria-label="Shared screen preview">
+                    <div id="videoContainer">
+                        <video id="screenVideo" autoplay muted playsinline aria-label="Your shared screen preview" hidden></video>
+                        <img id="remoteScreenView" class="team-room-remote-screen" alt="Shared screen from another room member" hidden>
+                        <button class="team-room-stage-action" id="fullscreenScreenShareBtn" type="button"
+                                aria-pressed="false" title="View screen share fullscreen">
+                            <i data-lucide="maximize-2" aria-hidden="true"></i>
+                            <span>Fullscreen</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="team-room-conversation" aria-labelledby="teamRoomConversationHeading">
+                <div class="team-room-section-heading team-room-conversation-heading">
+                    <div>
+                        <span class="team-room-eyebrow">Conversation</span>
+                        <h3 id="teamRoomConversationHeading">Room messages</h3>
+                    </div>
+                </div>
+                <div class="team-room-messages" id="chatMessages" role="log" aria-label="Team Room messages"
+                     aria-live="polite" aria-relevant="additions text">
+                    <div class="team-room-empty-state" id="chatEmptyState">
+                        <i data-lucide="message-circle" aria-hidden="true"></i>
+                        <strong>Start the conversation</strong>
+                        <span>Messages and shared files will appear here.</span>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <footer class="team-room-composer-region">
+            <section class="team-room-file-composer" id="fileComposer" aria-labelledby="teamRoomAttachHeading" hidden>
+                <div class="team-room-attachment-heading">
+                    <div>
+                        <span class="team-room-eyebrow">Attachment</span>
+                        <h3 id="teamRoomAttachHeading">Send a file</h3>
+                    </div>
+                    <button class="team-room-icon-button team-room-file-close" id="closeFileComposerBtn"
+                            type="button" title="Close file attachment" aria-label="Close file attachment">
+                        <i data-lucide="x" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <form class="team-room-file-form" id="sendFileForm" enctype="multipart/form-data">
+                    <label class="team-room-field" for="fileRecipient">
+                        <span>Send to</span>
+                        <select id="fileRecipient" name="recipient_id" required>
+                            <option value="">Select a room member...</option>
+                        </select>
+                    </label>
+                    <label class="team-room-file-picker" for="fileToSend">
+                        <i data-lucide="upload" aria-hidden="true"></i>
+                        <span id="filePickerLabel">Choose a file</span>
+                        <input id="fileToSend" name="file" type="file" required>
+                    </label>
+                    <button class="team-room-button team-room-button-primary" type="submit">
+                        <i data-lucide="send" aria-hidden="true"></i>
+                        Send file
+                    </button>
+                </form>
+                <progress class="team-room-file-progress" id="fileSendProgress" max="100" value="0" hidden></progress>
+                <p class="team-room-inline-status" id="fileSendStatus" role="status" aria-live="polite"></p>
+
+                <details class="team-room-file-history">
+                    <summary>
+                        <i data-lucide="folder" aria-hidden="true"></i>
+                        <span>File history</span>
+                        <i class="team-room-summary-chevron" data-lucide="chevron-down" aria-hidden="true"></i>
+                    </summary>
+                    <div class="team-room-file-history-body">
+                        <section aria-labelledby="teamRoomIncomingFilesHeading">
+                            <h4 id="teamRoomIncomingFilesHeading">Incoming</h4>
+                            <ul id="incomingFilesList">
+                                <li class="settings-empty">No incoming files yet.</li>
+                            </ul>
+                        </section>
+                        <section aria-labelledby="teamRoomSentFilesHeading">
+                            <h4 id="teamRoomSentFilesHeading">Sent</h4>
+                            <ul id="sentFilesList">
+                                <li class="settings-empty">No files sent yet.</li>
+                            </ul>
+                        </section>
+                    </div>
+                </details>
+            </section>
+
+            <form class="team-room-chat-form" id="chatForm" autocomplete="off">
+                <button class="team-room-icon-button team-room-attach-button" id="toggleFileComposerBtn" type="button"
+                        aria-controls="fileComposer" aria-expanded="false" title="Attach a file" aria-label="Attach a file">
+                    <i data-lucide="paperclip" aria-hidden="true"></i>
+                </button>
+                <label class="team-room-visually-hidden" for="chatInput">Message</label>
+                <textarea id="chatInput" name="message" rows="1" maxlength="5000"
+                          placeholder="Message the room..." required></textarea>
+                <button class="team-room-button team-room-button-primary team-room-send-button" id="sendChat" type="submit">
+                    <span>Send</span>
+                    <i data-lucide="send" aria-hidden="true"></i>
+                </button>
+            </form>
+            <p class="team-room-inline-status team-room-chat-status" id="chatSendStatus"
+               role="status" aria-live="polite"></p>
+        </footer>
+    </div>
+</aside>

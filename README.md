@@ -1,6 +1,6 @@
 # Kasugai Dashboard
 
-Kasugai is a Flask dashboard and Go gRPC service for project management, chat, file transfer, and screen sharing. Access is gated by a device-bound DeniLicense activation lease.
+Kasugai is a Flask dashboard and Go gRPC service for project management, with chat, file transfer, and screen sharing unified in the Team Room. Access is gated by a device-bound DeniLicense activation lease.
 
 ## Requirements
 
@@ -44,6 +44,19 @@ Connections are validated HTTPS/HTTP shortcuts, not per-user OAuth integrations,
 Project owners can open the **Share project** control, enter an email address, and choose **Viewer** or **Editor** access. Kasugai creates a one-time invitation link valid for seven days. Copy the link or use **Email invitation** to open the system mail client with a prepared message. Kasugai does not send email through an SMTP provider.
 
 The recipient must sign in with the exact invited email address and must have their own valid DeniLicense access to the configured Kasugai product. Viewers have read-only access. Editors can update project content but cannot share or delete the project. Portfolio-level connection links remain private; only project-specific links are visible to collaborators. Owners can change a collaborator's role, issue a new pending invitation link, or revoke access at any time.
+
+## Team Room
+
+Open **Team Room** from either Home or Projects to collaborate without leaving
+the current workspace. The right-side drawer combines room selection, chat,
+inline file offers, file history, and screen sharing in one place. Join or
+create a room before sending messages, transferring files, or starting a screen
+share. The drawer can stay open while you review project work and closes without
+navigating away from the page.
+
+The `/team-room` URL opens the drawer on Home. The legacy `/screenshare` URL is
+kept as a compatibility deep link and now opens the same Team Room with its
+screen-sharing area expanded; it is no longer a separate application page.
 
 ## Local setup
 
@@ -103,11 +116,17 @@ KASUGAI_PUBLIC_URL=
 KASUGAI_DASHBOARD_BIND_HOST=127.0.0.1
 KASUGAI_TRUST_PROXY=false
 KASUGAI_SESSION_COOKIE_SECURE=
-OPENAI_API_KEY=
-OPENAI_API_KEY_FILE=
-OPENAI_MODEL=gpt-5.6-sol
-KASUGAI_AI_ALLOWED_USERS=owner@example.com
+KASUGAI_AI_PROVIDER=disabled
+KASUGAI_AI_BASE_URL=
+KASUGAI_AI_MODEL=gpt-oss:20b
+KASUGAI_AI_API_KEY=
+KASUGAI_AI_API_KEY_FILE=
+KASUGAI_AI_TIMEOUT_SECONDS=300
+KASUGAI_AI_REQUEST_BUDGET_SECONDS=330
+KASUGAI_AI_ALLOWED_USERS=
 KASUGAI_AI_SOURCE_ALLOWED_USERS=owner@example.com
+OLLAMA_IMAGE=ollama/ollama:0.31.2
+OLLAMA_CONTEXT_LENGTH=32768
 GITHUB_TOKEN=
 GITHUB_TOKEN_FILE=
 KASUGAI_GITHUB_TOKEN_ALLOWLIST=your-org/project,your-org/*
@@ -120,33 +139,120 @@ KASUGAI_IMAP_PASSWORD_FILE=
 
 Set `KASUGAI_PUBLIC_URL` to the externally reachable origin used by invitees, for example `https://kasugai.example.com`. Leaving it blank builds invitation links from the current request host, which is suitable for local use.
 
-The project AI copilot uses the OpenAI Responses API and defaults to
-[`gpt-5.6-sol`](https://developers.openai.com/api/docs/guides/latest-model), the
-current explicit GPT-5.6 flagship target. Every authenticated user can open
-**OpenAI API key settings** in the Projects top bar and submit their own key.
-Kasugai encrypts that key server-side and uses it only for that user's preview
-requests, including when the user is editing a shared project. The key is never
-returned to the browser, project owner, or another collaborator. Personal keys
-take precedence over the optional deployment `OPENAI_API_KEY`. The deployment
-key is used only for accounts explicitly listed in `KASUGAI_AI_ALLOWED_USERS`,
-which preserves the previous administrator-managed setup without silently
-moving a personal-key failure onto the server's billing account.
+Ask Kasugai defaults to a self-hosted
+[`gpt-oss`](https://openai.com/open-models/) model through Ollama. It does not
+need an OpenAI API key, ChatGPT account, or OpenAI API billing. Ollama is shared
+as an inference service, while Kasugai owns conversation identity and access
+control so one authenticated user's session is never used as another user's
+context. `KASUGAI_AI_API_KEY` stays blank for local Ollama; it and its `_FILE`
+variant exist only for an administrator who deliberately points
+`KASUGAI_AI_BASE_URL` at an authenticated, OpenAI-compatible private endpoint.
+All authenticated project editors can invoke the local model. The 300-second
+upstream timeout accounts for CPU-offloaded local generation; if CPU inference
+times out, increase `KASUGAI_AI_TIMEOUT_SECONDS` and
+`KASUGAI_AI_REQUEST_BUDGET_SECONDS` together, keeping the request budget higher.
+The base Compose files use the `disabled` value shown above; adding
+`docker-compose.ollama.yml` overrides it with the private Ollama endpoint.
 
-This is OpenAI API-key authentication, not a ChatGPT login or subscription
-connection. Requests use the limits and billing of the OpenAI API project that
-issued the selected key. Serve Kasugai through HTTPS before accepting personal
-keys in production. [OpenAI recommends keeping API keys in a secure server-side
-location](https://developers.openai.com/api/docs/guides/production-best-practices#api-keys)
-rather than exposing or hard-coding them in client code.
+OpenAI currently publishes these downloadable general-purpose reasoning models:
+
+| Model | Hardware guidance | Kasugai use |
+| --- | --- | --- |
+| `gpt-oss-20b` | About 16 GB of VRAM or unified memory; CPU offload is supported but slower | Default and recommended |
+| `gpt-oss-120b` | At least 60 GB of VRAM or unified memory; intended for an H100-class or multi-GPU host | Not suitable for this workstation |
+
+Both are text-only, Apache-2.0 open-weight models with a native 128K context
+window. OpenAI also publishes 20B and 120B `gpt-oss-safeguard` variants for
+safety-policy classification; those are not general chatbot replacements. See
+OpenAI's [gpt-oss Ollama guide](https://developers.openai.com/cookbook/articles/gpt-oss/run-locally-ollama)
+for the upstream model and runtime guidance.
+
+This workstation has 64 GB of system RAM, but its RTX 3060 Laptop GPU has only
+6 GB of VRAM and Docker Desktop currently exposes about 32 GB of RAM. The 20B
+model will therefore split work between the GPU and CPU and will be noticeably
+slower than it would be on a 16 GB-or-larger GPU. The supplied override limits
+Ollama to one loaded model and one parallel request, and uses a 32K runtime
+context to stay within this machine's practical memory envelope. If it runs out
+of memory, set `OLLAMA_CONTEXT_LENGTH=16384`; for better throughput, move the
+same override to a GPU VPS with at least 16 GB of VRAM. Do not select the 120B
+model on this machine.
+
+### Download and run gpt-oss with Ollama
+
+Ollama is optional and lives in `docker-compose.ollama.yml`; NVIDIA GPU access
+is isolated in `docker-compose.ollama.nvidia.yml` so CPU-only hosts can omit that
+file. The service publishes no host port. The dashboard reaches it on a private,
+internal Compose network, its model files persist in the explicit
+`kasugai_ollama-models` volume, and the long-running model server has no outbound
+network. Only the explicit one-shot `ollama-pull` job joins the ordinary bridge
+network needed to download model weights. `OLLAMA_NO_CLOUD=1` prevents Ollama
+from using cloud-hosted models.
+
+The model is deliberately not downloaded during an image build or normal
+application update. On this NVIDIA workstation, pull the 20B weights once and
+then start the stack. The Ollama health check requires that exact configured
+model to exist before the dashboard starts:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.ollama.yml -f docker-compose.ollama.nvidia.yml --profile model-pull run --rm ollama-pull
+docker compose -f docker-compose.yml -f docker-compose.ollama.yml -f docker-compose.ollama.nvidia.yml up --build -d --wait
+```
+
+Use the same persistent model volume with the standalone dashboard layout:
+
+```powershell
+$env:KASUGAI_SERVER_HOST = "your-vps-or-private-vpn-host"
+docker compose -f docker-compose.dashboard.yml -f docker-compose.ollama.yml -f docker-compose.ollama.nvidia.yml --profile model-pull run --rm ollama-pull
+docker compose -f docker-compose.dashboard.yml -f docker-compose.ollama.yml -f docker-compose.ollama.nvidia.yml up --build -d --wait
+```
+
+On a CPU-only host, omit `-f docker-compose.ollama.nvidia.yml` from both
+commands. CPU-only inference works but is substantially slower. After startup,
+inspect actual GPU/CPU offload and the loaded context size with:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.ollama.yml -f docker-compose.ollama.nvidia.yml exec -e OLLAMA_HOST=127.0.0.1:11434 ollama ollama ps
+```
+
+Never publish port 11434 directly to the internet: Ollama's local server does
+not provide application user authentication. If the inference service must run
+on a different host, connect it to the dashboard through a private VPN or an
+authenticated TLS proxy and set `KASUGAI_AI_BASE_URL` to that private endpoint.
+
+To update the Ollama image or model, change `OLLAMA_IMAGE` or
+`KASUGAI_AI_MODEL`, stop the `ollama` service, rerun the one-shot pull command,
+and start the stack again. Never use `docker compose down -v` for a routine
+update or stop: it destroys the selected Kasugai stack's named volumes,
+including the dashboard installation identity and license activation, encrypted
+configuration, projects and chats, uploaded resources, server data, and model
+weights. Losing the dashboard identity can consume another activation seat.
+
+Use `up` to update containers while preserving their volumes:
+
+```powershell
+# Core services only
+docker compose up --build -d --wait
+
+# AI-enabled stack (omit the NVIDIA override on a CPU-only host)
+docker compose -f docker-compose.yml -f docker-compose.ollama.yml -f docker-compose.ollama.nvidia.yml up --build -d --wait
+```
+
+Use `stop` when you only want to stop containers without deleting data:
+
+```powershell
+docker compose stop
+docker compose -f docker-compose.yml -f docker-compose.ollama.yml -f docker-compose.ollama.nvidia.yml stop
+```
 
 Public GitHub repositories can be read without a token. When `GITHUB_TOKEN` is set, it is sent only for
 repositories or organizations explicitly listed in
 `KASUGAI_GITHUB_TOKEN_ALLOWLIST` (`owner/repo` or `owner/*`). Gmail connections
 use the configured read-only IMAP mailbox; for Gmail, use an app password rather
 than the primary account password. The connection's nonblank Account field must
-exactly match `KASUGAI_IMAP_USERNAME`. Project workspace context is sent to
-OpenAI only when an authorized editor generates a preview. Deployment-wide
-GitHub and IMAP sources are available only when that project owner also appears
+exactly match `KASUGAI_IMAP_USERNAME`. Project workspace context is sent to the
+configured private Ollama service only when an authorized editor generates a
+preview. Deployment-wide GitHub and IMAP sources are available only when that
+project owner also appears
 in `KASUGAI_AI_SOURCE_ALLOWED_USERS`; leave this separate list empty to disable
 all linked-source retrieval. Shared editors and other AI-enabled owners cannot
 exercise those credentials. Raw source bodies
@@ -154,23 +260,29 @@ are not returned to the browser. Proposals expire after 15 minutes, are rejected
 if the project or targeted records changed, and are not written until the editor
 selects and confirms the individual actions.
 
-The AI copilot runs in the Flask dashboard container, not the standalone Go
+Ask Kasugai runs in the Flask dashboard container, not the standalone Go
 chat/media VPS container. Environment values must be supplied by Compose or the
 process manager; running `python main.py` directly does not load `.env`
 automatically.
 
-For production deployment-wide credentials, prefer the corresponding `*_FILE`
-settings and mount each credential as a Docker secret or read-only file. When
-both forms are present, the direct environment value takes precedence. Personal
-OpenAI keys are managed through the authenticated UI and encrypted with the
-persisted `[Database] encryption_key`. Do not commit credential files or delete
-the dashboard data volume that holds the database and encryption key.
+For production deployment-wide source credentials, prefer the corresponding
+`*_FILE` settings and mount each credential as a Docker secret or read-only
+file. When both forms are present, the direct environment value takes
+precedence. Do not commit credential files or delete the dashboard data volume
+that holds the database and encryption key.
 
-Then build and start Kasugai:
+The Ollama commands above start the complete AI-enabled stack. To start only the
+core Kasugai services without the local inference container, use the command
+below. Core-only Compose explicitly reports Ask Kasugai as disabled
+instead of pointing at an absent model service:
 
 ```powershell
 docker compose up --build -d
 ```
+
+Inside the dashboard container, Compose environment values are authoritative
+and update the persisted `[AI]` provider, base URL, and model on every restart.
+Native non-container runs continue to use those values from `config.ini`.
 
 If this machine already ran Kasugai outside Docker and that installation owns
 the DeniLicense seat, import its identity into the persistent Docker volume
@@ -183,7 +295,7 @@ once:
 The helper defaults to `%USERPROFILE%\Kasugai\config.ini`, mounts it read-only,
 and copies only `deviceprivatekey`, `activationid`, and `activationlease`. It
 does not copy API endpoints, database paths, session secrets, encryption keys,
-or OpenAI credentials, and it never overwrites an already activated Docker
+or AI credentials, and it never overwrites an already activated Docker
 identity. Use `-LegacyConfig <path>` for a different native config or `-Stack
 dashboard-only` with `docker-compose.dashboard.yml`.
 
@@ -259,11 +371,26 @@ secret, and the DeniLicense activation identity are stored in the same volume.
 
 Important sections are:
 
+- `[Application]`: quick-launch buttons and the stable resource folder for shared background images
+- `[AI]`: inference provider, private API base URL, and downloadable model name
 - `[Licensing]`: DeniLicense API, signed issuer, product, label, and installation key
 - `[WebServer]`: dashboard, public invitation origin, and Kasugai gRPC addresses
 - `[FileTransfer]`: upload path and file-transfer service address
 - `[Database]`: encrypted chat-history and project-workspace database settings
 - `[Logging]`: log path and level
+
+Kasugai accepts static JPG/JPEG, PNG, and WebP backgrounds up to 20 MB and 40
+megapixels, and displays the selected image across Home and Projects, including
+while the Team Room drawer is open.
+Uploads are fully decoded before they replace the current background; animated,
+corrupt, or truncated images and files whose contents do not match their
+extension are rejected. The browser uses the stable `/resources/background`
+URL, which serves each image with its native MIME type. `/resources/bg.jpg`
+remains as a virtual compatibility alias and may therefore return PNG or WebP
+content with the corresponding native MIME type. In Docker, backgrounds are
+stored in the dedicated `/app/kasugai/resources/backgrounds/` directory inside
+the persistent `kasugai_dashboard-resources` volume, separate from file-transfer
+downloads, and survive dashboard rebuilds.
 
 The installation private key, activation reference, and web-session secret are generated or saved in the persistent config volume. Keep that volume private and persistent; deleting it creates a new installation identity and may consume another activation seat. Normal image rebuilds reuse the existing activation rather than requesting another seat.
 
@@ -280,4 +407,9 @@ Validate and build the container application:
 ```powershell
 docker compose config
 docker compose build
+docker compose -f docker-compose.yml -f docker-compose.ollama.yml config
+docker compose -f docker-compose.yml -f docker-compose.ollama.yml -f docker-compose.ollama.nvidia.yml config
 ```
+
+These validation commands render the configuration only; they do not pull the
+Ollama image or model weights.

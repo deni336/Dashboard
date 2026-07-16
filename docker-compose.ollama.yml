@@ -1,0 +1,84 @@
+services:
+  dashboard:
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      KASUGAI_AI_PROVIDER: ollama
+      KASUGAI_AI_BASE_URL: http://ollama:11434/v1
+      KASUGAI_AI_MODEL: ${KASUGAI_AI_MODEL:-gpt-oss:20b}
+      KASUGAI_AI_API_KEY: ""
+      KASUGAI_AI_API_KEY_FILE: ""
+    networks:
+      - ollama-internal
+
+  ollama:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:0.31.2}
+    environment:
+      KASUGAI_AI_MODEL: ${KASUGAI_AI_MODEL:-gpt-oss:20b}
+      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-32768}
+      OLLAMA_FLASH_ATTENTION: "1"
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_KEEP_ALIVE: 5m
+      OLLAMA_KV_CACHE_TYPE: q8_0
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_MAX_QUEUE: "8"
+      OLLAMA_NO_CLOUD: "1"
+      OLLAMA_NUM_PARALLEL: "1"
+    expose:
+      - "11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    networks:
+      - ollama-internal
+    read_only: true
+    tmpfs:
+      - /tmp:size=1g,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD-SHELL", "OLLAMA_HOST=127.0.0.1:11434 ollama show \"$${KASUGAI_AI_MODEL}\" >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      start_period: 15s
+      retries: 12
+    restart: unless-stopped
+
+  ollama-pull:
+    profiles: ["model-pull"]
+    image: ${OLLAMA_IMAGE:-ollama/ollama:0.31.2}
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        ollama serve &
+        server_pid=$$!
+        trap 'kill "$$server_pid" 2>/dev/null || true' EXIT INT TERM
+        until OLLAMA_HOST=127.0.0.1:11434 ollama list >/dev/null 2>&1; do sleep 1; done
+        OLLAMA_HOST=127.0.0.1:11434 ollama pull "$${KASUGAI_AI_MODEL}"
+    environment:
+      KASUGAI_AI_MODEL: ${KASUGAI_AI_MODEL:-gpt-oss:20b}
+      OLLAMA_HOST: 127.0.0.1:11434
+      OLLAMA_NO_CLOUD: "1"
+    volumes:
+      - ollama-models:/root/.ollama
+    networks:
+      - ollama-egress
+    read_only: true
+    tmpfs:
+      - /tmp:size=1g,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  ollama-models:
+    name: kasugai_ollama-models
+
+networks:
+  ollama-internal:
+    internal: true
+  # Only the explicit one-shot pull job receives outbound network access.
+  ollama-egress:

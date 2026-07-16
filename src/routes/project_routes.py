@@ -1,9 +1,14 @@
 import re
 import hashlib
 import hmac
+import http.client
+import json
 import os
 import threading
 import time
+import urllib.error
+import urllib.request
+import uuid
 from collections import defaultdict, deque
 from contextlib import contextmanager
 from datetime import UTC, date, datetime, timedelta
@@ -31,6 +36,7 @@ INFLUENCE_VALUES = {"low", "medium", "high"}
 ENGAGEMENT_VALUES = {"unaware", "resistant", "neutral", "supportive", "leading"}
 PROVIDERS = {"github", "gmail", "calendar", "drive", "teams", "slack", "jira", "notion", "other"}
 SHARE_ROLES = {"viewer", "editor"}
+AI_PROVIDERS = {"disabled", "ollama", "openai"}
 AI_PROJECT_FIELDS = {"status", "priority", "health", "progress", "target_date", "manager", "sponsor", "description"}
 AI_RECORD_FIELDS = {"kind", "title", "details", "owner", "status", "priority", "due_date", "resolution"}
 AI_MEETING_FIELDS = {"title", "held_on", "attendees", "notes", "decisions", "action_items", "next_steps"}
@@ -41,6 +47,10 @@ OPENAI_API_KEY_MAX_LENGTH = 4096
 AI_RATE_LIMIT = 10
 AI_RATE_WINDOW_SECONDS = 600
 AI_MAX_CONCURRENT_PREVIEWS = 2
+AI_READINESS_CACHE_SECONDS = 5.0
+AI_READINESS_TIMEOUT_SECONDS = 2.0
+AI_READINESS_SINGLEFLIGHT_WAIT_SECONDS = 3.0
+AI_READINESS_MAX_RESPONSE_BYTES = 512 * 1024
 PROJECT_JSON_MAX_BYTES = 256 * 1024
 AI_PROPOSAL_LIFETIME = timedelta(minutes=15)
 _ai_requests = defaultdict(deque)
@@ -48,6 +58,9 @@ _ai_requests_lock = threading.Lock()
 _ai_preview_slots = threading.BoundedSemaphore(AI_MAX_CONCURRENT_PREVIEWS)
 _ai_preview_users = set()
 _ai_preview_lock = threading.Lock()
+_ai_readiness_cache = {}
+_ai_readiness_inflight = {}
+_ai_readiness_cache_lock = threading.Lock()
 
 
 class ProjectAIRateLimit(Exception):
@@ -55,6 +68,10 @@ class ProjectAIRateLimit(Exception):
 
 
 class ProjectAIBusy(Exception):
+    pass
+
+
+class ProjectAIConflict(Exception):
     pass
 
 
@@ -66,12 +83,18 @@ def init_project_routes(config_handler):
     global config, store
     config = config_handler
     store = ProjectStore(config_handler)
+    _clear_ai_readiness_cache()
+
+
+def _clear_ai_readiness_cache():
+    with _ai_readiness_cache_lock:
+        _ai_readiness_cache.clear()
 
 
 @project_bp.after_request
 def project_security_headers(response):
     response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self'; "
+        "default-src 'self'; script-src 'self' https://unpkg.com https://cdn.socket.io; style-src 'self'; "
         "img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; "
         "form-action 'self'; frame-ancestors 'none'"
     )
@@ -119,6 +142,401 @@ def _deployment_ai_key():
         return ""
 
 
+def _ai_provider():
+    provider = (
+        os.getenv("KASUGAI_AI_PROVIDER", "").strip()
+        or config.get("AI", "provider", fallback="ollama")
+        or "ollama"
+    ).strip().lower()
+    if provider not in AI_PROVIDERS:
+        raise ProjectAIError(
+            "KASUGAI_AI_PROVIDER must be 'disabled', 'ollama', or 'openai'."
+        )
+    return provider
+
+
+def _ai_provider_label(provider):
+    return {
+        "disabled": "AI disabled",
+        "ollama": "Local Ollama",
+        "openai": "OpenAI API",
+    }.get(provider, "Saved AI backend")
+
+
+def _normalized_session_backend(value):
+    backend = str(value or "ollama").strip().lower()
+    return "ollama" if backend == "local" else backend
+
+
+def _assistant_model():
+    return (
+        os.getenv("KASUGAI_AI_MODEL", "").strip()
+        or (
+            os.getenv("OPENAI_MODEL", "").strip()
+            if _ai_provider() == "openai"
+            else ""
+        )
+        or config.get("AI", "model", fallback="gpt-oss:20b")
+        or "gpt-oss:20b"
+    ).strip()
+
+
+def _assistant_base_url():
+    configured = os.getenv("KASUGAI_AI_BASE_URL", "").strip()
+    if configured:
+        return configured
+    configured = config.get("AI", "baseurl", fallback="")
+    if configured and not (
+        _ai_provider() == "openai"
+        and configured.rstrip("/") in {
+            "http://ollama:11434/v1",
+            "http://127.0.0.1:11434/v1",
+        }
+    ):
+        return configured.strip()
+    return (
+        "https://api.openai.com/v1"
+        if _ai_provider() == "openai"
+        else "http://ollama:11434/v1"
+    )
+
+
+def _validated_ai_base_url(value):
+    if not value or any(character.isspace() for character in value):
+        raise ProjectAIError("KASUGAI_AI_BASE_URL must be a valid HTTP or HTTPS URL.")
+    try:
+        parsed = urlsplit(value)
+        hostname = parsed.hostname
+        parsed.port
+    except ValueError as exc:
+        raise ProjectAIError(
+            "KASUGAI_AI_BASE_URL must be a valid HTTP or HTTPS URL."
+        ) from exc
+    if (
+        parsed.scheme.lower() not in {"http", "https"}
+        or not hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ProjectAIError(
+            "KASUGAI_AI_BASE_URL must be an HTTP or HTTPS API base URL without "
+            "credentials, query parameters, or fragments."
+        )
+    return parsed._replace(
+        scheme=parsed.scheme.lower(),
+        path=parsed.path.rstrip("/"),
+        query="",
+        fragment="",
+    ).geturl()
+
+
+def _probe_local_ai_models(base_url, model, api_key):
+    """Check that an OpenAI-compatible endpoint advertises the exact model."""
+    headers = {"Accept": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    try:
+        models_url = f"{base_url.rstrip('/')}/models"
+        models_request = urllib.request.Request(
+            models_url,
+            headers=headers,
+            method="GET",
+        )
+        with urllib.request.urlopen(
+            models_request,
+            timeout=AI_READINESS_TIMEOUT_SECONDS,
+        ) as response:
+            content = response.read(AI_READINESS_MAX_RESPONSE_BYTES + 1)
+    except urllib.error.HTTPError as exc:
+        status_code = exc.code
+        exc.close()
+        if status_code in {401, 403}:
+            return {
+                "ready": False,
+                "readiness_status": "unauthorized",
+                "message": (
+                    "The local AI service rejected the readiness check. "
+                    "Verify the configured local endpoint credential."
+                ),
+            }
+        return {
+            "ready": False,
+            "readiness_status": "unavailable",
+            "message": (
+                f"The local AI service readiness check failed (HTTP {status_code}). "
+                "Check the Ollama service and its OpenAI-compatible API."
+            ),
+        }
+    except (
+        urllib.error.URLError,
+        http.client.HTTPException,
+        TimeoutError,
+        OSError,
+        ValueError,
+        UnicodeError,
+    ):
+        return {
+            "ready": False,
+            "readiness_status": "unavailable",
+            "message": (
+                "Could not reach the private Ollama model service. Start the "
+                "Ollama service and verify KASUGAI_AI_BASE_URL."
+            ),
+        }
+
+    if len(content) > AI_READINESS_MAX_RESPONSE_BYTES:
+        return {
+            "ready": False,
+            "readiness_status": "invalid_response",
+            "message": (
+                "The local AI service returned an invalid model list. Verify it "
+                "exposes an OpenAI-compatible /v1/models endpoint."
+            ),
+        }
+    try:
+        payload = json.loads(content.decode("utf-8"))
+        models = payload.get("data")
+        if not isinstance(models, list):
+            raise ValueError("model data must be a list")
+        model_ids = {
+            item.get("id")
+            for item in models
+            if isinstance(item, dict) and isinstance(item.get("id"), str)
+        }
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError, AttributeError):
+        return {
+            "ready": False,
+            "readiness_status": "invalid_response",
+            "message": (
+                "The local AI service returned an invalid model list. Verify it "
+                "exposes an OpenAI-compatible /v1/models endpoint."
+            ),
+        }
+    if model not in model_ids:
+        return {
+            "ready": False,
+            "readiness_status": "model_missing",
+            "message": (
+                f"The configured local model '{model}' is not loaded. Pull or load "
+                "this exact model in Ollama, then try again."
+            ),
+        }
+    return {
+        "ready": True,
+        "readiness_status": "ready",
+        "message": None,
+    }
+
+
+def _local_ai_readiness(model=None):
+    model = (
+        str(model).strip()
+        if model is not None
+        else _assistant_model()
+    )
+    base_url = _assistant_base_url()
+    configured = bool(model and base_url)
+    if not configured:
+        return {
+            "configured": False,
+            "ready": False,
+            "readiness_status": "not_configured",
+            "message": "The local AI model runner is not configured.",
+        }
+    try:
+        validated_base_url = _validated_ai_base_url(base_url)
+    except ProjectAIError:
+        return {
+            "configured": True,
+            "ready": False,
+            "readiness_status": "not_configured",
+            "message": (
+                "The local AI endpoint URL is invalid. Check KASUGAI_AI_BASE_URL."
+            ),
+        }
+    try:
+        api_key = secret_value("KASUGAI_AI_API_KEY")
+    except ProjectAIError:
+        return {
+            "configured": True,
+            "ready": False,
+            "readiness_status": "credential_error",
+            "message": (
+                "The local AI endpoint credential could not be read. Check the "
+                "configured KASUGAI_AI_API_KEY_FILE."
+            ),
+        }
+
+    cache_key = (
+        validated_base_url,
+        model,
+        hashlib.sha256(api_key.encode("utf-8")).hexdigest(),
+    )
+    now = time.monotonic()
+    with _ai_readiness_cache_lock:
+        cached = _ai_readiness_cache.get(cache_key)
+        if cached and cached[0] > now:
+            return dict(cached[1])
+        probe_event = _ai_readiness_inflight.get(cache_key)
+        owns_probe = probe_event is None
+        if owns_probe:
+            probe_event = threading.Event()
+            _ai_readiness_inflight[cache_key] = probe_event
+
+    if not owns_probe:
+        if not probe_event.wait(AI_READINESS_SINGLEFLIGHT_WAIT_SECONDS):
+            return {
+                "configured": True,
+                "ready": False,
+                "readiness_status": "unavailable",
+                "message": (
+                    "The local AI service readiness check timed out. Check the "
+                    "Ollama service and try again."
+                ),
+            }
+        with _ai_readiness_cache_lock:
+            cached = _ai_readiness_cache.get(cache_key)
+            if cached and cached[0] > time.monotonic():
+                return dict(cached[1])
+        return {
+            "configured": True,
+            "ready": False,
+            "readiness_status": "unavailable",
+            "message": (
+                "The local AI service readiness check did not complete. Check the "
+                "Ollama service and try again."
+            ),
+        }
+
+    try:
+        try:
+            result = {
+                "configured": True,
+                **_probe_local_ai_models(validated_base_url, model, api_key),
+            }
+        except Exception:
+            # Readiness must fail closed without stranding same-key waiters if an
+            # unexpected transport implementation raises outside the known cases.
+            logger.warning(
+                "Unexpected local AI readiness probe failure.",
+                exc_info=True,
+            )
+            result = {
+                "configured": True,
+                "ready": False,
+                "readiness_status": "unavailable",
+                "message": (
+                    "The local AI service readiness check failed. Check the "
+                    "Ollama service and try again."
+                ),
+            }
+        with _ai_readiness_cache_lock:
+            cache_now = time.monotonic()
+            _ai_readiness_cache[cache_key] = (
+                cache_now + AI_READINESS_CACHE_SECONDS,
+                dict(result),
+            )
+            expired_keys = [
+                key
+                for key, (expires_at, _value) in _ai_readiness_cache.items()
+                if expires_at <= cache_now
+            ]
+            for key in expired_keys:
+                _ai_readiness_cache.pop(key, None)
+            while len(_ai_readiness_cache) > 32:
+                oldest_key = min(
+                    _ai_readiness_cache,
+                    key=lambda key: _ai_readiness_cache[key][0],
+                )
+                _ai_readiness_cache.pop(oldest_key, None)
+        return result
+    finally:
+        with _ai_readiness_cache_lock:
+            completed_event = _ai_readiness_inflight.pop(cache_key, None)
+            if completed_event is not None:
+                completed_event.set()
+
+
+def _ai_readiness(model=None):
+    provider = _ai_provider()
+    if provider == "disabled":
+        return {
+            "configured": False,
+            "ready": False,
+            "readiness_status": "disabled",
+            "message": "Ask Kasugai is disabled on this deployment.",
+        }
+    if provider != "openai":
+        return _local_ai_readiness(model)
+    try:
+        api_key, _source = _resolved_ai_key()
+    except ProjectAIError:
+        return {
+            "configured": False,
+            "ready": False,
+            "readiness_status": "credential_error",
+            "message": (
+                "Your stored OpenAI API key could not be read. Replace it in AI settings."
+            ),
+        }
+    if not api_key:
+        return {
+            "configured": False,
+            "ready": False,
+            "readiness_status": "needs_api_key",
+            "message": "Add your OpenAI API key in AI settings to use Ask Kasugai.",
+        }
+    # Do not probe the hosted OpenAI model catalogue on every workspace request.
+    # A configured credential is the readiness boundary; request-time API errors
+    # remain authoritative for account access and model availability.
+    return {
+        "configured": True,
+        "ready": True,
+        "readiness_status": "ready",
+        "message": None,
+    }
+
+
+def _ai_session_readiness(session_record):
+    saved_provider = _normalized_session_backend(session_record.get("backend"))
+    current_provider = _ai_provider()
+    saved_model = str(session_record.get("model") or "").strip()
+    identity = {
+        "provider": saved_provider,
+        "provider_label": _ai_provider_label(saved_provider),
+        "model": saved_model,
+        "current_provider": current_provider,
+    }
+    if saved_provider != current_provider:
+        return {
+            "configured": False,
+            "ready": False,
+            "readiness_status": "backend_mismatch",
+            "message": (
+                f"This conversation uses {_ai_provider_label(saved_provider)}, but "
+                f"Kasugai is currently configured for {_ai_provider_label(current_provider)}. "
+                "Switch the deployment backend or start a new chat."
+            ),
+            **identity,
+        }
+    if not saved_model:
+        return {
+            "configured": False,
+            "ready": False,
+            "readiness_status": "not_configured",
+            "message": (
+                "This conversation does not have a pinned AI model. Start a new chat."
+            ),
+            **identity,
+        }
+    return {
+        **_ai_readiness(saved_model),
+        **identity,
+    }
+
+
 def _personal_ai_key():
     try:
         return store.openai_api_key(_owner_key())
@@ -140,10 +558,9 @@ def _resolved_ai_key():
 
 def _ai_access_allowed():
     try:
-        api_key, _source = _resolved_ai_key()
+        return bool(_ai_readiness()["ready"])
     except ProjectAIError:
         return False
-    return bool(api_key)
 
 
 def _ai_source_access_allowed():
@@ -160,16 +577,75 @@ def _ai_source_access_allowed():
     return bool(allowed_users.intersection(candidates))
 
 
-def _require_ai_access():
+def _require_ai_access(model=None):
+    if _ai_provider() == "disabled":
+        raise PermissionError("Ask Kasugai is disabled on this deployment")
+    if _ai_provider() != "openai":
+        readiness = _local_ai_readiness(model)
+        if not readiness["ready"]:
+            raise ProjectAIError(
+                readiness["message"]
+                or "The local AI model service is not ready."
+            )
+        try:
+            return secret_value("KASUGAI_AI_API_KEY"), "local"
+        except ProjectAIError as exc:
+            raise ProjectAIError(
+                "The local AI endpoint credential could not be read."
+            ) from exc
     api_key, source = _resolved_ai_key()
     if not api_key:
         raise PermissionError(
-            "Add your OpenAI API key in AI settings to use the project copilot"
+            "Add your OpenAI API key in AI settings to use Ask Kasugai"
         )
     return api_key, source
 
 
 def _ai_settings_response():
+    if _ai_provider() == "disabled":
+        readiness = _ai_readiness()
+        try:
+            legacy_status = store.openai_credential_status(_owner_key())
+            credential_error = False
+        except ValueError:
+            legacy_status = {
+                "personal_key_configured": True,
+                "updated_at": None,
+            }
+            credential_error = True
+        return {
+            **legacy_status,
+            **readiness,
+            "credential_source": None,
+            "provider": "disabled",
+            "provider_label": "AI disabled",
+            "model": _assistant_model(),
+            "session_scope": "user",
+            "deployment_key_available": False,
+            "credential_error": credential_error,
+        }
+    if _ai_provider() != "openai":
+        readiness = _local_ai_readiness()
+        try:
+            legacy_status = store.openai_credential_status(_owner_key())
+            credential_error = False
+        except ValueError:
+            legacy_status = {
+                "personal_key_configured": True,
+                "updated_at": None,
+            }
+            credential_error = True
+        return {
+            **legacy_status,
+            **readiness,
+            "credential_source": "local" if readiness["configured"] else None,
+            "provider": _ai_provider(),
+            "provider_label": "Local Ollama",
+            "model": _assistant_model(),
+            "session_scope": "user",
+            "deployment_key_available": False,
+            "credential_error": credential_error,
+        }
     try:
         status = store.openai_credential_status(_owner_key())
         credential_error = False
@@ -186,16 +662,17 @@ def _ai_settings_response():
         source = "personal"
     else:
         source = "deployment" if deployment_available else None
-    assistant_model = os.getenv("OPENAI_MODEL", "").strip() or config.get(
-        "AI", "model", fallback="gpt-5.6-sol"
-    )
+    readiness = _ai_readiness()
     return {
         **status,
-        "configured": bool(source),
+        **readiness,
         "credential_source": source,
         "deployment_key_available": deployment_available,
         "credential_error": credential_error,
-        "model": assistant_model,
+        "provider": "openai",
+        "provider_label": "OpenAI API",
+        "model": _assistant_model(),
+        "session_scope": "user",
     }
 
 
@@ -222,7 +699,7 @@ def _ai_preview_slot():
             )
         if not _ai_preview_slots.acquire(blocking=False):
             raise ProjectAIBusy(
-                "The AI copilot is busy; try again in a few seconds"
+                "Ask Kasugai is busy; try again in a few seconds"
             )
         _ai_preview_users.add(key)
     try:
@@ -233,19 +710,49 @@ def _ai_preview_slot():
             _ai_preview_slots.release()
 
 
-def _assistant_history(data):
-    history = data.get("history", [])
-    if not isinstance(history, list) or len(history) > 12:
-        raise ValueError("history must contain at most 12 messages")
-    result = []
-    for item in history:
-        if not isinstance(item, dict) or item.get("role") not in {"user", "assistant"}:
-            raise ValueError("history contains an invalid message")
-        content = item.get("content")
-        if not isinstance(content, str) or not content.strip() or len(content) > 5000:
-            raise ValueError("history messages must contain 1-5000 characters")
-        result.append({"role": item["role"], "content": content.strip()})
-    return result
+def _optional_uuid(data, key):
+    value = _text(data, key, maximum=36, default="")
+    if not value:
+        return None
+    try:
+        parsed = uuid.UUID(value)
+    except (ValueError, AttributeError) as exc:
+        raise ValueError(f"{key} must be a UUID") from exc
+    if str(parsed) != value.lower():
+        raise ValueError(f"{key} must be a canonical UUID")
+    return str(parsed)
+
+
+def _query_integer(name, *, default=None, minimum=1, maximum=None):
+    raw = request.args.get(name, "").strip()
+    if not raw:
+        return default
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be an integer") from exc
+    if value < minimum:
+        raise ValueError(f"{name} must be at least {minimum}")
+    if maximum is not None and value > maximum:
+        raise ValueError(f"{name} must be between {minimum} and {maximum}")
+    return value
+
+
+def _assistant_model_context(proposal):
+    answer = str(proposal.get("answer") or proposal.get("summary") or "").strip()
+    actions = [
+        {
+            "type": action.get("type"),
+            "record_id": action.get("record_id"),
+            "fields": action.get("fields"),
+            "evidence_refs": action.get("evidence_refs", []),
+        }
+        for action in proposal.get("actions", [])
+        if isinstance(action, dict)
+    ]
+    if actions:
+        answer = f"{answer}\n\nProposed actions from this turn:\n{json.dumps(actions)}"
+    return answer[:5000]
 
 
 def _json_body():
@@ -541,6 +1048,11 @@ def project_ai_busy(error):
     return response
 
 
+@project_bp.errorhandler(ProjectAIConflict)
+def project_ai_conflict(error):
+    return jsonify({"error": str(error)}), 409
+
+
 @project_bp.errorhandler(ProjectRequestTooLarge)
 def project_request_too_large(error):
     return jsonify({"error": str(error)}), 413
@@ -553,7 +1065,11 @@ def project_permission_denied(error):
 
 @project_bp.route("/projects")
 def workspace_page():
-    return render_template("project_manager.html", user=session.get("profile", {}))
+    return render_template(
+        "project_manager.html",
+        user=session.get("profile", {}),
+        current_user_id=session.get("kasugai_user_id", ""),
+    )
 
 
 @project_bp.route("/projects/invitations/<token>", methods=["GET", "POST"])
@@ -593,6 +1109,10 @@ def get_portfolio():
 @project_bp.route("/api/project-ai/settings", methods=["GET", "PUT", "DELETE"])
 def project_ai_settings():
     owner_key = _owner_key()
+    if request.method == "PUT" and _ai_provider() != "openai":
+        raise PermissionError(
+            "Personal API keys are disabled while Kasugai uses its local AI model"
+        )
     if request.method == "PUT":
         _require_same_origin()
         store.set_openai_api_key(owner_key, _openai_api_key_value(_json_body()))
@@ -619,27 +1139,95 @@ def get_project(project_id):
     return jsonify(workspace)
 
 
+@project_bp.route("/api/projects/<int:project_id>/assistant/sessions")
+def project_assistant_sessions(project_id):
+    return jsonify({"sessions": store.list_ai_sessions(_owner_key(), project_id)})
+
+
+@project_bp.route(
+    "/api/projects/<int:project_id>/assistant/sessions/<session_id>",
+    methods=["GET", "DELETE"],
+)
+def project_assistant_session(project_id, session_id):
+    canonical_session_id = _optional_uuid(
+        {"session_id": session_id}, "session_id"
+    )
+    if request.method == "DELETE":
+        _require_same_origin()
+        store.delete_ai_session(_owner_key(), project_id, canonical_session_id)
+        return "", 204
+    session_detail = store.get_ai_session(
+        _owner_key(),
+        project_id,
+        canonical_session_id,
+        message_limit=_query_integer("limit", default=100, maximum=200),
+        before_id=_query_integer("before_id"),
+    )
+    session_detail["readiness"] = _ai_session_readiness(
+        session_detail["session"]
+    )
+    return jsonify(session_detail)
+
+
 @project_bp.route("/api/projects/<int:project_id>/assistant/preview", methods=["POST"])
 def project_assistant_preview(project_id):
     data = _json_body()
     prompt = _text(data, "message", required=True, maximum=5000)
+    session_id = _optional_uuid(data, "session_id")
+    new_session_id = _optional_uuid(data, "new_session_id")
+    if session_id and new_session_id:
+        raise ValueError("session_id and new_session_id cannot both be supplied")
+    request_id = _optional_uuid(data, "request_id")
     workspace = store.workspace(_owner_key(), project_id)
     if not workspace.get("permissions", {}).get("can_edit"):
         raise PermissionError("Editor access is required to propose project changes")
-    api_key, _credential_source = _require_ai_access()
-    with _ai_preview_slot():
-        _enforce_ai_rate_limit()
-        assistant_model = os.getenv("OPENAI_MODEL", "").strip() or config.get(
-            "AI", "model", fallback="gpt-5.6-sol"
+    assistant_model = _assistant_model()
+    history = []
+    if new_session_id:
+        try:
+            store.get_ai_session(
+                _owner_key(), project_id, new_session_id, message_limit=1
+            )
+            session_id = new_session_id
+        except KeyError:
+            pass
+    if session_id:
+        session_detail = store.get_ai_session(
+            _owner_key(), project_id, session_id, message_limit=1
         )
-        assistant = ProjectAssistant(assistant_model, api_key=api_key)
+        saved_backend = session_detail["session"].get("backend") or "ollama"
+        if (saved_backend == "openai") != (_ai_provider() == "openai"):
+            raise ValueError(
+                "This conversation belongs to a different AI backend. "
+                "Start a new chat for the currently configured backend."
+            )
+        assistant_model = session_detail["session"].get("model") or assistant_model
+        history = store.ai_session_model_history(
+            _owner_key(), project_id, session_id, limit=12
+        )
+    api_key, _credential_source = _require_ai_access(assistant_model)
+    with _ai_preview_slot():
+        if session_id and request_id and store.ai_session_has_request(
+            _owner_key(), project_id, session_id, request_id
+        ):
+            raise ProjectAIConflict(
+                "This AI request was already saved. Reloaded the conversation; "
+                "generate a new preview if you still need actionable changes."
+            )
+        store.ensure_ai_session_capacity(_owner_key(), project_id, session_id)
+        _enforce_ai_rate_limit()
+        assistant = ProjectAssistant(
+            assistant_model,
+            api_key=api_key,
+            base_url=_assistant_base_url(),
+        )
         can_use_sources = (
             workspace.get("permissions", {}).get("can_share", False)
             and _ai_source_access_allowed()
         )
         safety_identifier = hmac.new(
             str(current_app.secret_key).encode("utf-8"),
-            f"Kasugai/OpenAI safety identifier/v1\0{_owner_key()}".encode("utf-8"),
+            f"Kasugai/AI safety identifier/v1\0{_owner_key()}".encode("utf-8"),
             hashlib.sha256,
         ).hexdigest()
         proposal = dict(assistant.propose(
@@ -651,25 +1239,77 @@ def project_assistant_preview(project_id):
             include_email=_boolean(data, "include_email", default=True)
             and can_use_sources,
             safety_identifier=safety_identifier,
-            history=_assistant_history(data),
+            history=history,
         ))
-    record_versions = {
-        item["id"]: item.get("updated_at") for item in workspace.get("records", [])
-    }
-    proposal["expires_at"] = (datetime.now(UTC) + AI_PROPOSAL_LIFETIME).isoformat()
-    proposal["expected_state"] = {
-        "project_updated_at": workspace["project"]["updated_at"],
-        "workspace_version": ProjectStore.ai_workspace_version(workspace),
-        "records_updated_at": {
-            str(action.get("record_id")): record_versions[action["record_id"]]
-            for action in proposal.get("actions", [])
-            if isinstance(action, dict)
-            and action.get("type") == "update_record"
-            and action.get("record_id") in record_versions
-        },
-    }
+        record_versions = {
+            item["id"]: item.get("updated_at")
+            for item in workspace.get("records", [])
+        }
+        proposal["expires_at"] = (
+            datetime.now(UTC) + AI_PROPOSAL_LIFETIME
+        ).isoformat()
+        proposal["expected_state"] = {
+            "project_updated_at": workspace["project"]["updated_at"],
+            "workspace_version": ProjectStore.ai_workspace_version(workspace),
+            "records_updated_at": {
+                str(action.get("record_id")): record_versions[action["record_id"]]
+                for action in proposal.get("actions", [])
+                if isinstance(action, dict)
+                and action.get("type") == "update_record"
+                and action.get("record_id") in record_versions
+            },
+        }
+        created_session = False
+        if not session_id:
+            title = re.sub(r"\s+", " ", prompt).strip()[:80] or "New chat"
+            session_record = store.create_ai_session(
+                _owner_key(),
+                project_id,
+                title,
+                backend=_ai_provider(),
+                model=assistant.model,
+                session_id=new_session_id,
+            )
+            session_id = session_record["id"]
+            created_session = True
+        try:
+            turn = store.append_ai_turn(
+                _owner_key(),
+                project_id,
+                session_id,
+                prompt,
+                str(
+                    proposal.get("answer")
+                    or proposal.get("summary")
+                    or "AI response"
+                )[:5000],
+                model_context=_assistant_model_context(proposal),
+                model=assistant.model,
+                request_id=request_id,
+            )
+        except Exception:
+            if created_session:
+                try:
+                    store.delete_ai_session(_owner_key(), project_id, session_id)
+                except (KeyError, PermissionError, ValueError):
+                    logger.warning(
+                        "Could not clean up an empty AI session after a failed turn"
+                    )
+            raise
+    proposal["session_id"] = session_id
+    proposal["turn_id"] = turn["turn_id"]
     signature = sign_proposal(current_app.secret_key, _owner_key(), project_id, proposal)
-    return jsonify({"proposal": proposal, "signature": signature})
+    saved = store.get_ai_session(
+        _owner_key(), project_id, session_id, message_limit=100
+    )
+    return jsonify({
+        "proposal": proposal,
+        "signature": signature,
+        "session": saved["session"],
+        "messages": saved["messages"],
+        "messages_has_more": saved["has_more"],
+        "messages_before_id": saved["next_before_id"],
+    })
 
 
 @project_bp.route("/api/projects/<int:project_id>/assistant/apply", methods=["POST"])

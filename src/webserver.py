@@ -62,7 +62,7 @@ class WebServer:
         init_auth_routes(self.app, self.config, self.server_connect)
         init_button_routes(self.config)
         init_settings_routes(self.config)
-        init_ui_routes(self.config, self.config.get("FileTransfer", "uploadfolder"))
+        init_ui_routes(self.config, self.config.get("Application", "resourcefolder"))
         init_project_routes(self.config)
 
         self.setup_routes()

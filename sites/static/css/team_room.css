@@ -1,0 +1,1117 @@
+.team-room-drawer {
+    --team-room-topbar-height: var(--pm-topbar-height, var(--app-topbar-height, 58px));
+    --team-room-bg: var(--pm-bg, #111311);
+    --team-room-surface: var(--pm-surface, #181b18);
+    --team-room-raised: var(--pm-surface-raised, #202420);
+    --team-room-hover: var(--pm-surface-hover, #282d28);
+    --team-room-line: var(--pm-line, #363c36);
+    --team-room-line-soft: var(--pm-line-soft, #292e29);
+    --team-room-text: var(--pm-text, #f2f4ef);
+    --team-room-muted: var(--pm-muted, #a7aea7);
+    --team-room-subtle: var(--pm-subtle, #777f78);
+    --team-room-accent: var(--pm-accent, #e5484d);
+    --team-room-accent-hover: var(--pm-accent-hover, #f2555a);
+    --team-room-green: var(--pm-green, #46a758);
+    --team-room-cyan: var(--pm-cyan, #4c9a9c);
+
+    position: fixed;
+    inset: var(--team-room-topbar-height) 0 0 auto;
+    z-index: 1200;
+    width: min(520px, calc(100vw - 24px));
+    margin: 0;
+    overflow: hidden;
+    transform: translate3d(100%, 0, 0);
+    background: var(--team-room-surface);
+    border: 0;
+    border-left: 1px solid var(--team-room-line);
+    color: var(--team-room-text);
+    box-shadow: -18px 0 52px rgb(0 0 0 / 38%);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+    opacity: 0.45;
+    pointer-events: none;
+    visibility: hidden;
+    transition:
+        transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 160ms ease,
+        visibility 0s linear 220ms;
+    will-change: transform;
+}
+
+body.pm-page .team-room-drawer {
+    z-index: 45;
+}
+
+.team-room-drawer[hidden] {
+    display: none !important;
+}
+
+.team-room-drawer.is-open,
+.team-room-drawer[aria-hidden="false"] {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+    transition-delay: 0s;
+}
+
+.team-room-drawer,
+.team-room-drawer * {
+    box-sizing: border-box;
+}
+
+.team-room-drawer * {
+    font-family: inherit;
+}
+
+.team-room-drawer button,
+.team-room-drawer input,
+.team-room-drawer select,
+.team-room-drawer textarea {
+    color: inherit;
+    font: inherit;
+}
+
+.team-room-drawer button,
+.team-room-drawer summary {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.team-room-drawer button:focus-visible,
+.team-room-drawer input:focus-visible,
+.team-room-drawer select:focus-visible,
+.team-room-drawer textarea:focus-visible,
+.team-room-drawer summary:focus-visible {
+    outline: 2px solid var(--team-room-cyan);
+    outline-offset: 2px;
+}
+
+.team-room-shell {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    background: var(--team-room-surface);
+}
+
+.team-room-header {
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 70px;
+    padding: 14px 18px;
+    background: var(--team-room-surface);
+    border-bottom: 1px solid var(--team-room-line);
+}
+
+.team-room-heading,
+.team-room-section-heading > div,
+.team-room-attachment-heading > div {
+    min-width: 0;
+}
+
+.team-room-heading {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.team-room-heading-mark {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    background: rgb(229 72 77 / 14%);
+    border: 1px solid rgb(229 72 77 / 28%);
+    border-radius: 6px;
+    color: #ff8f93;
+}
+
+.team-room-heading-mark svg {
+    width: 19px;
+    height: 19px;
+    stroke-width: 1.8;
+}
+
+.team-room-title-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+}
+
+.team-room-heading h2,
+.team-room-section-heading h3,
+.team-room-screen-copy h3,
+.team-room-attachment-heading h3 {
+    margin: 0;
+    color: var(--team-room-text);
+    font-weight: 700;
+}
+
+.team-room-heading h2 {
+    font-size: 18px;
+}
+
+.team-room-connection-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    padding: 3px 7px;
+    background: var(--team-room-raised);
+    border: 1px solid var(--team-room-line-soft);
+    border-radius: 999px;
+    color: var(--team-room-subtle);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.team-room-connection-dot {
+    flex: 0 0 auto;
+    width: 6px;
+    height: 6px;
+    background: var(--team-room-subtle);
+    border-radius: 50%;
+}
+
+.team-room-connection-pill.is-connected {
+    background: rgb(70 167 88 / 10%);
+    border-color: rgb(70 167 88 / 28%);
+    color: #9addaa;
+}
+
+.team-room-connection-pill.is-connected .team-room-connection-dot {
+    background: var(--team-room-green);
+    box-shadow: 0 0 0 3px rgb(70 167 88 / 13%);
+}
+
+.team-room-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.team-room-share-button {
+    min-height: 36px;
+}
+
+.team-room-eyebrow {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--team-room-subtle);
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.team-room-icon-button,
+.team-room-button {
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.team-room-icon-button {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--team-room-line);
+    color: var(--team-room-muted);
+}
+
+.team-room-icon-button:hover {
+    background: var(--team-room-hover);
+    color: var(--team-room-text);
+}
+
+.team-room-icon-button svg,
+.team-room-button svg,
+.team-room-file-picker svg,
+.team-room-file-history summary svg {
+    width: 17px;
+    height: 17px;
+    stroke-width: 1.8;
+}
+
+.team-room-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 36px;
+    padding: 7px 12px;
+    border: 1px solid var(--team-room-line);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.team-room-button-primary {
+    background: var(--team-room-accent);
+    border-color: var(--team-room-accent);
+    color: #fff;
+}
+
+.team-room-button-primary:hover {
+    background: var(--team-room-accent-hover);
+    border-color: var(--team-room-accent-hover);
+}
+
+.team-room-button-secondary {
+    background: var(--team-room-raised);
+    color: var(--team-room-text);
+}
+
+.team-room-button-secondary:hover,
+.team-room-button-quiet:hover {
+    background: var(--team-room-hover);
+}
+
+.team-room-button-quiet {
+    min-height: 32px;
+    padding: 5px 9px;
+    background: transparent;
+    color: var(--team-room-muted);
+}
+
+.team-room-drawer button:disabled {
+    cursor: not-allowed;
+    opacity: 0.48;
+}
+
+.team-room-body {
+    min-height: 0;
+    padding: 16px 18px 20px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-color: var(--team-room-line) transparent;
+    scrollbar-gutter: stable;
+}
+
+.team-room-room-controls {
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--team-room-line-soft);
+}
+
+.team-room-screen-section {
+    margin-top: 14px;
+    padding: 11px;
+    background: #101310;
+    border: 1px solid var(--team-room-line);
+    border-radius: 7px;
+}
+
+.team-room-section-heading,
+.team-room-screen-toolbar,
+.team-room-attachment-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.team-room-section-heading h3,
+.team-room-screen-copy h3,
+.team-room-attachment-heading h3 {
+    font-size: 14px;
+}
+
+.team-room-join-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 1fr) 112px auto;
+    gap: 7px;
+    margin-top: 10px;
+}
+
+.team-room-field {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+    margin: 0;
+}
+
+.team-room-field > span {
+    color: var(--team-room-muted);
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.team-room-field small {
+    color: var(--team-room-subtle);
+    font-size: inherit;
+    font-weight: 500;
+}
+
+.team-room-field input,
+.team-room-field select,
+.team-room-chat-form textarea {
+    width: 100%;
+    min-width: 0;
+    background: var(--team-room-bg);
+    border: 1px solid var(--team-room-line);
+    border-radius: 4px;
+    color: var(--team-room-text);
+}
+
+.team-room-field input,
+.team-room-field select {
+    height: 36px;
+    padding: 0 9px;
+}
+
+.team-room-field input::placeholder,
+.team-room-chat-form textarea::placeholder {
+    color: var(--team-room-subtle);
+}
+
+.team-room-create-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 9px;
+    margin-top: 10px;
+    padding: 12px;
+    background: var(--team-room-raised);
+    border: 1px solid var(--team-room-line);
+    border-radius: 5px;
+}
+
+.team-room-create-panel[hidden],
+.team-room-file-composer[hidden],
+.team-room-screen-stage[hidden],
+.team-room-screen-section[hidden] {
+    display: none !important;
+}
+
+.team-room-create-panel .team-room-button {
+    grid-column: 1 / -1;
+    justify-self: end;
+}
+
+.team-room-inline-status {
+    min-height: 16px;
+    margin: 6px 0 0;
+    color: var(--team-room-muted);
+    font-size: 11px;
+    overflow-wrap: anywhere;
+}
+
+.team-room-inline-status:empty {
+    min-height: 0;
+    margin-top: 0;
+}
+
+.team-room-inline-status.is-error,
+.team-room-inline-status.settings-error {
+    color: #ff9b9f;
+}
+
+.team-room-inline-status.is-success {
+    color: #8bdf9a;
+}
+
+.team-room-screen-toolbar {
+    min-height: 40px;
+    padding: 0 1px 10px;
+}
+
+.team-room-screen-copy {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+}
+
+.team-room-screen-actions > p,
+.team-room-drawer #screenShareStatus {
+    max-width: 170px;
+    margin: 0;
+    color: var(--team-room-muted);
+    font-size: 11px;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.team-room-presence-dot {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    background: var(--team-room-subtle);
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgb(119 127 120 / 12%);
+}
+
+.team-room-screen-section.is-active .team-room-presence-dot,
+.team-room-drawer.is-sharing .team-room-presence-dot {
+    background: var(--team-room-green);
+    box-shadow: 0 0 0 3px rgb(70 167 88 / 15%);
+}
+
+.team-room-screen-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.team-room-stop-button {
+    min-height: 32px;
+    padding: 5px 9px;
+}
+
+.team-room-stop-button[hidden] {
+    display: none !important;
+}
+
+.team-room-stop-button:not(:disabled) {
+    border-color: #69363a;
+    background: #361b1d;
+    color: #ff9b9f;
+}
+
+.team-room-screen-stage {
+    overflow: hidden;
+    background: #090b09;
+    border: 1px solid var(--team-room-line);
+    border-radius: 6px;
+}
+
+.team-room-drawer #videoContainer {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: #090b09;
+    border: 0;
+    border-radius: 0;
+}
+
+.team-room-drawer #screenVideo,
+.team-room-drawer #remoteScreenView {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #090b09;
+}
+
+.team-room-drawer #screenVideo[hidden],
+.team-room-drawer #remoteScreenView[hidden] {
+    display: none !important;
+}
+
+.team-room-stage-action {
+    position: absolute;
+    top: 9px;
+    right: 9px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 6px 9px;
+    background: rgb(9 11 9 / 88%);
+    border: 1px solid rgb(242 244 239 / 24%);
+    border-radius: 4px;
+    color: var(--team-room-text);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.team-room-stage-action:hover {
+    background: rgb(32 36 32 / 94%);
+}
+
+.team-room-stage-action svg {
+    width: 15px;
+    height: 15px;
+}
+
+.team-room-drawer #videoContainer:fullscreen,
+.team-room-drawer #videoContainer:-webkit-full-screen {
+    width: 100vw;
+    height: 100vh;
+    aspect-ratio: auto;
+    border-radius: 0;
+}
+
+.team-room-conversation {
+    display: flex;
+    flex-direction: column;
+    min-height: 300px;
+    padding-top: 16px;
+}
+
+.team-room-conversation-heading {
+    flex: 0 0 auto;
+    margin-bottom: 10px;
+}
+
+.team-room-drawer #chatMessages,
+.team-room-messages {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 210px;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    color: var(--team-room-text);
+}
+
+.team-room-empty-state {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+    padding: 24px;
+    color: var(--team-room-subtle);
+    text-align: center;
+}
+
+.team-room-empty-state svg {
+    width: 28px;
+    height: 28px;
+    margin-bottom: 9px;
+    stroke-width: 1.4;
+}
+
+.team-room-empty-state strong {
+    color: var(--team-room-muted);
+    font-size: 13px;
+}
+
+.team-room-empty-state span {
+    margin-top: 3px;
+    font-size: 11px;
+}
+
+.team-room-drawer #chatMessages:has(> :not(#chatEmptyState)) #chatEmptyState {
+    display: none;
+}
+
+.team-room-drawer #chatMessages > p,
+.team-room-message {
+    align-self: flex-start;
+    max-width: 88%;
+    margin: 0;
+    padding: 9px 11px;
+    background: var(--team-room-raised);
+    border: 1px solid var(--team-room-line-soft);
+    border-radius: 10px 10px 10px 3px;
+    color: var(--team-room-text);
+    font-size: 13px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.team-room-message.is-own {
+    align-self: flex-end;
+    background: #a52f34;
+    border-color: #a52f34;
+    border-radius: 10px 10px 3px;
+    color: #fff;
+}
+
+.team-room-drawer #chatMessages .team-room-message strong {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--team-room-muted);
+    font-size: 10px;
+    font-weight: 750;
+}
+
+.team-room-drawer #chatMessages .team-room-message.is-own strong {
+    color: #ffdadd;
+}
+
+.team-room-drawer #chatMessages .team-room-message p {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    color: inherit;
+    font: inherit;
+}
+
+.team-room-drawer #chatMessages .file-offer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    max-width: 100%;
+    margin: 0;
+    padding: 10px 11px;
+    background: #202a2a;
+    border: 1px solid #365759;
+    border-radius: 7px;
+}
+
+.team-room-drawer #chatMessages .file-offer-label {
+    color: #b9dddd;
+    font-size: 12px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.team-room-composer-region {
+    z-index: 2;
+    padding: 12px 16px 14px;
+    background: #151815;
+    border-top: 1px solid var(--team-room-line);
+    box-shadow: 0 -12px 30px rgb(0 0 0 / 18%);
+}
+
+.team-room-file-composer {
+    max-height: min(420px, 52vh);
+    margin-bottom: 11px;
+    padding: 12px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--team-room-raised);
+    border: 1px solid var(--team-room-line);
+    border-radius: 6px;
+    scrollbar-color: var(--team-room-line) transparent;
+}
+
+.team-room-file-close {
+    width: 30px;
+    height: 30px;
+}
+
+.team-room-attachment-heading {
+    margin-bottom: 10px;
+}
+
+.team-room-file-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 9px;
+    align-items: end;
+}
+
+.team-room-file-form .team-room-field {
+    grid-column: 1 / -1;
+}
+
+.team-room-file-picker {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    min-height: 36px;
+    padding: 7px 10px;
+    overflow: hidden;
+    background: var(--team-room-bg);
+    border: 1px dashed var(--team-room-line);
+    border-radius: 4px;
+    color: var(--team-room-muted);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.team-room-file-picker span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.team-room-file-picker:hover {
+    background: var(--team-room-hover);
+    color: var(--team-room-text);
+}
+
+.team-room-file-picker:focus-within {
+    outline: 2px solid var(--team-room-cyan);
+    outline-offset: 2px;
+}
+
+.team-room-file-picker input[type="file"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.team-room-file-progress {
+    width: 100%;
+    height: 6px;
+    margin-top: 9px;
+    border: 0;
+    accent-color: var(--team-room-accent);
+}
+
+.team-room-file-progress[hidden] {
+    display: none;
+}
+
+.team-room-file-history {
+    margin-top: 10px;
+    border-top: 1px solid var(--team-room-line);
+}
+
+.team-room-file-history summary {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 36px;
+    color: var(--team-room-muted);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    list-style: none;
+}
+
+.team-room-file-history summary::-webkit-details-marker {
+    display: none;
+}
+
+.team-room-summary-chevron {
+    margin-left: auto;
+    transition: transform 160ms ease;
+}
+
+.team-room-file-history[open] .team-room-summary-chevron {
+    transform: rotate(180deg);
+}
+
+.team-room-file-history-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+    padding-top: 4px;
+}
+
+.team-room-file-history h4 {
+    margin: 0 0 6px;
+    color: var(--team-room-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.team-room-file-history ul {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.team-room-drawer .settings-list-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 7px;
+    align-items: center;
+    margin: 0;
+    padding: 7px;
+    background: var(--team-room-bg);
+    border: 1px solid var(--team-room-line-soft);
+    border-radius: 4px;
+}
+
+.team-room-drawer .settings-list-label {
+    color: var(--team-room-text);
+    font-size: 11px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.team-room-drawer .settings-action-btn {
+    min-height: 28px;
+    padding: 4px 7px;
+    background: var(--team-room-raised);
+    border: 1px solid var(--team-room-line);
+    border-radius: 4px;
+    color: #9ad9da;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.team-room-drawer .settings-action-btn:hover {
+    background: var(--team-room-hover);
+}
+
+.team-room-drawer .settings-empty {
+    margin: 0;
+    padding: 6px 0;
+    color: var(--team-room-subtle);
+    font-size: 11px;
+    font-style: normal;
+}
+
+.team-room-chat-form {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: end;
+    margin: 0;
+}
+
+.team-room-attach-button {
+    margin-bottom: 1px;
+}
+
+.team-room-attach-button[aria-expanded="true"] {
+    background: #2b2020;
+    border-color: #5b3335;
+    color: #ffb3b5;
+}
+
+.team-room-drawer #chatInput,
+.team-room-chat-form textarea {
+    display: block;
+    min-height: 38px;
+    max-height: 112px;
+    margin: 0;
+    padding: 9px 10px;
+    resize: vertical;
+    color: var(--team-room-text);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.team-room-send-button {
+    min-height: 38px;
+}
+
+.team-room-chat-status {
+    padding-left: 44px;
+}
+
+.team-room-visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+[data-team-room-trigger] {
+    position: relative;
+}
+
+.team-room-activity-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: var(--team-room-accent, #e5484d);
+    border: 1px solid rgb(255 255 255 / 18%);
+    border-radius: 999px;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.01em;
+}
+
+.team-room-activity-badge[hidden] {
+    display: none !important;
+}
+
+.team-room-activity-badge.is-live {
+    gap: 4px;
+    background: #276b37;
+    border-color: #438d52;
+}
+
+.team-room-activity-badge.is-live::before {
+    width: 5px;
+    height: 5px;
+    background: #a8e6b2;
+    border-radius: 50%;
+    content: "";
+}
+
+@media (max-width: 760px) {
+    #teamRoomButton .team-room-activity-badge {
+        position: absolute;
+        top: 5px;
+        right: 4px;
+        width: 9px;
+        min-width: 9px;
+        height: 9px;
+        padding: 0;
+        border: 1px solid var(--team-room-surface, #181b18);
+        font-size: 0;
+    }
+
+    #teamRoomButton .team-room-activity-badge.is-live::before {
+        display: none;
+    }
+}
+
+@media (max-width: 520px) {
+    .team-room-drawer {
+        --team-room-topbar-height: var(--pm-topbar-height, var(--app-topbar-height, 58px));
+        width: 100vw;
+        border-left: 0;
+    }
+
+    .team-room-header {
+        min-height: 62px;
+        padding: 12px 14px;
+    }
+
+    .team-room-heading-mark {
+        width: 34px;
+        height: 34px;
+    }
+
+    .team-room-share-button span {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+
+    .team-room-share-button {
+        width: 36px;
+        padding: 0;
+    }
+
+    .team-room-body {
+        padding: 14px 14px 18px;
+        scrollbar-gutter: auto;
+    }
+
+    .team-room-join-row {
+        grid-template-columns: minmax(0, 1fr) 104px auto;
+    }
+
+    .team-room-composer-region {
+        padding: 11px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    }
+
+    .team-room-file-composer {
+        max-height: min(390px, 52dvh);
+    }
+}
+
+@media (max-width: 390px) {
+    .team-room-connection-pill {
+        max-width: 102px;
+    }
+
+    #roomConnectionText {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .team-room-join-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .team-room-join-password {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+
+    .team-room-create-panel,
+    .team-room-file-history-body {
+        grid-template-columns: 1fr;
+    }
+
+    .team-room-file-form {
+        grid-template-columns: 1fr;
+    }
+
+    .team-room-file-form .team-room-button {
+        width: 100%;
+    }
+
+    .team-room-chat-form {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 6px;
+    }
+
+    .team-room-screen-toolbar {
+        align-items: flex-start;
+    }
+
+    .team-room-screen-actions {
+        align-items: flex-end;
+        flex-direction: column;
+    }
+
+    .team-room-screen-actions > p,
+    .team-room-drawer #screenShareStatus {
+        max-width: 138px;
+    }
+
+    .team-room-send-button {
+        width: 38px;
+        padding: 0;
+    }
+
+    .team-room-send-button span {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+}
+
+@media (max-height: 680px) {
+    .team-room-header {
+        min-height: 60px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+
+    .team-room-body {
+        padding-top: 12px;
+        padding-bottom: 14px;
+    }
+
+    .team-room-file-composer {
+        max-height: 56vh;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .team-room-drawer,
+    .team-room-summary-chevron {
+        transition-duration: 0.01ms;
+    }
+}
