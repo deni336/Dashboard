@@ -6,6 +6,7 @@ const test = require("node:test");
 const {
     initializeSettings,
     readBackgroundUploadResponse,
+    safeShortcutUrl,
     updateBackgroundImage,
 } = require("../sites/static/js/settings.js");
 
@@ -18,6 +19,14 @@ function fakeStyle(initialValue = "old-background") {
         setProperty: (name, value) => values.set(name, value),
     };
 }
+
+
+test("quick shortcuts accept only credential-free HTTPS URLs", () => {
+    assert.equal(safeShortcutUrl("https://example.com/tools"), "https://example.com/tools");
+    assert.equal(safeShortcutUrl("http://example.com"), "");
+    assert.equal(safeShortcutUrl("https://user:secret@example.com"), "");
+    assert.equal(safeShortcutUrl("C:\\Windows\\System32\\notepad.exe"), "");
+});
 
 
 test("a verified background image is applied with a cache-busting URL", async () => {

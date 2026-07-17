@@ -18,6 +18,19 @@ def init_auth_routes(app, config_handler, connect_callback):
             'auth_bp.login',
             'auth_bp.authorize',
             'auth_bp.logout',
+            # Outbound workstation agents authenticate with a one-time pairing
+            # code or revocable bearer token instead of a browser license
+            # session. Keep this exemption exact; no route prefix is trusted.
+            'workstation_bp.pair_workstation_agent',
+            'workstation_bp.ingest_workstation_snapshot',
+            'homelab_bp.pair_homelab_agent',
+            'homelab_bp.ingest_homelab_snapshot',
+            'homelab_bp.claim_homelab_action',
+            'homelab_bp.submit_homelab_action_result',
+            'launcher_bp.pair_launcher_agent',
+            'launcher_bp.ingest_launcher_catalog',
+            'launcher_bp.claim_launcher_run',
+            'launcher_bp.submit_launcher_result',
             'static',
         }:
             return None

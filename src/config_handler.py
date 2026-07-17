@@ -46,6 +46,7 @@ DEFAULT_CONFIG = {
     'Database': {
         'dbpath': 'chat_history.db',
         'projectdbpath': 'project_manager.db',
+        'dashboarddbpath': 'personal_dashboard.db',
         'encryption_key': ''
     }
 }

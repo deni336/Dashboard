@@ -27,14 +27,8 @@ function initializeSettings() {
     document.getElementById('buttonContainer').addEventListener('click', function (event) {
         const button = event.target.closest('.dynamic-button');
         if (!button) return;
-
-        fetch(`/button_click/${encodeURIComponent(button.textContent)}`, { method: 'POST' })
-            .then(response => {
-                if (!response.ok) {
-                    console.error('Failed to execute button action:', response.statusText);
-                }
-            })
-            .catch(error => console.error('Error during button click:', error));
+        const link = safeShortcutUrl(button.dataset.shortcutUrl);
+        if (link) window.open(link, '_blank', 'noopener,noreferrer');
     });
 
     document.getElementById('addButtonForm').addEventListener('submit', function (event) {
@@ -186,6 +180,9 @@ function renderButtonContainer(buttons) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'dynamic-button';
+        const safeLink = safeShortcutUrl(button.link);
+        btn.dataset.shortcutUrl = safeLink;
+        btn.disabled = !safeLink;
         const icon = document.createElement('i');
         icon.setAttribute('data-lucide', 'arrow-up-right');
         const label = document.createElement('span');
@@ -194,6 +191,16 @@ function renderButtonContainer(buttons) {
         container.appendChild(btn);
     });
     if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
+}
+
+function safeShortcutUrl(value) {
+    try {
+        const url = new URL(String(value || ''));
+        if (url.protocol !== 'https:' || url.username || url.password) return '';
+        return url.href;
+    } catch (_error) {
+        return '';
+    }
 }
 
 function renderButtonList(buttons) {
@@ -275,5 +282,6 @@ if (typeof module !== 'undefined' && module.exports) {
         initializeSettings,
         readBackgroundUploadResponse,
         updateBackgroundImage,
+        safeShortcutUrl,
     };
 }

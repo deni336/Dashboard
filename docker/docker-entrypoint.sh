@@ -49,6 +49,7 @@ port = ${KASUGAI_FILE_TRANSFER_PORT:-50051}
 [Database]
 dbpath = chat_history.db
 projectdbpath = project_manager.db
+dashboarddbpath = personal_dashboard.db
 encryption_key =
 EOF
 fi
@@ -101,6 +102,7 @@ set_value("Licensing", "activationlabel", os.getenv("DENILICENSE_ACTIVATION_LABE
 set_value("AI", "provider", os.getenv("KASUGAI_AI_PROVIDER", "disabled"))
 set_value("AI", "baseurl", os.getenv("KASUGAI_AI_BASE_URL", ""))
 set_value("AI", "model", os.getenv("KASUGAI_AI_MODEL", "gpt-oss:20b"))
+set_value("Database", "dashboarddbpath", "personal_dashboard.db")
 
 with open(config_file, "w") as file:
     config.write(file)

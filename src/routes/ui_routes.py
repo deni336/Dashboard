@@ -223,11 +223,16 @@ def index():
         return redirect(url_for('auth_bp.login'))
 
     buttons = [b['name'] for b in button_manager.get_buttons()]
+    csrf_token = session.get("csrf_token")
+    if not csrf_token:
+        csrf_token = secrets.token_urlsafe(32)
+        session["csrf_token"] = csrf_token
     return render_template(
         'index.html',
         buttons=buttons,
         user=session['profile'],
-        current_user_id=session.get('kasugai_user_id', '')
+        current_user_id=session.get('kasugai_user_id', ''),
+        csrf_token=csrf_token,
     )
 
 

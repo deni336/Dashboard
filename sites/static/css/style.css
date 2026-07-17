@@ -576,6 +576,7 @@ a {
 .settings-tabs {
     display: flex;
     gap: 4px;
+    overflow-x: auto;
     margin: 22px 0;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--app-border-soft);

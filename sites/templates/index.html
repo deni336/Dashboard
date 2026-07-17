@@ -4,12 +4,26 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="kasugai-csrf-token" content="{{ csrf_token }}">
     <title>Home | Kasugai</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/developer_cockpit.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/workstation_monitor.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/homelab_dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/launcher.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/automation.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/inbox.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/knowledge.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/security.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ai_toolbox.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/personal_hub.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/team_room.css') }}">
 
-    <script>window.CURRENT_USER_ID = {{ current_user_id | tojson }};</script>
+    <script>
+        window.CURRENT_USER_ID = {{ current_user_id | tojson }};
+        window.KASUGAI_CSRF_TOKEN = {{ csrf_token | tojson }};
+    </script>
     <script src="https://unpkg.com/lucide@1.24.0/dist/umd/lucide.js"
             integrity="sha384-pLX3Fl0m52MclHeHyUdLRg9l8/QW5IiesBUs9Sxxm38xj9lNZW7JqqAfp2/4ARQt"
             crossorigin="anonymous" defer></script>
@@ -17,6 +31,16 @@
     <script src="{{ url_for('static', filename='js/settings.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/file_transfer.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/team_room.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/developer_cockpit.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/workstation_monitor.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/homelab_dashboard.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/launcher.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/automation.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/inbox.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/knowledge.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/security.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/ai_toolbox.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/personal_hub.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
 </head>
 
@@ -29,7 +53,7 @@
 
         <nav class="app-primary-nav" aria-label="Application navigation">
             <a class="active" href="{{ url_for('ui_bp.index') }}" aria-current="page">
-                <i data-lucide="house"></i><span>Home</span>
+                <i data-lucide="layout-dashboard"></i><span>Dashboard</span>
             </a>
             <a href="{{ url_for('project_bp.workspace_page') }}">
                 <i data-lucide="briefcase-business"></i><span>Projects</span>
@@ -37,10 +61,19 @@
         </nav>
 
         <div class="app-account">
+            <button class="app-action-button command-palette-trigger" id="commandPaletteButton" type="button"
+                    aria-controls="commandPalette" aria-expanded="false">
+                <i data-lucide="search"></i><span>Run</span><kbd>Ctrl K</kbd>
+            </button>
             <button class="app-action-button team-room-trigger" id="teamRoomButton" type="button"
                     data-team-room-trigger aria-controls="teamRoomDrawer" aria-expanded="false">
                 <i data-lucide="messages-square"></i><span>Team Room</span>
                 <span class="team-room-activity-badge" data-team-room-activity hidden></span>
+            </button>
+            <button class="app-action-button inbox-topbar-button" id="inboxTopbarButton" type="button"
+                    aria-controls="inboxModule" title="Open Nerd Inbox">
+                <i data-lucide="inbox"></i><span>Inbox</span>
+                <span class="inbox-topbar-badge" id="inboxUnreadBadge" aria-label="Unread inbox items" hidden></span>
             </button>
             <button class="app-icon-button" id="settingsBtn" type="button"
                     aria-controls="settingsModal" aria-expanded="false" title="Settings" aria-label="Settings">
@@ -52,41 +85,90 @@
         </div>
     </header>
 
-    <main class="home-shell">
-        <section class="home-hero">
-            <div class="home-hero-copy">
-                <span class="app-eyebrow">Personal workspace</span>
-                <h1>Your work, in one place.</h1>
-                <p>Move projects forward, meet with your team, and keep the tools you use most close at hand.</p>
-                <div class="home-hero-actions">
-                    <a class="app-button app-button-primary" href="{{ url_for('project_bp.workspace_page') }}">
-                        <i data-lucide="briefcase-business"></i>Open projects
-                    </a>
-                    <button class="app-button app-button-secondary" type="button" data-team-room-trigger
-                            aria-controls="teamRoomDrawer" aria-expanded="false">
-                        <i data-lucide="messages-square"></i>Open Team Room
-                    </button>
-                </div>
+    <main class="home-shell cockpit-shell" id="developerCockpit">
+        <header class="cockpit-briefing">
+            <div class="cockpit-briefing-copy">
+                <span class="app-eyebrow">Personal command center</span>
+                <h1>Developer Cockpit</h1>
+                <p id="cockpitSummary" role="status" aria-live="polite">Inspecting your development workspace…</p>
             </div>
-            <div class="home-hero-orbit" aria-hidden="true">
-                <span class="orbit-card orbit-card-projects"><i data-lucide="list-checks"></i></span>
-                <span class="orbit-card orbit-card-chat"><i data-lucide="message-circle"></i></span>
-                <span class="orbit-card orbit-card-share"><i data-lucide="monitor-up"></i></span>
-                <span class="orbit-core"><i data-lucide="panels-top-left"></i></span>
+            <div class="cockpit-toolbar">
+                <button class="app-button app-button-secondary" type="button" data-open-developer-settings>
+                    <i data-lucide="sliders-horizontal"></i>Configure
+                </button>
+                <button class="app-button app-button-primary" id="refreshDeveloperCockpit" type="button">
+                    <i data-lucide="refresh-cw"></i>Refresh
+                </button>
             </div>
+        </header>
+
+        <section class="cockpit-metrics" aria-label="Repository summary">
+            <article class="cockpit-metric">
+                <span class="cockpit-metric-icon"><i data-lucide="git-branch"></i></span>
+                <div><strong id="repositoryTotal">—</strong><span>Repositories</span></div>
+            </article>
+            <article class="cockpit-metric">
+                <span class="cockpit-metric-icon"><i data-lucide="star"></i></span>
+                <div><strong id="repositoryFavorites">—</strong><span>Favorites</span></div>
+            </article>
+            <article class="cockpit-metric">
+                <span class="cockpit-metric-icon is-warning"><i data-lucide="file-pen-line"></i></span>
+                <div><strong id="repositoryDirty">—</strong><span>With changes</span></div>
+            </article>
+            <article class="cockpit-metric">
+                <span class="cockpit-metric-icon is-sync"><i data-lucide="git-compare-arrows"></i></span>
+                <div><strong id="repositorySync">—</strong><span>Need syncing</span></div>
+            </article>
         </section>
 
-        <section class="home-content-grid" aria-label="Workspace shortcuts">
-            <article class="home-panel home-shortcuts-panel">
-                <header class="home-panel-heading">
+        <section class="cockpit-grid" aria-label="Developer dashboard">
+            <article class="cockpit-widget cockpit-repositories-widget">
+                <header class="cockpit-widget-header">
                     <div>
-                        <span class="app-eyebrow">Quick access</span>
-                        <h2>Shortcuts</h2>
+                        <span class="app-eyebrow">Local development</span>
+                        <h2>Repositories</h2>
                     </div>
+                    <span class="cockpit-status" id="repositoryStatus">Loading</span>
+                </header>
+                <div class="cockpit-repository-tools">
+                    <label class="cockpit-search-field" for="repositorySearch">
+                        <i data-lucide="search" aria-hidden="true"></i>
+                        <input id="repositorySearch" type="search" placeholder="Filter repositories…" autocomplete="off">
+                    </label>
+                    <label class="cockpit-filter-field" for="repositoryFilter">
+                        <span class="team-room-visually-hidden">Repository filter</span>
+                        <select id="repositoryFilter">
+                            <option value="all">All repositories</option>
+                            <option value="favorites">Favorites</option>
+                            <option value="dirty">With changes</option>
+                            <option value="sync">Need syncing</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="cockpit-repository-list" id="repositoryList" aria-live="polite" aria-busy="true">
+                    <div class="cockpit-loading-state"><i data-lucide="loader-circle"></i><span>Scanning configured roots…</span></div>
+                </div>
+            </article>
+
+            <article class="cockpit-widget cockpit-github-widget">
+                <header class="cockpit-widget-header">
+                    <div>
+                        <span class="app-eyebrow">Code network</span>
+                        <h2>GitHub</h2>
+                    </div>
+                    <span class="cockpit-status" id="githubStatus">Checking</span>
+                </header>
+                <div id="githubActivity" class="cockpit-github-activity" aria-live="polite" aria-busy="true"></div>
+                <button class="cockpit-text-button" type="button" data-open-developer-settings>
+                    <i data-lucide="plug"></i><span>Manage GitHub connection</span>
+                </button>
+            </article>
+
+            <article class="cockpit-widget cockpit-quick-widget">
+                <header class="cockpit-widget-header">
+                    <div><span class="app-eyebrow">Launcher</span><h2>Quick access</h2></div>
                     <button class="app-icon-button" type="button" data-open-settings="buttons"
-                            title="Manage shortcuts" aria-label="Manage shortcuts">
-                        <i data-lucide="plus"></i>
-                    </button>
+                            title="Manage shortcuts" aria-label="Manage shortcuts"><i data-lucide="plus"></i></button>
                 </header>
                 <div class="button-container" id="buttonContainer">
                     {% for button in buttons %}
@@ -94,30 +176,659 @@
                             <i data-lucide="arrow-up-right"></i><span>{{ button }}</span>
                         </button>
                     {% endfor %}
-                    {% if not buttons %}
-                        <p class="home-empty-copy">Add the tools and links you reach for every day.</p>
-                    {% endif %}
+                    {% if not buttons %}<p class="home-empty-copy">Add the tools and links you reach for every day.</p>{% endif %}
                 </div>
             </article>
 
-            <a class="home-destination-card" href="{{ url_for('project_bp.workspace_page') }}">
-                <span class="home-card-icon"><i data-lucide="briefcase-business"></i></span>
-                <span class="app-eyebrow">Plan and deliver</span>
-                <h2>Projects</h2>
-                <p>Keep work, meetings, decisions, risks, and stakeholders together.</p>
-                <span class="home-card-link">View portfolio <i data-lucide="arrow-right"></i></span>
+            <a class="cockpit-widget cockpit-destination-widget" href="{{ url_for('project_bp.workspace_page') }}">
+                <span class="cockpit-destination-icon"><i data-lucide="briefcase-business"></i></span>
+                <div><span class="app-eyebrow">Workspace module</span><h2>Projects</h2>
+                    <p>Plans, tasks, milestones, decisions, meetings, and stakeholders.</p></div>
+                <span class="cockpit-widget-link">Open Projects <i data-lucide="arrow-right"></i></span>
             </a>
 
-            <button class="home-destination-card" type="button" data-team-room-trigger
+            <button class="cockpit-widget cockpit-destination-widget" type="button" data-team-room-trigger
                     aria-controls="teamRoomDrawer" aria-expanded="false">
-                <span class="home-card-icon"><i data-lucide="users-round"></i></span>
-                <span class="app-eyebrow">Work together</span>
-                <h2>Team Room</h2>
-                <p>Chat, send a file, or share your screen without switching contexts.</p>
-                <span class="home-card-link">Start collaborating <i data-lucide="arrow-right"></i></span>
+                <span class="cockpit-destination-icon"><i data-lucide="messages-square"></i></span>
+                <div><span class="app-eyebrow">Collaboration module</span><h2>Team Room</h2>
+                    <p>Chat, transfer a file, and share your screen from anywhere.</p></div>
+                <span class="cockpit-widget-link">Open Team Room <i data-lucide="arrow-right"></i></span>
             </button>
         </section>
+
+        <section class="cockpit-module-section workstation-section" id="workstationMonitor"
+                 aria-labelledby="workstationMonitorTitle">
+            <header class="cockpit-module-heading">
+                <div>
+                    <span class="cockpit-module-number">02</span>
+                    <div><span class="app-eyebrow">Host telemetry</span><h2 id="workstationMonitorTitle">Workstation Monitor</h2></div>
+                </div>
+                <div class="cockpit-module-actions">
+                    <span class="cockpit-status" id="workstationStatus">Not paired</span>
+                    <button class="app-button app-button-secondary" type="button" data-open-workstation-settings>
+                        <i data-lucide="monitor-cog"></i>Manage workstations
+                    </button>
+                </div>
+            </header>
+
+            <div class="workstation-layout">
+                <article class="cockpit-widget workstation-overview-widget">
+                    <header class="cockpit-widget-header workstation-widget-header">
+                        <div>
+                            <span class="app-eyebrow" id="workstationSource">Outbound host agent</span>
+                            <h2 id="workstationName">Waiting for a workstation</h2>
+                        </div>
+                        <select id="workstationSelect" class="workstation-select" aria-label="Selected workstation" hidden></select>
+                    </header>
+                    <div class="workstation-metric-grid" id="workstationMetricGrid" aria-live="polite" aria-busy="false">
+                        <div class="workstation-empty" id="workstationEmpty">
+                            <i data-lucide="monitor-up"></i>
+                            <strong>Pair your computer</strong>
+                            <p>The companion agent sends privacy-safe CPU, memory, GPU, disk, and network totals to this dashboard.</p>
+                            <button class="cockpit-text-button" type="button" data-open-workstation-settings>Start pairing</button>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="cockpit-widget workstation-detail-widget">
+                    <header class="cockpit-widget-header">
+                        <div><span class="app-eyebrow">Live pulse</span><h2>Machine details</h2></div>
+                        <button class="app-icon-button" id="refreshWorkstation" type="button"
+                                title="Refresh workstation" aria-label="Refresh workstation"><i data-lucide="refresh-cw"></i></button>
+                    </header>
+                    <dl class="workstation-details" id="workstationDetails">
+                        <div><dt>State</dt><dd>Not paired</dd></div>
+                        <div><dt>Last report</dt><dd>—</dd></div>
+                        <div><dt>Uptime</dt><dd>—</dd></div>
+                        <div><dt>Battery</dt><dd>—</dd></div>
+                    </dl>
+                    <div class="workstation-privacy-note"><i data-lucide="shield-check"></i><span>No filenames, command lines, browser history, IP addresses, or open ports are collected.</span></div>
+                </article>
+            </div>
+        </section>
+
+        <section class="cockpit-module-section homelab-section" id="homelabDashboard"
+                 aria-labelledby="homelabDashboardTitle">
+            <header class="cockpit-module-heading">
+                <div>
+                    <span class="cockpit-module-number">03</span>
+                    <div><span class="app-eyebrow">Local infrastructure</span><h2 id="homelabDashboardTitle">Docker &amp; Homelab</h2></div>
+                </div>
+                <div class="cockpit-module-actions">
+                    <span class="cockpit-status" id="homelabStatus">Not paired</span>
+                    <button class="app-button app-button-secondary" type="button" data-open-homelab-settings>
+                        <i data-lucide="server-cog"></i>Manage agent
+                    </button>
+                </div>
+            </header>
+
+            <div class="homelab-layout">
+                <article class="cockpit-widget homelab-inventory-widget">
+                    <header class="cockpit-widget-header homelab-widget-header">
+                        <div><span class="app-eyebrow" id="homelabEngineCopy">Outbound Docker inventory</span><h2 id="homelabName">Waiting for a homelab agent</h2></div>
+                        <div class="homelab-header-actions">
+                            <select id="homelabSelect" class="workstation-select" aria-label="Selected homelab agent" hidden></select>
+                            <button class="app-icon-button" id="refreshHomelab" type="button" title="Refresh homelab" aria-label="Refresh homelab"><i data-lucide="refresh-cw"></i></button>
+                        </div>
+                    </header>
+                    <div class="homelab-summary" id="homelabSummary" aria-live="polite"></div>
+                    <div class="homelab-container-list" id="homelabContainerList" aria-live="polite" aria-busy="false">
+                        <div class="workstation-empty"><i data-lucide="container"></i><strong>Pair a homelab agent</strong><p>Docker inventory stays on the host and arrives through a separate, outbound-only credential.</p><button class="cockpit-text-button" type="button" data-open-homelab-settings>Start pairing</button></div>
+                    </div>
+                </article>
+
+                <div class="homelab-side-stack">
+                    <article class="cockpit-widget homelab-health-widget">
+                        <header class="cockpit-widget-header"><div><span class="app-eyebrow">Service pulse</span><h2>Health checks</h2></div><span class="cockpit-status" id="homelabHealthStatus">Unconfigured</span></header>
+                        <div class="homelab-health-list" id="homelabHealthList"><p class="home-empty-copy">Health targets are configured only on the host agent.</p></div>
+                    </article>
+                    <article class="cockpit-widget homelab-jobs-widget">
+                        <header class="cockpit-widget-header"><div><span class="app-eyebrow">Controlled operations</span><h2>Recent jobs</h2></div></header>
+                        <div class="homelab-job-list" id="homelabJobList"><p class="home-empty-copy">No Docker actions have been requested.</p></div>
+                        <p class="homelab-action-note"><i data-lucide="lock-keyhole"></i>Restart and logs require server, host-policy, and per-container label grants.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="cockpit-module-section launcher-section" id="launcherModule"
+                 aria-labelledby="launcherModuleTitle">
+            <header class="cockpit-module-heading">
+                <div><span class="cockpit-module-number">04</span><div><span class="app-eyebrow">Keyboard-first control</span><h2 id="launcherModuleTitle">Universal Launcher</h2></div></div>
+                <div class="cockpit-module-actions">
+                    <span class="cockpit-status" id="launcherStatus">Connecting</span>
+                    <button class="app-button app-button-secondary" type="button" data-open-launcher-settings><i data-lucide="sliders-horizontal"></i>Configure</button>
+                    <button class="app-icon-button" id="refreshLauncher" type="button" title="Refresh launcher" aria-label="Refresh launcher"><i data-lucide="refresh-cw"></i></button>
+                    <button class="app-button app-button-primary" type="button" data-open-command-palette><i data-lucide="command"></i>Open launcher</button>
+                </div>
+            </header>
+            <div class="launcher-layout">
+                <article class="cockpit-widget launcher-callout">
+                    <span class="cockpit-destination-icon"><i data-lucide="command"></i></span>
+                    <div><span class="app-eyebrow">One search surface</span><h2>Jump anywhere. Run only what you approved.</h2><p>Search dashboard modules, repositories, projects, notes, and locally allowlisted tasks. Host actions use opaque IDs; the browser never sends commands, paths, or arguments.</p></div>
+                    <button class="cockpit-text-button" type="button" data-open-command-palette>Press Ctrl K</button>
+                </article>
+                <article class="cockpit-widget launcher-runner-widget">
+                    <header class="cockpit-widget-header"><div><span class="app-eyebrow">Outbound execution</span><h2>Task runners</h2></div><span class="cockpit-status" id="launcherRunnerStatus">Unconfigured</span></header>
+                    <div class="launcher-runner-metrics">
+                        <div><strong id="launcherOnlineCount">0</strong><span>Online</span></div>
+                        <div><strong id="launcherTaskCount">0</strong><span>Approved tasks</span></div>
+                    </div>
+                    <div class="launcher-runner-list" id="launcherRunnerList" aria-live="polite"><p class="home-empty-copy">Pair a separate runner to make local tasks available.</p></div>
+                    <button class="cockpit-text-button" type="button" data-open-launcher-settings><i data-lucide="plug-zap"></i><span>Manage task runners</span></button>
+                </article>
+            </div>
+            <div class="launcher-workspace">
+                <article class="cockpit-widget launcher-catalog-widget">
+                    <header class="cockpit-widget-header">
+                        <div><span class="app-eyebrow">Host-owned allowlist</span><h2>Approved local tasks</h2></div>
+                        <span class="launcher-catalog-count" id="launcherCatalogCount">0 tasks</span>
+                    </header>
+                    <div class="launcher-catalog-tools">
+                        <label class="cockpit-search-field" for="launcherTaskSearch"><i data-lucide="search" aria-hidden="true"></i><input id="launcherTaskSearch" type="search" autocomplete="off" placeholder="Filter approved tasks…"></label>
+                        <label class="team-room-visually-hidden" for="launcherTaskCategory">Task category</label>
+                        <select id="launcherTaskCategory" aria-label="Task category"><option value="">All categories</option></select>
+                    </div>
+                    <p class="settings-feedback launcher-feedback" id="launcherFeedback" role="status" aria-live="polite"></p>
+                    <div class="launcher-task-grid" id="launcherTaskGrid" aria-live="polite" aria-busy="true"><p class="home-empty-copy">Loading the allowlisted task catalog…</p></div>
+                </article>
+                <article class="cockpit-widget launcher-history-widget">
+                    <header class="cockpit-widget-header"><div><span class="app-eyebrow">Audit trail</span><h2>Recent runs</h2></div><button class="cockpit-text-button" id="refreshLauncherRuns" type="button">Refresh</button></header>
+                    <div class="launcher-run-list" id="launcherRunList" aria-live="polite" aria-busy="true"><p class="home-empty-copy">Loading recent runs…</p></div>
+                </article>
+            </div>
+        </section>
+
+        <section class="cockpit-module-section automation-section" id="automationModule"
+                 aria-labelledby="automationModuleTitle">
+            <header class="cockpit-module-heading">
+                <div><span class="cockpit-module-number">05</span><div><span class="app-eyebrow">Rules with guardrails</span><h2 id="automationModuleTitle">Automation Engine</h2></div></div>
+                <div class="cockpit-module-actions">
+                    <span class="cockpit-status" id="automationStatus">Loading</span>
+                    <button class="app-button app-button-secondary" type="button" data-open-automation-settings><i data-lucide="sliders-horizontal"></i>Build rule</button>
+                    <button class="app-icon-button" id="refreshAutomations" type="button" title="Refresh automations" aria-label="Refresh automations"><i data-lucide="refresh-cw"></i></button>
+                </div>
+            </header>
+
+            <div class="automation-summary" aria-label="Automation summary">
+                <article class="cockpit-widget automation-summary-card"><span class="automation-summary-icon"><i data-lucide="workflow"></i></span><div><strong id="automationRuleCount">0</strong><span>Total rules</span></div></article>
+                <article class="cockpit-widget automation-summary-card"><span class="automation-summary-icon is-active"><i data-lucide="power"></i></span><div><strong id="automationActiveCount">0</strong><span>Enabled</span></div></article>
+                <article class="cockpit-widget automation-summary-card"><span class="automation-summary-icon is-scheduled"><i data-lucide="clock-3"></i></span><div><strong id="automationNextRun">—</strong><span>Next scheduled</span></div></article>
+                <article class="cockpit-widget automation-summary-card"><span class="automation-summary-icon is-outcome"><i data-lucide="check-check"></i></span><div><strong id="automationSuccessRate">—</strong><span>Recent success</span></div></article>
+            </div>
+
+            <div class="automation-layout">
+                <article class="cockpit-widget automation-rules-widget">
+                    <header class="cockpit-widget-header">
+                        <div><span class="app-eyebrow">Predictable behavior</span><h2>Rules</h2></div>
+                        <button class="cockpit-text-button" type="button" data-open-automation-settings><i data-lucide="plus"></i><span>New rule</span></button>
+                    </header>
+                    <p class="settings-feedback automation-feedback" id="automationFeedback" role="status" aria-live="polite"></p>
+                    <div class="automation-rule-list" id="automationRuleList" aria-live="polite" aria-busy="true"><p class="home-empty-copy">Loading automation rules…</p></div>
+                </article>
+                <div class="automation-side-stack">
+                    <article class="cockpit-widget automation-safety-widget">
+                        <header class="cockpit-widget-header"><div><span class="app-eyebrow">Safety boundary</span><h2>Fixed inputs, approved actions</h2></div><i data-lucide="shield-check" aria-hidden="true"></i></header>
+                        <p>Rules can observe only published events and metrics. Actions are limited to dashboard notifications or locally approved, non-confirming launcher tasks.</p>
+                        <div class="automation-safety-flow"><span>Trigger</span><i data-lucide="arrow-right"></i><span>Cooldown</span><i data-lucide="arrow-right"></i><span>Action</span></div>
+                    </article>
+                    <article class="cockpit-widget automation-history-widget">
+                        <header class="cockpit-widget-header"><div><span class="app-eyebrow">Audit trail</span><h2>Recent outcomes</h2></div><button class="cockpit-text-button" id="refreshAutomationRuns" type="button">Refresh</button></header>
+                        <div class="automation-run-list" id="automationRunList" aria-live="polite" aria-busy="true"><p class="home-empty-copy">Loading automation outcomes…</p></div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="cockpit-module-section inbox-section" id="inboxModule"
+                 aria-labelledby="inboxModuleTitle">
+            <header class="cockpit-module-heading">
+                <div><span class="cockpit-module-number">06</span><div><span class="app-eyebrow">One attention queue</span><h2 id="inboxModuleTitle">Unified Nerd Inbox</h2></div></div>
+                <div class="cockpit-module-actions">
+                    <span class="cockpit-status" id="inboxStatus">Loading</span>
+                    <button class="app-button app-button-secondary" id="inboxMarkAllRead" type="button"><i data-lucide="check-check"></i>Mark all read</button>
+                    <button class="app-icon-button" id="refreshInbox" type="button" title="Refresh inbox" aria-label="Refresh inbox"><i data-lucide="refresh-cw"></i></button>
+                </div>
+            </header>
+
+            <div class="inbox-summary" aria-label="Inbox summary">
+                <article class="cockpit-widget inbox-summary-card"><span class="inbox-summary-icon is-unread"><i data-lucide="mail"></i></span><div><strong id="inboxUnreadCount">0</strong><span>Unread</span></div></article>
+                <article class="cockpit-widget inbox-summary-card"><span class="inbox-summary-icon is-pinned"><i data-lucide="pin"></i></span><div><strong id="inboxPinnedCount">0</strong><span>Pinned</span></div></article>
+                <article class="cockpit-widget inbox-summary-card"><span class="inbox-summary-icon"><i data-lucide="layers-3"></i></span><div><strong id="inboxTotalCount">0</strong><span>Active items</span></div></article>
+                <article class="cockpit-widget inbox-summary-card"><span class="inbox-summary-icon is-live"><i data-lucide="radio-tower"></i></span><div><strong id="inboxLiveCount">0</strong><span>Live sources</span></div></article>
+            </div>
+
+            <div class="inbox-layout">
+                <article class="cockpit-widget inbox-feed-widget">
+                    <header class="cockpit-widget-header">
+                        <div><span class="app-eyebrow">Activity stream</span><h2>Everything needing attention</h2></div>
+                        <span class="inbox-refreshed" id="inboxRefreshedAt">Waiting for refresh</span>
+                    </header>
+                    <div class="inbox-source-chips" id="inboxSourceChips" aria-label="Filter inbox by source"></div>
+                    <div class="inbox-toolbar">
+                        <label class="cockpit-search-field" for="inboxSearch"><i data-lucide="search" aria-hidden="true"></i><input id="inboxSearch" type="search" maxlength="120" autocomplete="off" placeholder="Search titles and summaries…"></label>
+                        <label class="team-room-visually-hidden" for="inboxStateFilter">Inbox state</label>
+                        <select id="inboxStateFilter" aria-label="Inbox state">
+                            <option value="active">Active</option><option value="unread">Unread</option>
+                            <option value="read">Read</option><option value="snoozed">Snoozed</option>
+                            <option value="archived">Archived</option><option value="all">All</option>
+                        </select>
+                        <label class="team-room-visually-hidden" for="inboxSort">Inbox sorting</label>
+                        <select id="inboxSort" aria-label="Inbox sorting"><option value="priority">Priority first</option><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select>
+                    </div>
+                    <p class="settings-feedback inbox-feedback" id="inboxFeedback" role="status" aria-live="polite"></p>
+                    <div class="inbox-item-list" id="inboxItemList" aria-live="polite" aria-busy="true"><p class="home-empty-copy">Loading your unified inbox…</p></div>
+                </article>
+
+                <div class="inbox-side-stack">
+                    <article class="cockpit-widget inbox-priority-widget">
+                        <header class="cockpit-widget-header"><div><span class="app-eyebrow">Attention model</span><h2>Priority, without noise</h2></div><i data-lucide="list-filter" aria-hidden="true"></i></header>
+                        <p>Pinned and unread failures rise first. Snoozed items stay quiet until their wake time, while archived activity remains searchable.</p>
+                        <div class="inbox-priority-key"><span><i class="is-error"></i>Error</span><span><i class="is-warning"></i>Warning</span><span><i class="is-info"></i>Info</span></div>
+                    </article>
+                    <article class="cockpit-widget inbox-connectors-widget">
+                        <header class="cockpit-widget-header"><div><span class="app-eyebrow">Collection health</span><h2>Sources</h2></div><span class="cockpit-status" id="inboxConnectorStatus">Checking</span></header>
+                        <div class="inbox-source-list" id="inboxSourceList"><p class="home-empty-copy">Loading source status…</p></div>
+                        <details class="inbox-connector-disclosure" id="inboxConnectorDisclosure" hidden>
+                            <summary><i data-lucide="triangle-alert"></i><span id="inboxConnectorErrorSummary">Connector issues</span></summary>
+                            <div class="inbox-connector-errors" id="inboxConnectorErrors"></div>
+                        </details>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="cockpit-module-section knowledge-section" id="knowledgeModule"
+                 aria-labelledby="knowledgeModuleTitle">
+            <header class="cockpit-module-heading">
+                <div><span class="cockpit-module-number">07</span><div><span class="app-eyebrow">Personal reference library</span><h2 id="knowledgeModuleTitle">Knowledge Vault</h2></div></div>
+                <div class="cockpit-module-actions">
+                    <span class="cockpit-status" id="knowledgeStatus">Loading</span>
+                    <button class="app-button app-button-primary" id="newKnowledgeItem" type="button"><i data-lucide="file-plus-2"></i>New entry</button>
+                    <button class="app-icon-button" id="refreshKnowledge" type="button" title="Refresh knowledge vault" aria-label="Refresh knowledge vault"><i data-lucide="refresh-cw"></i></button>
+                </div>
+            </header>
+
+            <div class="knowledge-summary" aria-label="Knowledge vault summary">
+                <article class="cockpit-widget knowledge-summary-card"><span class="knowledge-summary-icon"><i data-lucide="library-big"></i></span><div><strong id="knowledgeTotalCount">0</strong><span>Total entries</span></div></article>
+                <article class="cockpit-widget knowledge-summary-card"><span class="knowledge-summary-icon is-note"><i data-lucide="notebook-pen"></i></span><div><strong id="knowledgeNoteCount">0</strong><span>Notes</span></div></article>
+                <article class="cockpit-widget knowledge-summary-card"><span class="knowledge-summary-icon is-snippet"><i data-lucide="code-2"></i></span><div><strong id="knowledgeSnippetCount">0</strong><span>Snippets</span></div></article>
+                <article class="cockpit-widget knowledge-summary-card"><span class="knowledge-summary-icon is-pinned"><i data-lucide="pin"></i></span><div><strong id="knowledgePinnedCount">0</strong><span>Pinned</span></div></article>
+            </div>
+
+            <div class="knowledge-layout">
+                <article class="cockpit-widget knowledge-list-widget">
+                    <header class="cockpit-widget-header"><div><span class="app-eyebrow">Encrypted collection</span><h2>Notes &amp; snippets</h2></div><span class="knowledge-result-count" id="knowledgeResultCount">0 entries</span></header>
+                    <div class="knowledge-toolbar">
+                        <label class="cockpit-search-field" for="knowledgeSearch"><i data-lucide="search" aria-hidden="true"></i><input id="knowledgeSearch" type="search" maxlength="120" autocomplete="off" placeholder="Search the vault…"></label>
+                        <label class="team-room-visually-hidden" for="knowledgeKindFilter">Entry kind</label>
+                        <select id="knowledgeKindFilter" aria-label="Entry kind"><option value="all">All kinds</option><option value="note">Notes</option><option value="snippet">Snippets</option></select>
+                        <label class="team-room-visually-hidden" for="knowledgeTagFilter">Entry tag</label>
+                        <select id="knowledgeTagFilter" aria-label="Entry tag"><option value="">All tags</option></select>
+                        <label class="team-room-visually-hidden" for="knowledgePinnedFilter">Pinned filter</label>
+                        <select id="knowledgePinnedFilter" aria-label="Pinned filter"><option value="all">All entries</option><option value="true">Pinned only</option><option value="false">Not pinned</option></select>
+                    </div>
+                    <p class="settings-feedback knowledge-feedback" id="knowledgeFeedback" role="status" aria-live="polite"></p>
+                    <div class="knowledge-item-list" id="knowledgeItemList" aria-live="polite" aria-busy="true"><p class="home-empty-copy">Opening the knowledge vault…</p></div>
+                </article>
+
+                <article class="cockpit-widget knowledge-detail-widget" id="knowledgeDetailWidget">
+                    <div class="knowledge-detail-empty" id="knowledgeDetailEmpty">
+                        <i data-lucide="book-open-text"></i><strong>Select an entry</strong><p>Open a note or snippet to read, copy, edit, pin, or duplicate it.</p>
+                    </div>
+                    <div class="knowledge-detail" id="knowledgeDetail" hidden>
+                        <header class="knowledge-detail-heading">
+                            <div class="knowledge-detail-title"><span class="knowledge-kind-badge" id="knowledgeDetailKind">Note</span><h2 id="knowledgeDetailTitle"></h2><p id="knowledgeDetailMeta"></p></div>
+                            <button class="app-icon-button" id="knowledgePinItem" type="button" title="Pin entry" aria-label="Pin entry"><i data-lucide="pin"></i></button>
+                        </header>
+                        <div class="knowledge-detail-tags" id="knowledgeDetailTags"></div>
+                        <p class="knowledge-source-warning" id="knowledgeSourceWarning"><i data-lucide="shield-check"></i>Source is displayed as plain text and is never rendered or executed.</p>
+                        <pre class="knowledge-content" id="knowledgeContent" tabindex="0"></pre>
+                        <div class="knowledge-detail-actions">
+                            <button class="app-button app-button-primary" id="copyKnowledgeItem" type="button"><i data-lucide="copy"></i>Copy</button>
+                            <button class="app-button app-button-secondary" id="editKnowledgeItem" type="button"><i data-lucide="pencil"></i>Edit</button>
+                            <button class="app-button app-button-secondary" id="duplicateKnowledgeItem" type="button"><i data-lucide="copy-plus"></i>Duplicate</button>
+                            <button class="app-button app-button-secondary knowledge-delete-button" id="deleteKnowledgeItem" type="button"><i data-lucide="trash-2"></i>Delete</button>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="cockpit-module-section security-section" id="securityModule"
+                 aria-labelledby="securityModuleTitle">
+            <header class="cockpit-module-heading">
+                <div><span class="cockpit-module-number">08</span><div><span class="app-eyebrow">Passive posture monitoring</span><h2 id="securityModuleTitle">Network &amp; Security Center</h2></div></div>
+                <div class="cockpit-module-actions">
+                    <span class="security-readonly-badge"><i data-lucide="eye"></i>Read-only</span>
+                    <span class="cockpit-status" id="securityStatus">Loading</span>
+                    <button class="app-icon-button" id="refreshSecurity" type="button" title="Refresh security posture" aria-label="Refresh security posture"><i data-lucide="refresh-cw"></i></button>
+                </div>
+            </header>
+
+            <div class="security-posture-layout">
+                <article class="cockpit-widget security-score-widget">
+                    <div class="security-score-ring" id="securityScoreRing" role="progressbar" aria-label="Security posture score" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div><strong id="securityScore">--</strong><span>/ 100</span></div>
+                    </div>
+                    <div class="security-score-copy">
+                        <span class="app-eyebrow">Current posture</span>
+                        <h2 id="securityGrade">Awaiting data</h2>
+                        <p id="securityScoreSummary">Collecting passive configuration and service-health signals…</p>
+                        <span class="security-generated" id="securityGeneratedAt">Not yet refreshed</span>
+                    </div>
+                </article>
+                <article class="cockpit-widget security-passive-widget">
+                    <span class="security-passive-icon"><i data-lucide="radar"></i></span>
+                    <div><span class="app-eyebrow">Know the boundary</span><h2>Visibility without probing</h2><p>This center summarizes data already reported by your configured agents and services. It does not scan networks, enumerate ports, probe devices, or expose host-level resources.</p></div>
+                    <div class="security-passive-flow"><span>Existing telemetry</span><i data-lucide="arrow-right"></i><span>Configuration checks</span><i data-lucide="arrow-right"></i><span>Posture summary</span></div>
+                </article>
+            </div>
+
+            <section class="security-health-section" aria-labelledby="securityHealthTitle">
+                <header class="security-section-heading"><div><span class="app-eyebrow">Connections &amp; services</span><h2 id="securityHealthTitle">Aggregate health</h2></div></header>
+                <div class="security-health-grid">
+                    <article class="cockpit-widget security-health-card" id="securityWorkstationsCard">
+                        <header><span class="security-health-icon"><i data-lucide="monitor-up"></i></span><div><span class="app-eyebrow">Endpoint signal</span><h3>Workstations</h3></div><span class="security-health-state" id="securityWorkstationsState">Unknown</span></header>
+                        <div class="security-state-counts" id="securityWorkstationCounts"></div>
+                        <dl class="security-health-details" id="securityWorkstationDetails"></dl>
+                    </article>
+                    <article class="cockpit-widget security-health-card" id="securityHomelabCard">
+                        <header><span class="security-health-icon is-homelab"><i data-lucide="container"></i></span><div><span class="app-eyebrow">Service signal</span><h3>Docker &amp; Homelab</h3></div><span class="security-health-state" id="securityHomelabState">Unknown</span></header>
+                        <div class="security-state-counts" id="securityHomelabCounts"></div>
+                        <dl class="security-health-details" id="securityHomelabDetails"></dl>
+                    </article>
+                    <article class="cockpit-widget security-health-card" id="securityLauncherCard">
+                        <header><span class="security-health-icon is-launcher"><i data-lucide="square-play"></i></span><div><span class="app-eyebrow">Execution signal</span><h3>Task runners</h3></div><span class="security-health-state" id="securityLauncherState">Unknown</span></header>
+                        <div class="security-state-counts" id="securityLauncherCounts"></div>
+                        <p class="security-health-note">Only outbound runner presence is summarized. Commands, arguments, and local resource identifiers never appear here.</p>
+                    </article>
+                </div>
+            </section>
+
+            <div class="security-checks-layout">
+                <article class="cockpit-widget security-checks-widget">
+                    <header class="cockpit-widget-header"><div><span class="app-eyebrow">Explainable posture</span><h2>Configuration checks</h2></div><div class="security-check-counts" id="securityCheckCounts"></div></header>
+                    <p class="settings-feedback security-feedback" id="securityFeedback" role="status" aria-live="polite"></p>
+                    <div class="security-check-grid" id="securityCheckGrid" aria-live="polite" aria-busy="true"><p class="home-empty-copy">Evaluating passive security checks…</p></div>
+                </article>
+                <aside class="cockpit-widget security-coverage-widget">
+                    <header class="cockpit-widget-header"><div><span class="app-eyebrow">Data quality</span><h2>Coverage</h2></div><span class="cockpit-status" id="securityCoverageStatus">Checking</span></header>
+                    <div class="security-source-list" id="securitySourceList"><p class="home-empty-copy">Loading source coverage…</p></div>
+                    <details class="security-error-disclosure" id="securityErrorDisclosure" hidden>
+                        <summary><i data-lucide="triangle-alert"></i><span id="securityErrorSummary">Collection issues</span></summary>
+                        <div class="security-error-list" id="securityErrorList"></div>
+                    </details>
+                </aside>
+            </div>
+        </section>
+
+        <section class="cockpit-module-section ai-toolbox-section" id="aiToolboxModule"
+                 aria-labelledby="aiToolboxModuleTitle">
+            <header class="cockpit-module-heading">
+                <div><span class="cockpit-module-number">09</span><div><span class="app-eyebrow">Private, deployment-controlled assistance</span><h2 id="aiToolboxModuleTitle">Local AI Toolbox</h2></div></div>
+                <div class="cockpit-module-actions">
+                    <span class="cockpit-status" id="aiToolboxStatus">Loading</span>
+                    <button class="app-button app-button-primary" id="newAIToolboxSession" type="button"><i data-lucide="message-square-plus"></i>New session</button>
+                    <button class="app-icon-button" id="refreshAIToolbox" type="button" title="Refresh Local AI Toolbox" aria-label="Refresh Local AI Toolbox"><i data-lucide="refresh-cw"></i></button>
+                </div>
+            </header>
+
+            <div class="ai-toolbox-overview">
+                <article class="cockpit-widget ai-readiness-card">
+                    <span class="ai-readiness-icon"><i data-lucide="bot"></i></span>
+                    <div class="ai-readiness-copy">
+                        <span class="app-eyebrow">Local model configuration</span>
+                        <div class="ai-readiness-heading"><h2 id="aiModelName">Checking configuration</h2><span class="ai-readiness-state" id="aiReadinessState">Checking</span></div>
+                        <p id="aiReadinessCopy">Confirming the deployment-controlled local model configuration…</p>
+                        <span class="ai-provider-line"><i data-lucide="server-cog"></i><span id="aiProviderName">Ollama</span></span>
+                    </div>
+                </article>
+                <article class="cockpit-widget ai-boundary-card">
+                    <span class="ai-boundary-icon"><i data-lucide="shield-check"></i></span>
+                    <div>
+                        <span class="app-eyebrow">Text in, text out</span>
+                        <h2>Purpose-built modes, hard boundaries</h2>
+                        <p>Responses are displayed as inert plain text. The local assistant cannot browse, inspect files, execute code, call tools, or follow links.</p>
+                        <div class="ai-mode-chips" id="aiModeChips" aria-label="Available AI modes"></div>
+                    </div>
+                </article>
+            </div>
+
+            <p class="settings-feedback ai-toolbox-feedback" id="aiToolboxFeedback" role="status" aria-live="polite"></p>
+
+            <div class="ai-toolbox-workspace">
+                <aside class="cockpit-widget ai-session-rail" aria-labelledby="aiSessionsTitle">
+                    <header class="cockpit-widget-header"><div><span class="app-eyebrow">Encrypted history</span><h2 id="aiSessionsTitle">Sessions</h2></div><span class="ai-session-count" id="aiSessionCount">0 sessions</span></header>
+                    <div class="ai-session-list" id="aiSessionList" role="listbox" aria-label="Local AI sessions" aria-busy="true"></div>
+                </aside>
+
+                <article class="cockpit-widget ai-conversation-widget">
+                    <header class="ai-conversation-heading">
+                        <div><span class="app-eyebrow" id="aiConversationMode">Conversation</span><h2 id="aiConversationTitle">Choose a session</h2><p id="aiConversationMeta">Select an existing session or start a focused local conversation.</p></div>
+                        <button class="app-icon-button ai-delete-session" id="deleteAIToolboxSession" type="button" title="Delete AI session" aria-label="Delete AI session" hidden><i data-lucide="trash-2"></i></button>
+                    </header>
+                    <div class="ai-message-list" id="aiMessageList" role="log" aria-live="polite" aria-relevant="additions" aria-busy="false"></div>
+                    <form class="ai-composer" id="aiMessageForm">
+                        <label class="team-room-visually-hidden" for="aiMessageInput">Message for the local AI assistant</label>
+                        <textarea id="aiMessageInput" rows="5" maxlength="16384" spellcheck="false" placeholder="Paste code or describe what you want help with…" disabled></textarea>
+                        <div class="ai-composer-meta">
+                            <div class="ai-byte-meter" id="aiMessageMeter" role="progressbar" aria-label="Message UTF-8 size" aria-valuemin="0" aria-valuemax="16384" aria-valuenow="0"><span id="aiMessageMeterFill"></span></div>
+                            <span id="aiMessageSize">0 B of 16 KB</span>
+                        </div>
+                        <div class="ai-composer-footer">
+                            <p id="aiComposerHint">Select or create a session to begin.</p>
+                            <button class="app-button app-button-primary" id="sendAIMessage" type="submit" disabled><i data-lucide="send"></i><span>Send</span></button>
+                        </div>
+                    </form>
+                </article>
+            </div>
+        </section>
+
+        <section class="cockpit-module-section personal-hub-section" id="personalHubModule"
+                 aria-labelledby="personalHubModuleTitle">
+            <header class="cockpit-module-heading">
+                <div><span class="cockpit-module-number">10</span><div><span class="app-eyebrow">Daily life, close at hand</span><h2 id="personalHubModuleTitle">Personal Hub</h2></div></div>
+                <div class="cockpit-module-actions">
+                    <span class="cockpit-status" id="personalHubStatus">Loading</span>
+                    <button class="app-button app-button-primary" id="addPersonalHubItem" type="button"><i data-lucide="plus"></i>Add item</button>
+                    <button class="app-icon-button" id="refreshPersonalHub" type="button" title="Refresh Personal Hub" aria-label="Refresh Personal Hub"><i data-lucide="refresh-cw"></i></button>
+                </div>
+            </header>
+
+            <div class="personal-hub-summary" aria-label="Personal Hub summary">
+                <article class="cockpit-widget personal-hub-summary-item"><span class="personal-hub-summary-icon"><i data-lucide="layout-grid"></i></span><div><strong id="personalHubTotalCount">0</strong><span>Total items</span></div></article>
+                <article class="cockpit-widget personal-hub-summary-item"><span class="personal-hub-summary-icon is-reminder"><i data-lucide="bell-ring"></i></span><div><strong id="personalHubReminderCount">0</strong><span>Reminders</span></div></article>
+                <article class="cockpit-widget personal-hub-summary-item"><span class="personal-hub-summary-icon is-countdown"><i data-lucide="hourglass"></i></span><div><strong id="personalHubCountdownCount">0</strong><span>Countdowns</span></div></article>
+                <article class="cockpit-widget personal-hub-summary-item"><span class="personal-hub-summary-icon is-habit"><i data-lucide="repeat-2"></i></span><div><strong id="personalHubHabitCount">0</strong><span>Habits</span></div></article>
+                <article class="cockpit-widget personal-hub-summary-item"><span class="personal-hub-summary-icon is-bookmark"><i data-lucide="bookmark"></i></span><div><strong id="personalHubBookmarkCount">0</strong><span>Bookmarks</span></div></article>
+            </div>
+
+            <p class="settings-feedback personal-hub-feedback" id="personalHubFeedback" role="status" aria-live="polite"></p>
+
+            <div class="personal-hub-layout">
+                <div class="personal-hub-grid">
+                    <article class="cockpit-widget personal-hub-card is-reminders">
+                        <header class="cockpit-widget-header">
+                            <div class="personal-hub-card-title"><span><i data-lucide="bell-ring"></i></span><div><span class="app-eyebrow">Next actions</span><h2>Reminders</h2></div></div>
+                            <button class="app-icon-button personal-hub-add-card" id="addHubReminder" type="button" title="Add reminder" aria-label="Add reminder"><i data-lucide="plus"></i></button>
+                        </header>
+                        <div class="personal-hub-item-list" id="personalHubReminders" aria-live="polite"><p class="home-empty-copy">Loading reminders...</p></div>
+                    </article>
+
+                    <article class="cockpit-widget personal-hub-card is-countdowns">
+                        <header class="cockpit-widget-header">
+                            <div class="personal-hub-card-title"><span><i data-lucide="hourglass"></i></span><div><span class="app-eyebrow">Worth waiting for</span><h2>Countdowns</h2></div></div>
+                            <button class="app-icon-button personal-hub-add-card" id="addHubCountdown" type="button" title="Add countdown" aria-label="Add countdown"><i data-lucide="plus"></i></button>
+                        </header>
+                        <div class="personal-hub-item-list" id="personalHubCountdowns" aria-live="polite"><p class="home-empty-copy">Loading countdowns...</p></div>
+                    </article>
+
+                    <article class="cockpit-widget personal-hub-card is-habits">
+                        <header class="cockpit-widget-header">
+                            <div class="personal-hub-card-title"><span><i data-lucide="repeat-2"></i></span><div><span class="app-eyebrow">Small, repeatable wins</span><h2>Habits</h2></div></div>
+                            <button class="app-icon-button personal-hub-add-card" id="addHubHabit" type="button" title="Add habit" aria-label="Add habit"><i data-lucide="plus"></i></button>
+                        </header>
+                        <div class="personal-hub-item-list" id="personalHubHabits" aria-live="polite"><p class="home-empty-copy">Loading habits...</p></div>
+                    </article>
+
+                    <article class="cockpit-widget personal-hub-card is-bookmarks">
+                        <header class="cockpit-widget-header">
+                            <div class="personal-hub-card-title"><span><i data-lucide="bookmark"></i></span><div><span class="app-eyebrow">Useful destinations</span><h2>Bookmarks</h2></div></div>
+                            <button class="app-icon-button personal-hub-add-card" id="addHubBookmark" type="button" title="Add bookmark" aria-label="Add bookmark"><i data-lucide="plus"></i></button>
+                        </header>
+                        <div class="personal-hub-item-list" id="personalHubBookmarks" aria-live="polite"><p class="home-empty-copy">Loading bookmarks...</p></div>
+                    </article>
+                </div>
+
+                <aside class="personal-hub-side">
+                    <article class="cockpit-widget focus-timer-card" aria-labelledby="focusTimerHeading">
+                        <header class="focus-timer-heading"><span><i data-lucide="timer-reset"></i></span><div><span class="app-eyebrow">Local focus aid</span><h2 id="focusTimerHeading">Focus timer</h2></div></header>
+                        <div class="focus-timer-display" id="focusTimerDisplay" role="timer" aria-live="off">25:00</div>
+                        <p class="focus-timer-label" id="focusTimerLabel">Focus</p>
+                        <div class="focus-timer-presets" aria-label="Timer presets">
+                            <button id="focusPreset25" type="button" aria-pressed="true">25 min</button>
+                            <button id="focusPreset5" type="button" aria-pressed="false">5 min</button>
+                            <button id="focusPreset50" type="button" aria-pressed="false">50 min</button>
+                        </div>
+                        <div class="focus-timer-controls">
+                            <button class="app-button app-button-primary" id="focusTimerStart" type="button"><i data-lucide="play"></i>Start</button>
+                            <button class="app-button app-button-secondary" id="focusTimerPause" type="button" disabled><i data-lucide="pause"></i>Pause</button>
+                            <button class="app-icon-button" id="focusTimerReset" type="button" title="Reset timer" aria-label="Reset timer"><i data-lucide="rotate-ccw"></i></button>
+                        </div>
+                        <p class="focus-timer-boundary">This timer stays in this page only. It uses no notifications, sound, permissions, or persistent storage.</p>
+                    </article>
+                </aside>
+            </div>
+        </section>
     </main>
+
+    <dialog class="command-palette" id="commandPalette" aria-labelledby="commandPaletteTitle">
+        <header class="command-palette-search">
+            <i data-lucide="search" aria-hidden="true"></i>
+            <label class="team-room-visually-hidden" for="commandPaletteQuery" id="commandPaletteTitle">Search commands</label>
+            <input id="commandPaletteQuery" type="search" autocomplete="off" placeholder="Search Kasugai or run an approved action…">
+            <kbd>Esc</kbd>
+        </header>
+        <div class="command-palette-results" id="commandPaletteResults" role="listbox" aria-label="Command results"></div>
+        <footer class="command-palette-footer"><span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span><span><kbd>Enter</kbd> Open</span><span id="commandPaletteStatus" role="status" aria-live="polite"></span></footer>
+    </dialog>
+
+    <dialog class="launcher-confirmation-dialog" id="launcherConfirmationDialog" aria-labelledby="launcherConfirmationTitle">
+        <div class="launcher-dialog-icon"><i data-lucide="shield-alert"></i></div>
+        <div class="launcher-dialog-copy">
+            <span class="app-eyebrow">Explicit approval required</span>
+            <h2 id="launcherConfirmationTitle">Confirm local task</h2>
+            <p id="launcherConfirmationDescription"></p>
+            <p class="launcher-confirmation-expiry" id="launcherConfirmationExpiry"></p>
+        </div>
+        <div class="launcher-dialog-actions">
+            <button class="app-button app-button-secondary" id="cancelLauncherRun" type="button">Cancel</button>
+            <button class="app-button app-button-primary" id="confirmLauncherRun" type="button"><i data-lucide="play"></i>Queue approved task</button>
+        </div>
+    </dialog>
+
+    <dialog class="launcher-result-dialog" id="launcherResultDialog" aria-labelledby="launcherResultTitle">
+        <header class="launcher-result-heading">
+            <div><span class="app-eyebrow">Run result</span><h2 id="launcherResultTitle">Approved task</h2></div>
+            <button class="app-icon-button" id="closeLauncherResult" type="button" aria-label="Close run result"><i data-lucide="x"></i></button>
+        </header>
+        <dl class="launcher-result-details" id="launcherResultDetails"></dl>
+        <div class="launcher-result-summary"><span>Runner summary</span><p id="launcherResultSummary"></p></div>
+        <p class="launcher-result-boundary"><i data-lucide="shield-check"></i>Kasugai stores a bounded status summary, never the task command, arguments, or filesystem path.</p>
+    </dialog>
+
+    <dialog class="knowledge-editor-dialog" id="knowledgeEditorDialog" aria-labelledby="knowledgeEditorTitle">
+        <form id="knowledgeEditorForm">
+            <header class="knowledge-editor-heading">
+                <div><span class="app-eyebrow" id="knowledgeEditorMode">New entry</span><h2 id="knowledgeEditorTitle">Add to Knowledge Vault</h2></div>
+                <button class="app-icon-button" id="closeKnowledgeEditor" type="button" aria-label="Close knowledge editor"><i data-lucide="x"></i></button>
+            </header>
+            <div class="knowledge-editor-fields">
+                <div class="knowledge-editor-row">
+                    <label for="knowledgeEditorKind">Kind<select id="knowledgeEditorKind"><option value="note">Note</option><option value="snippet">Snippet</option></select></label>
+                    <label for="knowledgeEditorLanguage">Language<select id="knowledgeEditorLanguage"></select></label>
+                    <label class="knowledge-editor-pinned" for="knowledgeEditorPinned"><input id="knowledgeEditorPinned" type="checkbox"><span>Pin entry</span></label>
+                </div>
+                <label for="knowledgeEditorTitleInput">Title<input id="knowledgeEditorTitleInput" maxlength="160" autocomplete="off" placeholder="A clear, searchable title" required></label>
+                <label for="knowledgeEditorTags">Tags<input id="knowledgeEditorTags" maxlength="395" autocomplete="off" placeholder="docker, debugging, reference"><small>Comma-separated · up to 12 tags · 32 characters each</small></label>
+                <label for="knowledgeEditorContent">Content<textarea id="knowledgeEditorContent" rows="16" spellcheck="false" placeholder="Write a note or paste a reusable snippet…" required></textarea></label>
+            </div>
+            <p class="knowledge-editor-size" id="knowledgeEditorSize">0 B of 64 KB</p>
+            <p class="settings-feedback" id="knowledgeEditorStatus" role="status" aria-live="polite"></p>
+            <footer class="knowledge-editor-actions">
+                <button class="app-button app-button-secondary" id="cancelKnowledgeEditor" type="button">Cancel</button>
+                <button class="app-button app-button-primary" id="saveKnowledgeItem" type="submit"><i data-lucide="save"></i><span id="saveKnowledgeLabel">Save entry</span></button>
+            </footer>
+        </form>
+    </dialog>
+
+    <dialog class="ai-session-dialog" id="aiSessionDialog" aria-labelledby="aiSessionDialogTitle">
+        <form id="aiSessionForm">
+            <header class="ai-session-dialog-heading">
+                <div><span class="app-eyebrow">Focused local workspace</span><h2 id="aiSessionDialogTitle">Start a new AI session</h2></div>
+                <button class="app-icon-button" id="closeAISessionDialog" type="button" aria-label="Close new AI session dialog"><i data-lucide="x"></i></button>
+            </header>
+            <label class="ai-session-title-field" for="aiSessionTitle">Session title<input id="aiSessionTitle" maxlength="100" autocomplete="off" placeholder="Review an API handler" required></label>
+            <fieldset class="ai-mode-fieldset">
+                <legend>Choose a mode</legend>
+                <div class="ai-mode-options" id="aiSessionModeOptions"></div>
+            </fieldset>
+            <p class="ai-dialog-boundary"><i data-lucide="lock-keyhole"></i>Mode, model, and safety instructions are controlled by Kasugai. Add only the text you want included in the conversation.</p>
+            <p class="settings-feedback" id="aiSessionDialogStatus" role="status" aria-live="polite"></p>
+            <footer class="ai-session-dialog-actions">
+                <button class="app-button app-button-secondary" id="cancelAISession" type="button">Cancel</button>
+                <button class="app-button app-button-primary" id="createAISession" type="submit"><i data-lucide="sparkles"></i>Create session</button>
+            </footer>
+        </form>
+    </dialog>
+
+    <dialog class="personal-hub-editor-dialog" id="personalHubEditorDialog" aria-labelledby="personalHubEditorHeading">
+        <form id="personalHubEditorForm">
+            <header class="personal-hub-editor-heading">
+                <div><span class="app-eyebrow" id="personalHubEditorMode">New item</span><h2 id="personalHubEditorHeading">Add to Personal Hub</h2></div>
+                <button class="app-icon-button" id="closePersonalHubEditor" type="button" aria-label="Close Personal Hub editor"><i data-lucide="x"></i></button>
+            </header>
+            <div class="personal-hub-editor-fields">
+                <div class="personal-hub-editor-row">
+                    <label for="personalHubEditorKind">Kind
+                        <select id="personalHubEditorKind">
+                            <option value="reminder">Reminder</option>
+                            <option value="countdown">Countdown</option>
+                            <option value="habit">Habit</option>
+                            <option value="bookmark">Bookmark</option>
+                        </select>
+                    </label>
+                    <label for="personalHubEditorTitle">Title<input id="personalHubEditorTitle" maxlength="120" autocomplete="off" placeholder="A short, useful title" required></label>
+                </div>
+                <label for="personalHubEditorNote">Note<input id="personalHubEditorNote" maxlength="1000" autocomplete="off" placeholder="Optional single-line context"></label>
+
+                <div class="personal-hub-editor-kind-fields" id="personalHubReminderFields">
+                    <label for="personalHubDueAt">Due date and time<input id="personalHubDueAt" type="datetime-local"></label>
+                    <label class="personal-hub-completed-field" for="personalHubCompleted"><input id="personalHubCompleted" type="checkbox"><span>Completed</span></label>
+                </div>
+
+                <div class="personal-hub-editor-kind-fields" id="personalHubCountdownFields" hidden>
+                    <label for="personalHubTargetAt">Target date and time<input id="personalHubTargetAt" type="datetime-local"></label>
+                </div>
+
+                <div class="personal-hub-editor-kind-fields" id="personalHubHabitFields" hidden>
+                    <label for="personalHubCadence">Cadence
+                        <select id="personalHubCadence"><option value="daily">Daily</option><option value="weekdays">Weekdays</option><option value="weekly">Weekly</option></select>
+                    </label>
+                </div>
+
+                <div class="personal-hub-editor-kind-fields" id="personalHubBookmarkFields" hidden>
+                    <label for="personalHubBookmarkUrl">HTTPS URL<input id="personalHubBookmarkUrl" type="url" maxlength="2048" autocomplete="url" placeholder="https://example.com" inputmode="url"></label>
+                </div>
+            </div>
+            <p class="settings-feedback personal-hub-editor-status" id="personalHubEditorStatus" role="status" aria-live="polite"></p>
+            <footer class="personal-hub-editor-actions">
+                <button class="app-button app-button-secondary" id="cancelPersonalHubEditor" type="button">Cancel</button>
+                <button class="app-button app-button-primary" id="savePersonalHubEditor" type="submit"><i data-lucide="save"></i>Save item</button>
+            </footer>
+        </form>
+    </dialog>
 
     {% include '_team_room.html' %}
 
@@ -133,6 +844,11 @@
 
             <div class="settings-tabs" role="tablist" aria-label="Settings sections">
                 <button type="button" class="settings-tab active" data-tab="buttons" role="tab" aria-selected="true">Shortcuts</button>
+                <button type="button" class="settings-tab" data-tab="developer" role="tab" aria-selected="false">Developer</button>
+                <button type="button" class="settings-tab" data-tab="workstations" role="tab" aria-selected="false">Workstations</button>
+                <button type="button" class="settings-tab" data-tab="homelab" role="tab" aria-selected="false">Homelab</button>
+                <button type="button" class="settings-tab" data-tab="launcher" role="tab" aria-selected="false">Launcher</button>
+                <button type="button" class="settings-tab" data-tab="automation" role="tab" aria-selected="false">Automation</button>
                 <button type="button" class="settings-tab" data-tab="appearance" role="tab" aria-selected="false">Appearance</button>
                 <button type="button" class="settings-tab" data-tab="application" role="tab" aria-selected="false">Application</button>
             </div>
@@ -144,11 +860,221 @@
                 <form id="addButtonForm" class="settings-form">
                     <label for="buttonName">Name</label>
                     <input type="text" id="buttonName" name="name" placeholder="e.g. Reporting portal" required>
-                    <label for="buttonLink">Link or file path</label>
-                    <input type="text" id="buttonLink" name="link" placeholder="https://example.com or C:\path\to\tool.exe" required>
+                    <label for="buttonLink">HTTPS link</label>
+                    <input type="url" id="buttonLink" name="link" placeholder="https://example.com" required>
+                    <p class="settings-hint">Local programs and scripts belong in the paired Universal Launcher, where each task is approved on that computer.</p>
                     <button class="app-button app-button-primary" type="submit">Add shortcut</button>
                 </form>
                 <p class="settings-error" id="buttonError"></p>
+            </section>
+
+            <section class="settings-section" data-section="developer" role="tabpanel">
+                <h3>Developer Cockpit</h3>
+                <p class="settings-help">Kasugai only scans roots explicitly exposed to it. Docker mounts should be narrow and read-only.</p>
+                <div class="developer-settings-group">
+                    <div class="developer-settings-heading">
+                        <div><h4>Repository roots</h4><p>Folders Kasugai may inspect with read-only Git commands.</p></div>
+                    </div>
+                    <ul class="settings-list developer-root-list" id="developerRootList">
+                        <li class="settings-empty">Loading repository roots…</li>
+                    </ul>
+                    <form class="settings-form" id="developerRootForm">
+                        <label for="developerRootLabel">Label</label>
+                        <input id="developerRootLabel" name="label" maxlength="80" placeholder="e.g. Work projects">
+                        <label for="developerRootPath">Server-visible path</label>
+                        <input id="developerRootPath" name="path" maxlength="2048" placeholder="/repositories/work" required>
+                        <small class="settings-help">The path must be inside <code>KASUGAI_REPOSITORY_ALLOWED_ROOTS</code>.</small>
+                        <button class="app-button app-button-primary" type="submit">Add repository root</button>
+                    </form>
+                    <p class="settings-feedback" id="developerRootStatus" role="status" aria-live="polite"></p>
+                </div>
+                <div class="developer-settings-group">
+                    <div class="developer-settings-heading">
+                        <div><h4>GitHub</h4><p id="githubConnectionCopy">Connect a personal account to show notifications.</p></div>
+                    </div>
+                    <form class="settings-form" id="githubTokenForm">
+                        <label for="githubToken">Personal access token</label>
+                        <input id="githubToken" name="token" type="password" autocomplete="new-password"
+                               placeholder="Token is encrypted and never returned" required>
+                        <button class="app-button app-button-primary" type="submit">Connect GitHub</button>
+                    </form>
+                    <button class="settings-remove-btn developer-disconnect-button" id="disconnectGithubBtn" type="button" hidden>
+                        Disconnect GitHub
+                    </button>
+                    <p class="settings-feedback" id="githubConnectionStatus" role="status" aria-live="polite"></p>
+                </div>
+            </section>
+
+            <section class="settings-section" data-section="workstations" role="tabpanel">
+                <h3>Workstation Monitor</h3>
+                <p class="settings-help">Pair an outbound-only companion agent. Kasugai does not mount host process data or grant its container host privileges.</p>
+                <div class="developer-settings-group workstation-pairing-group">
+                    <div class="developer-settings-heading">
+                        <div><h4>Pair a workstation</h4><p>Codes expire after ten minutes and can be used once.</p></div>
+                    </div>
+                    <button class="app-button app-button-primary" id="createWorkstationPairing" type="button">Create pairing code</button>
+                    <div class="workstation-pairing" id="workstationPairing" hidden>
+                        <span>One-time code</span>
+                        <strong id="workstationPairingCode"></strong>
+                        <p>On the computer you want to monitor, run:</p>
+                        <code id="workstationPairingCommand"></code>
+                        <small id="workstationPairingExpiry"></small>
+                    </div>
+                    <p class="settings-feedback" id="workstationPairingStatus" role="status" aria-live="polite"></p>
+                </div>
+                <div class="developer-settings-group">
+                    <div class="developer-settings-heading">
+                        <div><h4>Paired computers</h4><p>Rename or revoke agents connected to your account.</p></div>
+                    </div>
+                    <ul class="settings-list workstation-agent-list" id="workstationAgentList">
+                        <li class="settings-empty">Loading workstations…</li>
+                    </ul>
+                    <p class="settings-feedback" id="workstationAgentStatus" role="status" aria-live="polite"></p>
+                </div>
+            </section>
+
+            <section class="settings-section" data-section="homelab" role="tabpanel">
+                <h3>Docker &amp; Homelab</h3>
+                <p class="settings-help">This separate outbound agent never exposes the Docker socket to Kasugai. Monitoring and every control remain locally opt-in.</p>
+                <div class="developer-settings-group">
+                    <div class="developer-settings-heading"><div><h4>Pair a homelab agent</h4><p>Use a separate one-time code and DPAPI-protected token.</p></div></div>
+                    <button class="app-button app-button-primary" id="createHomelabPairing" type="button">Create homelab pairing</button>
+                    <div class="workstation-pairing" id="homelabPairing" hidden>
+                        <span>One-time code</span><strong id="homelabPairingCode"></strong>
+                        <p>Run on the Docker host:</p><code id="homelabPairingCommand"></code>
+                        <small id="homelabPairingExpiry"></small>
+                    </div>
+                    <p class="settings-feedback" id="homelabPairingStatus" role="status" aria-live="polite"></p>
+                </div>
+                <div class="developer-settings-group">
+                    <div class="developer-settings-heading"><div><h4>Local policy</h4><p>The browser cannot enable monitoring, logs, or restart permission.</p></div></div>
+                    <pre class="homelab-policy-example"><code>io.kasugai.monitor=true
+io.kasugai.logs=true
+io.kasugai.actions=restart</code></pre>
+                    <p class="settings-help">Only monitored containers appear. Logs and restart also require their corresponding local policy grants.</p>
+                </div>
+                <div class="developer-settings-group">
+                    <div class="developer-settings-heading"><div><h4>Paired agents</h4><p>Revoke agents and their pending jobs immediately.</p></div></div>
+                    <ul class="settings-list workstation-agent-list" id="homelabAgentList"><li class="settings-empty">Loading homelab agents…</li></ul>
+                    <p class="settings-feedback" id="homelabAgentStatus" role="status" aria-live="polite"></p>
+                </div>
+            </section>
+
+            <section class="settings-section" data-section="launcher" role="tabpanel">
+                <h3>Universal Launcher</h3>
+                <p class="settings-help">Pair a separate outbound runner. Its local configuration owns the task allowlist; this dashboard receives presentation metadata and opaque task IDs only.</p>
+                <div class="developer-settings-group launcher-pairing-group">
+                    <div class="developer-settings-heading"><div><h4>Pair a task runner</h4><p>One-time codes expire after ten minutes and are prompted for locally.</p></div></div>
+                    <button class="app-button app-button-primary" id="createLauncherPairing" type="button">Create runner pairing</button>
+                    <div class="workstation-pairing" id="launcherPairing" hidden>
+                        <span>One-time code</span><strong id="launcherPairingCode"></strong>
+                        <p>Run on the computer that owns the approved tasks:</p><code id="launcherPairingCommand"></code>
+                        <small id="launcherPairingExpiry"></small>
+                    </div>
+                    <p class="settings-feedback" id="launcherPairingStatus" role="status" aria-live="polite"></p>
+                </div>
+                <div class="developer-settings-group">
+                    <div class="developer-settings-heading"><div><h4>Paired runners</h4><p>Rename a runner or revoke its credential and pending work immediately.</p></div></div>
+                    <ul class="settings-list workstation-agent-list" id="launcherAgentList"><li class="settings-empty">Loading task runners…</li></ul>
+                    <p class="settings-feedback" id="launcherAgentStatus" role="status" aria-live="polite"></p>
+                </div>
+                <div class="developer-settings-group">
+                    <div class="developer-settings-heading"><div><h4>Published allowlist</h4><p>To add or change a task, edit the runner's local policy and restart it. Browser requests cannot add commands or arguments.</p></div></div>
+                    <ul class="settings-list launcher-settings-task-list" id="launcherSettingsTaskList"><li class="settings-empty">Loading approved tasks…</li></ul>
+                    <p class="launcher-policy-note"><i data-lucide="lock-keyhole"></i>The server rechecks runner ownership, availability, task identity, and confirmation at queue time.</p>
+                </div>
+            </section>
+
+            <section class="settings-section" data-section="automation" role="tabpanel">
+                <h3>Automation rule builder</h3>
+                <p class="settings-help">Choose from fixed trigger types and fixed actions. Rules cannot supply URLs, commands, arguments, or filesystem locations.</p>
+                <form class="settings-form automation-builder" id="automationRuleForm">
+                    <div class="automation-form-heading">
+                        <div><span class="app-eyebrow" id="automationFormMode">New automation</span><h4>Rule definition</h4></div>
+                        <label class="automation-enabled-field" for="automationEnabled"><input id="automationEnabled" type="checkbox" checked><span>Enabled</span></label>
+                    </div>
+
+                    <label for="automationName">Rule name</label>
+                    <input id="automationName" name="name" maxlength="100" autocomplete="off" placeholder="e.g. Warn when memory stays high" required>
+
+                    <div class="automation-builder-grid">
+                        <div class="automation-builder-column">
+                            <div class="automation-builder-label"><span>1</span><strong>When this happens</strong></div>
+                            <label for="automationTriggerType">Trigger type</label>
+                            <select id="automationTriggerType" required>
+                                <option value="interval">On an interval</option>
+                                <option value="daily">At a daily time</option>
+                                <option value="event">When an event arrives</option>
+                                <option value="metric">When a metric crosses a threshold</option>
+                            </select>
+
+                            <div class="automation-trigger-fields" data-automation-trigger="interval">
+                                <label for="automationIntervalMinutes">Every</label>
+                                <div class="automation-number-field"><input id="automationIntervalMinutes" type="number" min="1" max="10080" step="1" value="60"><span>minutes</span></div>
+                            </div>
+                            <div class="automation-trigger-fields" data-automation-trigger="daily" hidden>
+                                <label for="automationDailyTime">Local dashboard time</label>
+                                <input id="automationDailyTime" type="time" value="09:00">
+                            </div>
+                            <div class="automation-trigger-fields" data-automation-trigger="event" hidden>
+                                <label for="automationEventSource">Event source</label>
+                                <select id="automationEventSource">
+                                    <option value="developer">Developer</option><option value="workstation">Workstation</option>
+                                    <option value="homelab">Homelab</option><option value="launcher">Launcher</option>
+                                    <option value="automation">Automation</option>
+                                </select>
+                                <label for="automationEventSeverity">Minimum severity</label>
+                                <select id="automationEventSeverity">
+                                    <option value="info">Info</option><option value="success">Success</option>
+                                    <option value="warning">Warning</option><option value="error">Error</option>
+                                </select>
+                            </div>
+                            <div class="automation-trigger-fields" data-automation-trigger="metric" hidden>
+                                <label for="automationMetric">Published metric</label>
+                                <select id="automationMetric"><option value="">No metrics available</option></select>
+                                <label for="automationMetricOperator">Comparison</label>
+                                <select id="automationMetricOperator"><option value="gt">Greater than</option></select>
+                                <label for="automationMetricThreshold">Threshold</label>
+                                <div class="automation-number-field"><input id="automationMetricThreshold" type="number" step="any" value="80"><span id="automationMetricUnit">value</span></div>
+                            </div>
+                        </div>
+
+                        <div class="automation-builder-column">
+                            <div class="automation-builder-label"><span>2</span><strong>Do this</strong></div>
+                            <label for="automationActionType">Action type</label>
+                            <select id="automationActionType" required>
+                                <option value="notify">Create a dashboard notification</option>
+                                <option value="launcher_task">Run an approved local task</option>
+                            </select>
+
+                            <div class="automation-action-fields" data-automation-action="notify">
+                                <label for="automationNotifyTitle">Notification title</label>
+                                <input id="automationNotifyTitle" maxlength="120" autocomplete="off" placeholder="Attention needed" value="Automation alert">
+                                <label for="automationNotifyBody">Message</label>
+                                <textarea id="automationNotifyBody" maxlength="1000" rows="3" placeholder="Explain what changed."></textarea>
+                                <label for="automationNotifySeverity">Severity</label>
+                                <select id="automationNotifySeverity">
+                                    <option value="info">Info</option><option value="success">Success</option>
+                                    <option value="warning">Warning</option><option value="error">Error</option>
+                                </select>
+                            </div>
+                            <div class="automation-action-fields" data-automation-action="launcher_task" hidden>
+                                <label for="automationLauncherTask">Eligible local task</label>
+                                <select id="automationLauncherTask"><option value="">No eligible launcher tasks</option></select>
+                                <small class="settings-help">Only locally approved tasks that do not require interactive confirmation are eligible.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <label for="automationCooldown">Cooldown after a run</label>
+                    <div class="automation-number-field automation-cooldown-field"><input id="automationCooldown" type="number" min="0" max="10080" step="1" value="15"><span>minutes</span></div>
+                    <p class="automation-builder-note"><i data-lucide="lock-keyhole"></i>Cooldowns, ownership, current metric state, and launcher-task eligibility are rechecked by the server before every action.</p>
+                    <div class="automation-form-actions">
+                        <button class="app-button app-button-secondary" id="cancelAutomationEdit" type="button" hidden>Cancel edit</button>
+                        <button class="app-button app-button-primary" id="saveAutomationRule" type="submit"><i data-lucide="workflow"></i><span id="automationSaveLabel">Create rule</span></button>
+                    </div>
+                </form>
+                <p class="settings-feedback" id="automationBuilderStatus" role="status" aria-live="polite"></p>
             </section>
 
             <section class="settings-section" data-section="appearance" role="tabpanel">

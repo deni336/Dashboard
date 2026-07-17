@@ -51,6 +51,19 @@ class ConfigHandlerMigrationTests(unittest.TestCase):
         )
         self.assertIn("uploadfolder = /app/kasugai/resources/", entrypoint)
 
+    def test_personal_dashboard_database_is_persisted_with_container_config(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config = ConfigHandler(str(Path(directory) / "config.ini"))
+            self.assertEqual(
+                config.get("Database", "dashboarddbpath"),
+                "personal_dashboard.db",
+            )
+
+        entrypoint = (
+            Path(__file__).resolve().parents[1] / "docker" / "docker-entrypoint.sh"
+        ).read_text(encoding="utf-8")
+        self.assertIn("dashboarddbpath = personal_dashboard.db", entrypoint)
+
     def test_active_native_format_background_is_preserved_during_migration(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

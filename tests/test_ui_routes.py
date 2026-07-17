@@ -408,5 +408,87 @@ class TeamRoomNavigationTests(unittest.TestCase):
         self.assertIn('id="startScreenShareBtn"', team_room)
 
 
+class DeveloperCockpitMarkupTests(unittest.TestCase):
+    def test_home_preserves_shared_surfaces_inside_the_cockpit(self):
+        template = (
+            Path(__file__).resolve().parents[1] / "sites" / "templates" / "index.html"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('id="developerCockpit"', template)
+        self.assertIn('id="repositoryList"', template)
+        self.assertIn('id="githubActivity"', template)
+        self.assertIn('id="buttonContainer"', template)
+        self.assertIn('data-team-room-trigger', template)
+        self.assertIn('data-tab="developer"', template)
+        self.assertIn('data-section="developer"', template)
+        self.assertIn('js/developer_cockpit.js', template)
+        self.assertIn('css/developer_cockpit.css', template)
+        self.assertIn('id="workstationMonitor"', template)
+        self.assertIn('data-tab="workstations"', template)
+        self.assertIn('data-section="workstations"', template)
+        self.assertIn('js/workstation_monitor.js', template)
+        self.assertIn('css/workstation_monitor.css', template)
+        self.assertIn('id="homelabDashboard"', template)
+        self.assertIn('data-tab="homelab"', template)
+        self.assertIn('data-section="homelab"', template)
+        self.assertIn('js/homelab_dashboard.js', template)
+        self.assertIn('css/homelab_dashboard.css', template)
+        self.assertIn('id="launcherModule"', template)
+        self.assertIn('id="commandPalette"', template)
+        self.assertIn('id="launcherTaskGrid"', template)
+        self.assertIn('id="launcherRunList"', template)
+        self.assertIn('id="launcherConfirmationDialog"', template)
+        self.assertIn('id="launcherResultDialog"', template)
+        self.assertIn('data-tab="launcher"', template)
+        self.assertIn('data-section="launcher"', template)
+        self.assertIn('id="createLauncherPairing"', template)
+        self.assertIn('id="launcherAgentList"', template)
+        self.assertIn('id="launcherSettingsTaskList"', template)
+        self.assertIn('js/launcher.js', template)
+        self.assertIn('css/launcher.css', template)
+        self.assertIn('id="automationModule"', template)
+        self.assertIn('id="automationRuleList"', template)
+        self.assertIn('id="automationRunList"', template)
+        self.assertIn('data-tab="automation"', template)
+        self.assertIn('data-section="automation"', template)
+        self.assertIn('id="automationRuleForm"', template)
+        self.assertIn('id="automationTriggerType"', template)
+        self.assertIn('id="automationActionType"', template)
+        self.assertIn('id="automationLauncherTask"', template)
+        self.assertIn('js/automation.js', template)
+        self.assertIn('css/automation.css', template)
+        self.assertIn('id="inboxTopbarButton"', template)
+        self.assertIn('id="inboxUnreadBadge"', template)
+        self.assertIn('id="inboxModule"', template)
+        self.assertIn('id="inboxSourceChips"', template)
+        self.assertIn('id="inboxStateFilter"', template)
+        self.assertIn('id="inboxItemList"', template)
+        self.assertIn('id="inboxConnectorErrors"', template)
+        self.assertIn('js/inbox.js', template)
+        self.assertIn('css/inbox.css', template)
+        self.assertIn('id="knowledgeModule"', template)
+        self.assertIn('id="knowledgeItemList"', template)
+        self.assertIn('id="knowledgeDetail"', template)
+        self.assertIn('id="knowledgeContent"', template)
+        self.assertIn('id="knowledgeEditorDialog"', template)
+        self.assertIn('id="knowledgeEditorForm"', template)
+        self.assertIn('id="knowledgeEditorLanguage"', template)
+        self.assertIn('id="knowledgeEditorTags"', template)
+        self.assertIn('js/knowledge.js', template)
+        self.assertIn('css/knowledge.css', template)
+
+    def test_home_bootstraps_a_session_bound_csrf_token(self):
+        source = (
+            Path(__file__).resolve().parents[1] / "src" / "routes" / "ui_routes.py"
+        ).read_text(encoding="utf-8")
+        template = (
+            Path(__file__).resolve().parents[1] / "sites" / "templates" / "index.html"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('session["csrf_token"]', source)
+        self.assertIn('window.KASUGAI_CSRF_TOKEN', template)
+        self.assertIn('name="kasugai-csrf-token"', template)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,335 @@
+.command-palette-trigger kbd {
+    margin-left: 2px;
+    padding: 2px 5px;
+    border: 1px solid var(--app-border);
+    border-radius: 3px;
+    color: var(--app-subtle);
+    background: #111411;
+    font: 700 8px/1.2 inherit;
+}
+
+.launcher-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(300px, .8fr);
+    gap: 12px;
+}
+
+.launcher-layout .cockpit-widget { min-height: 240px; }
+
+.launcher-callout {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 18px;
+    background:
+        radial-gradient(circle at 85% 0%, rgb(76 154 156 / 13%), transparent 22rem),
+        rgb(24 27 24 / 95%);
+}
+.launcher-callout h2 { margin: 4px 0 0; font-size: 21px; }
+.launcher-callout p { max-width: 720px; margin: 8px 0 0; color: var(--app-muted); font-size: 10px; line-height: 1.55; }
+.launcher-recent-list { display: grid; gap: 6px; }
+.launcher-recent-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px;
+    border: 1px solid var(--app-border-soft);
+    border-radius: 5px;
+    color: var(--app-muted);
+    background: #151815;
+    font-size: 10px;
+}
+.launcher-recent-item svg { width: 14px; height: 14px; color: #77c0c2; }
+
+.launcher-runner-widget {
+    display: flex;
+    flex-direction: column;
+}
+
+.launcher-runner-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    margin-bottom: 10px;
+}
+
+.launcher-runner-metrics > div {
+    display: grid;
+    gap: 2px;
+    padding: 10px;
+    border: 1px solid var(--app-border-soft);
+    border-radius: 5px;
+    background: #151815;
+}
+
+.launcher-runner-metrics strong { color: var(--app-text); font-size: 19px; }
+.launcher-runner-metrics span { color: var(--app-subtle); font-size: 8px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+.launcher-runner-list { display: grid; gap: 5px; min-height: 55px; margin-bottom: 8px; }
+.launcher-runner-widget > .cockpit-text-button { margin-top: auto; }
+
+.launcher-runner-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 7px 8px;
+    border: 1px solid var(--app-border-soft);
+    border-radius: 4px;
+    background: rgb(17 20 17 / 72%);
+}
+
+.launcher-runner-row > span:nth-child(2) { display: grid; min-width: 0; }
+.launcher-runner-row strong,
+.launcher-runner-row small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.launcher-runner-row strong { color: var(--app-text); font-size: 9px; }
+.launcher-runner-row small { margin-top: 2px; color: var(--app-subtle); font-size: 8px; }
+.launcher-state-dot { width: 7px; height: 7px; border-radius: 50%; background: #6f776f; box-shadow: 0 0 0 3px rgb(111 119 111 / 10%); }
+.launcher-state-dot.is-online { background: #70b58d; box-shadow: 0 0 0 3px rgb(112 181 141 / 12%); }
+.launcher-runner-state { color: var(--app-subtle); font-size: 8px; font-weight: 760; text-transform: uppercase; }
+.launcher-runner-state.is-online { color: #86c9a0; }
+
+.launcher-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(300px, .8fr);
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.launcher-catalog-widget,
+.launcher-history-widget { min-height: 360px; }
+.launcher-catalog-count { color: var(--app-subtle); font-size: 8px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
+.launcher-catalog-tools { display: grid; grid-template-columns: minmax(0, 1fr) minmax(130px, .28fr); gap: 7px; margin-bottom: 8px; }
+.launcher-catalog-tools .cockpit-search-field { min-height: 34px; }
+.launcher-catalog-tools select {
+    min-width: 0;
+    border: 1px solid var(--app-border);
+    border-radius: 4px;
+    padding: 0 9px;
+    color: var(--app-muted);
+    background: #141714;
+    font: 700 9px/1 inherit;
+}
+.launcher-feedback { min-height: 14px; margin: 0 0 5px; }
+
+.launcher-task-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    gap: 7px;
+}
+
+.launcher-task-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 162px;
+    padding: 11px;
+    border: 1px solid var(--app-border-soft);
+    border-radius: 6px;
+    background:
+        linear-gradient(145deg, rgb(76 154 156 / 6%), transparent 52%),
+        #151815;
+    transition: border-color 130ms ease, transform 130ms ease;
+}
+.launcher-task-card:hover { border-color: rgb(98 171 173 / 28%); transform: translateY(-1px); }
+.launcher-task-card.is-unavailable { background: #141714; }
+.launcher-task-heading { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 9px; min-width: 0; }
+.launcher-task-icon,
+.launcher-settings-task-icon { display: grid; place-items: center; flex: 0 0 auto; width: 32px; height: 32px; border-radius: 5px; color: #82c8ca; background: rgb(76 154 156 / 10%); }
+.launcher-task-icon svg,
+.launcher-settings-task-icon svg { width: 15px; height: 15px; }
+.launcher-task-heading > span:last-child { display: grid; min-width: 0; }
+.launcher-task-heading strong,
+.launcher-task-heading small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.launcher-task-heading strong { color: var(--app-text); font-size: 11px; }
+.launcher-task-heading small { margin-top: 3px; color: var(--app-subtle); font-size: 8px; }
+.launcher-task-card > p { margin: 10px 0 12px; color: var(--app-muted); font-size: 9px; line-height: 1.52; }
+.launcher-task-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; }
+.launcher-task-badges { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.launcher-task-badges > span { padding: 3px 5px; border: 1px solid var(--app-border-soft); border-radius: 3px; color: var(--app-subtle); background: #111411; font-size: 7px; font-weight: 760; letter-spacing: .04em; text-transform: uppercase; }
+.launcher-task-badges > .is-guarded { border-color: rgb(204 157 86 / 25%); color: #d3aa6e; background: rgb(204 157 86 / 7%); }
+.launcher-run-button { min-height: 29px; padding: 0 9px; font-size: 8px; }
+.launcher-run-button svg { width: 12px; height: 12px; }
+
+.launcher-empty-state {
+    display: grid;
+    grid-column: 1 / -1;
+    place-items: center;
+    min-height: 230px;
+    padding: 20px;
+    color: var(--app-subtle);
+    text-align: center;
+}
+.launcher-empty-state svg { width: 24px; height: 24px; margin-bottom: 8px; color: #679fa1; }
+.launcher-empty-state strong { color: var(--app-muted); font-size: 11px; }
+.launcher-empty-state p { max-width: 390px; margin: 6px 0 0; font-size: 9px; line-height: 1.5; }
+
+.launcher-run-list { display: grid; align-content: start; gap: 5px; }
+.launcher-run-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    padding: 8px;
+    border: 1px solid var(--app-border-soft);
+    border-radius: 4px;
+    color: var(--app-muted);
+    background: #151815;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.launcher-run-row:hover { border-color: rgb(76 154 156 / 25%); background: rgb(76 154 156 / 6%); }
+.launcher-run-row > span:nth-child(2) { display: grid; min-width: 0; }
+.launcher-run-row strong,
+.launcher-run-row small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.launcher-run-row strong { color: var(--app-text); font-size: 9px; }
+.launcher-run-row small { margin-top: 2px; color: var(--app-subtle); font-size: 8px; }
+.launcher-run-row > span:last-child { font-size: 7px; font-weight: 760; letter-spacing: .04em; text-transform: uppercase; }
+.launcher-run-state { width: 7px; height: 7px; border-radius: 50%; background: #8a938a; }
+.launcher-run-state.is-succeeded { background: #70b58d; box-shadow: 0 0 0 3px rgb(112 181 141 / 10%); }
+.launcher-run-state.is-failed,
+.launcher-run-state.is-rejected,
+.launcher-run-state.is-expired { background: #cd7770; box-shadow: 0 0 0 3px rgb(205 119 112 / 10%); }
+.launcher-run-state.is-running,
+.launcher-run-state.is-claimed,
+.launcher-run-state.is-queued { background: #c39a5f; box-shadow: 0 0 0 3px rgb(195 154 95 / 10%); }
+
+.launcher-confirmation-dialog,
+.launcher-result-dialog {
+    width: min(520px, calc(100% - 28px));
+    padding: 20px;
+    border: 1px solid #414941;
+    border-radius: 8px;
+    color: var(--app-text);
+    background: #171a17;
+    box-shadow: 0 28px 90px rgb(0 0 0 / 70%);
+}
+.launcher-confirmation-dialog::backdrop,
+.launcher-result-dialog::backdrop { background: rgb(0 0 0 / 72%); backdrop-filter: blur(4px); }
+.launcher-confirmation-dialog { grid-template-columns: auto minmax(0, 1fr); gap: 13px; }
+.launcher-confirmation-dialog[open] { display: grid; }
+.launcher-dialog-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 6px; color: #d2a664; background: rgb(204 157 86 / 9%); }
+.launcher-dialog-icon svg { width: 20px; height: 20px; }
+.launcher-dialog-copy h2 { margin: 4px 0 7px; font-size: 17px; }
+.launcher-dialog-copy > p { margin: 0; color: var(--app-muted); font-size: 10px; line-height: 1.55; }
+.launcher-dialog-copy .launcher-confirmation-expiry { margin-top: 10px; padding: 8px; border-left: 2px solid #b68b50; color: var(--app-subtle); background: rgb(204 157 86 / 5%); font-size: 8px; }
+.launcher-dialog-actions { display: flex; grid-column: 2; justify-content: flex-end; gap: 7px; margin-top: 5px; }
+
+.launcher-result-dialog { width: min(600px, calc(100% - 28px)); }
+.launcher-result-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--app-border-soft); }
+.launcher-result-heading h2 { margin: 4px 0 0; font-size: 17px; }
+.launcher-result-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 13px 0; }
+.launcher-result-details > div { display: grid; gap: 3px; padding: 8px; border: 1px solid var(--app-border-soft); border-radius: 4px; background: #141714; }
+.launcher-result-details dt { color: var(--app-subtle); font-size: 7px; font-weight: 760; letter-spacing: .06em; text-transform: uppercase; }
+.launcher-result-details dd { margin: 0; color: var(--app-muted); font-size: 9px; overflow-wrap: anywhere; }
+.launcher-result-summary { padding: 10px; border: 1px solid var(--app-border-soft); border-radius: 5px; background: #111411; }
+.launcher-result-summary > span { color: var(--app-subtle); font-size: 7px; font-weight: 760; letter-spacing: .06em; text-transform: uppercase; }
+.launcher-result-summary p { margin: 6px 0 0; color: var(--app-muted); font-size: 10px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.launcher-result-boundary,
+.launcher-policy-note { display: flex; align-items: flex-start; gap: 7px; color: var(--app-subtle); font-size: 8px; line-height: 1.5; }
+.launcher-result-boundary { margin: 12px 0 0; }
+.launcher-result-boundary svg,
+.launcher-policy-note svg { flex: 0 0 auto; width: 13px; height: 13px; color: #74b5a0; }
+
+.launcher-settings-task-list { max-height: 260px; overflow-y: auto; }
+.launcher-settings-task { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 9px; align-items: center; }
+.launcher-settings-task > span:nth-child(2) { display: grid; min-width: 0; }
+.launcher-settings-task strong,
+.launcher-settings-task small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.launcher-settings-task-icon { width: 30px; height: 30px; }
+.launcher-policy-note { margin: 9px 0 0; }
+
+.command-palette {
+    width: min(720px, calc(100% - 28px));
+    max-height: min(680px, calc(100dvh - 42px));
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid #414941;
+    border-radius: 9px;
+    color: var(--app-text);
+    background: #151815;
+    box-shadow: 0 32px 110px rgb(0 0 0 / 70%);
+}
+.command-palette::backdrop { background: rgb(0 0 0 / 72%); backdrop-filter: blur(5px); }
+
+.command-palette-search {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 11px;
+    min-height: 62px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--app-border-soft);
+}
+.command-palette-search svg { width: 19px; height: 19px; color: var(--app-subtle); }
+.command-palette-search input { width: 100%; border: 0; color: var(--app-text); background: transparent; font-size: 16px; }
+.command-palette-search kbd,
+.command-palette-footer kbd { padding: 2px 5px; border: 1px solid var(--app-border); border-radius: 3px; color: var(--app-subtle); background: #101310; font: 700 9px/1.2 inherit; }
+
+.command-palette-results {
+    display: grid;
+    gap: 3px;
+    max-height: 500px;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.command-result {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 50px;
+    padding: 7px 9px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    color: var(--app-text);
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.command-result:hover,
+.command-result.is-active { border-color: rgb(76 154 156 / 24%); background: rgb(76 154 156 / 9%); }
+.command-result:disabled { opacity: .48; cursor: not-allowed; }
+.command-result-icon { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 5px; color: #83c9cb; background: rgb(76 154 156 / 10%); }
+.command-result-icon svg { width: 15px; height: 15px; }
+.command-result-copy { display: grid; min-width: 0; }
+.command-result-copy strong,
+.command-result-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.command-result-copy strong { font-size: 11px; }
+.command-result-copy small { margin-top: 3px; color: var(--app-subtle); font-size: 9px; }
+.command-result-kind { color: var(--app-subtle); font-size: 8px; font-weight: 760; letter-spacing: .05em; text-transform: uppercase; }
+
+.command-palette-empty { padding: 48px 20px; color: var(--app-subtle); font-size: 11px; text-align: center; }
+.command-palette-footer { display: flex; align-items: center; gap: 14px; min-height: 38px; padding: 0 13px; border-top: 1px solid var(--app-border-soft); color: var(--app-subtle); background: #121512; font-size: 8px; }
+.command-palette-footer span:last-child { margin-left: auto; }
+
+@media (max-width: 900px) {
+    .launcher-layout,
+    .launcher-workspace { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 720px) {
+    .command-palette-trigger span,
+    .command-palette-trigger kbd { display: none; }
+    .launcher-callout { grid-template-columns: auto minmax(0, 1fr); }
+    .launcher-callout > button { grid-column: 2; justify-self: start; }
+}
+
+@media (max-width: 560px) {
+    .command-palette { width: 100%; max-height: calc(100dvh - var(--app-topbar-height)); margin: var(--app-topbar-height) 0 0; border-radius: 0; }
+    .command-palette-results { max-height: calc(100dvh - var(--app-topbar-height) - 102px); }
+    .command-palette-footer span:not(:last-child) { display: none; }
+    .launcher-task-grid,
+    .launcher-catalog-tools,
+    .launcher-result-details { grid-template-columns: 1fr; }
+    .launcher-dialog-actions { grid-column: 1 / -1; }
+    .launcher-confirmation-dialog { grid-template-columns: 1fr; }
+    .launcher-task-card { min-height: 150px; }
+}

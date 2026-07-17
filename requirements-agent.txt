@@ -1,0 +1,3 @@
+# Dependencies for the standalone Windows workstation telemetry agent.
+# The dashboard's full requirements.txt is intentionally not needed.
+psutil==7.1.0

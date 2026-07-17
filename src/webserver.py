@@ -10,6 +10,8 @@ from src.config_handler import ConfigHandler
 from src.global_logger import GlobalLogger
 from src.event_handler import EventHandler
 from src.chat_manager import ChatManager
+from src.personal_dashboard import PersonalDashboardStore
+from src.automation_engine import AutomationScheduler
 
 # Import modular routes
 from src.routes.auth_routes import auth_bp, init_auth_routes
@@ -20,6 +22,16 @@ from src.routes.settings_routes import settings_bp, init_settings_routes
 from src.routes.screenshare_routes import screenshare_bp
 from src.routes.ui_routes import ui_bp, init_ui_routes
 from src.routes.project_routes import project_bp, init_project_routes
+from src.routes.developer_routes import developer_bp, init_developer_routes
+from src.routes.workstation_routes import workstation_bp, init_workstation_routes
+from src.routes.homelab_routes import homelab_bp, init_homelab_routes
+from src.routes.launcher_routes import launcher_bp, init_launcher_routes
+from src.routes.automation_routes import automation_bp, init_automation_routes
+from src.routes.inbox_routes import inbox_bp, init_inbox_routes
+from src.routes.knowledge_routes import knowledge_bp, init_knowledge_routes
+from src.routes.security_routes import security_bp, init_security_routes
+from src.routes.ai_toolbox_routes import ai_toolbox_bp, init_ai_toolbox_routes
+from src.routes.personal_hub_routes import personal_hub_bp, init_personal_hub_routes
 
 
 def get_or_create_session_secret(config):
@@ -64,6 +76,38 @@ class WebServer:
         init_settings_routes(self.config)
         init_ui_routes(self.config, self.config.get("Application", "resourcefolder"))
         init_project_routes(self.config)
+        self.dashboard_store = PersonalDashboardStore(self.config)
+        self.developer_cockpit = init_developer_routes(dashboard_store=self.dashboard_store)
+        self.workstation_monitor = init_workstation_routes(dashboard_store=self.dashboard_store)
+        self.homelab_monitor = init_homelab_routes(dashboard_store=self.dashboard_store)
+        self.launcher_runner = init_launcher_routes(dashboard_store=self.dashboard_store)
+        self.automation_engine = init_automation_routes(
+            dashboard_store=self.dashboard_store,
+            launcher_runner=self.launcher_runner,
+        )
+        self.automation_scheduler = AutomationScheduler(self.automation_engine)
+        self.nerd_inbox = init_inbox_routes(
+            dashboard_store=self.dashboard_store,
+            developer_cockpit=self.developer_cockpit,
+            workstation_monitor=self.workstation_monitor,
+            homelab_monitor=self.homelab_monitor,
+            launcher_runner=self.launcher_runner,
+        )
+        self.knowledge_vault = init_knowledge_routes(
+            dashboard_store=self.dashboard_store,
+        )
+        self.security_center = init_security_routes(
+            dashboard_store=self.dashboard_store,
+            workstation_monitor=self.workstation_monitor,
+            homelab_monitor=self.homelab_monitor,
+            launcher_runner=self.launcher_runner,
+        )
+        self.ai_toolbox = init_ai_toolbox_routes(
+            dashboard_store=self.dashboard_store,
+        )
+        self.personal_hub = init_personal_hub_routes(
+            dashboard_store=self.dashboard_store,
+        )
 
         self.setup_routes()
 
@@ -76,6 +120,16 @@ class WebServer:
         self.app.register_blueprint(screenshare_bp)
         self.app.register_blueprint(ui_bp)
         self.app.register_blueprint(project_bp)
+        self.app.register_blueprint(developer_bp)
+        self.app.register_blueprint(workstation_bp)
+        self.app.register_blueprint(homelab_bp)
+        self.app.register_blueprint(launcher_bp)
+        self.app.register_blueprint(automation_bp)
+        self.app.register_blueprint(inbox_bp)
+        self.app.register_blueprint(knowledge_bp)
+        self.app.register_blueprint(security_bp)
+        self.app.register_blueprint(ai_toolbox_bp)
+        self.app.register_blueprint(personal_hub_bp)
 
     def server_connect(self):
         self.logger.info('Connecting to server...')
@@ -94,11 +148,17 @@ class WebServer:
         self.logger.info(f'Starting WebServer using Waitress on port: {port}')
         if platform.system() == "Windows":
             self.open_browser()
-        serve(self.app, host=self.config.get('WebServer', 'address'), port=port)
+        self.automation_scheduler.start()
+        try:
+            serve(self.app, host=self.config.get('WebServer', 'address'), port=port)
+        finally:
+            self.automation_scheduler.stop()
 
     def shutdown_server(self):
         pass
 
     def stop(self):
+        if hasattr(self, 'automation_scheduler'):
+            self.automation_scheduler.stop()
         self.is_running = False
         print("ChatManager stopped.")

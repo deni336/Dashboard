@@ -1,0 +1,12 @@
+services:
+  dashboard:
+    environment:
+      KASUGAI_REPOSITORY_ROOTS: /repositories
+      KASUGAI_REPOSITORY_ALLOWED_ROOTS: /repositories
+    volumes:
+      - type: bind
+        source: ${KASUGAI_REPOSITORY_HOST_PATH:?Set KASUGAI_REPOSITORY_HOST_PATH to a narrow host projects folder}
+        target: /repositories
+        read_only: true
+        bind:
+          create_host_path: false

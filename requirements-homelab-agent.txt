@@ -1,0 +1,2 @@
+# The standalone homelab agent intentionally uses only Python's standard library.
+# Docker is accessed through the locally installed Docker CLI, never a socket API.

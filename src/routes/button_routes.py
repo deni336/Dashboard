@@ -1,8 +1,4 @@
 # routes/button_routes.py
-import os
-import platform
-import subprocess
-import webbrowser
 from flask import Blueprint, request, jsonify
 from src.global_logger import GlobalLogger
 from src.button_manager import ButtonManager
@@ -55,19 +51,10 @@ def button_click(button_name):
     if link is None:
         return jsonify({"error": "Button not found"}), 404
 
-    try:
-        if link.startswith('http://') or link.startswith('https://'):
-            webbrowser.open_new_tab(link)
-        elif os.path.exists(link):
-            if platform.system() == "Windows":
-                os.startfile(link)
-            elif platform.system() == "Linux":
-                subprocess.Popen(['xdg-open', link])
-            elif platform.system() == "Darwin":
-                subprocess.Popen(['open', link])
-        else:
-            return jsonify({"error": "File not found"}), 404
-        return '', 204
-    except Exception as e:
-        logger.error(f"Failed to handle button click for {link}: {e}")
-        return jsonify({"error": "Failed to execute the file"}), 500
+    # Opening a URL on the web-server host is surprising in native mode and
+    # meaningless in Docker. The browser owns bookmarks; local execution uses
+    # the separately paired, locally allowlisted launcher companion.
+    return jsonify({
+        "error": "Open this HTTPS shortcut in the browser; use Launcher for local tasks",
+        "url": link,
+    }), 410
