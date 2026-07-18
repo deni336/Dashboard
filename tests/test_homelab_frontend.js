@@ -34,4 +34,5 @@ test("remote inventory is never assigned to HTML", () => {
     assert.match(source, /X-Kasugai-CSRF/);
     assert.doesNotMatch(source, /docker\.sock|docker_engine/);
     assert.doesNotMatch(source, /operation:\s*['"](?:exec|stop|delete|pull|prune)/);
+    assert.match(source, /\\scripts\\\\install-homelab-agent\.ps1/);
 });

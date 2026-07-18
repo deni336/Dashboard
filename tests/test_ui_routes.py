@@ -409,6 +409,36 @@ class TeamRoomNavigationTests(unittest.TestCase):
 
 
 class DeveloperCockpitMarkupTests(unittest.TestCase):
+    def test_external_credential_and_pairing_helpers_are_actionable(self):
+        template_folder = (
+            Path(__file__).resolve().parents[1] / "sites" / "templates"
+        )
+        home = (template_folder / "index.html").read_text(encoding="utf-8")
+        login = (template_folder / "login.html").read_text(encoding="utf-8")
+
+        self.assertIn('aria-describedby="deniLicenseAccountHelp"', login)
+        self.assertIn('id="deniLicenseAccountHelp"', login)
+        self.assertIn('aria-describedby="claimCodeHelp"', login)
+        self.assertIn('id="claimCodeHelp"', login)
+        self.assertIn("administrator who operates your DeniLicense service", login)
+        self.assertIn("does not save it", login)
+
+        self.assertIn('aria-describedby="githubTokenHelp"', home)
+        self.assertIn('id="githubTokenHelp"', home)
+        self.assertIn("personal access token (classic)", home)
+        self.assertIn("scopes=notifications", home)
+        self.assertIn("only the <code>notifications</code> scope", home)
+        self.assertIn('rel="noopener noreferrer"', home)
+
+        for agent in ("workstation", "homelab", "launcher"):
+            with self.subTest(agent=agent):
+                self.assertIn(f'id="{agent}PairingCommand"', home)
+        self.assertEqual(home.count("From the Kasugai repository root"), 3)
+        self.assertEqual(
+            home.count("Enter it only in the installer's hidden prompt"),
+            3,
+        )
+
     def test_home_preserves_shared_surfaces_inside_the_cockpit(self):
         template = (
             Path(__file__).resolve().parents[1] / "sites" / "templates" / "index.html"

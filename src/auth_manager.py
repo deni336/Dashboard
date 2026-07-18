@@ -81,7 +81,7 @@ class AuthManager:
             except LicenseError as exc:
                 if str(exc) == "The request was not valid.":
                     raise LicenseError(
-                        "The claim code was not accepted. Verify the complete case-sensitive code "
+                        "The claim code was not accepted. Verify the complete code "
                         "and confirm that it has not already been claimed."
                     ) from exc
                 raise

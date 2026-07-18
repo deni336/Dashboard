@@ -38,4 +38,5 @@ test("workstation frontend keeps server content out of HTML sinks", () => {
     assert.match(source, /textContent/);
     assert.match(source, /X-Kasugai-CSRF/);
     assert.match(source, /document\.hidden/);
+    assert.match(source, /\\scripts\\\\install-workstation-agent\.ps1/);
 });

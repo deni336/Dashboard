@@ -818,7 +818,7 @@
             const pairing = normalizePairing(await api('/api/launcher/pairings', { method: 'POST', body: {} }));
             byId('launcherPairing').hidden = false;
             byId('launcherPairingCode').textContent = pairing.code;
-            byId('launcherPairingCommand').textContent = `python -m launcher_agent pair --server ${window.location.origin} --pairing-id ${pairing.pairing_id}`;
+            byId('launcherPairingCommand').textContent = `powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\install-launcher-agent.ps1 -ServerUrl ${window.location.origin} -PairingId ${pairing.pairing_id}`;
             byId('launcherPairingExpiry').textContent = `Expires ${formatTime(pairing.expires_at)} - pairing ID ${pairing.pairing_id}`;
             setSettingsFeedback('launcherPairingStatus', 'The runner will securely prompt for the one-time code.', 'success');
         } catch (error) {

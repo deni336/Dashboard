@@ -232,4 +232,12 @@ test("the unloaded assistant drawer does not claim project data is being process
     assert.match(template, /id="openAISettingsForm"[^>]*hidden/);
     assert.match(template, /id="openAIKeyInput"[^>]*type="password"/);
     assert.match(template, /autocomplete="new-password"/);
+    assert.match(template, /id="openAIKeyAcquisitionHelp"/);
+    assert.match(template, /https:\/\/platform\.openai\.com\/api-keys/);
+    assert.match(template, /POST \/v1\/chat\/completions/);
+    assert.match(template, /API billing is separate\s+from a ChatGPT subscription/);
+    assert.match(template, /never use an organization admin key/);
+    assert.match(template, /target="_blank" rel="noopener noreferrer"/);
+    assert.match(template, /id="connectionCredentialHelp"/);
+    assert.match(template, /credential-free bookmark/);
 });

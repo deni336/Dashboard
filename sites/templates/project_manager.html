@@ -330,9 +330,14 @@
                 <label class="pm-field"><span>Provider</span><select name="provider"><option value="github">GitHub</option><option value="gmail">Gmail</option><option value="calendar">Calendar</option><option value="drive">Drive</option><option value="teams">Microsoft Teams</option><option value="slack">Slack</option><option value="jira">Jira</option><option value="notion">Notion</option><option value="other">Other</option></select></label>
                 <label class="pm-field"><span>Scope</span><select name="scope"><option value="project">This project</option><option value="global">All projects</option></select></label>
                 <label class="pm-field"><span>Label</span><input name="label" maxlength="120" required></label>
-                <label class="pm-field"><span>Account</span><input name="account" maxlength="254" autocomplete="off"></label>
-                <label class="pm-field pm-field-span-2"><span>URL</span><input type="url" name="url" maxlength="2048" placeholder="https://" required></label>
+                <label class="pm-field"><span>Account</span><input name="account" maxlength="254" autocomplete="off" aria-describedby="connectionCredentialHelp"></label>
+                <label class="pm-field pm-field-span-2"><span>URL</span><input type="url" name="url" maxlength="2048" placeholder="https://" aria-describedby="connectionCredentialHelp" required></label>
             </div>
+            <small class="pm-ai-key-help" id="connectionCredentialHelp">
+                Connections are credential-free bookmarks, not OAuth sign-ins. Never put a token, password, API key,
+                or embedded URL credential here. GitHub and Gmail evidence uses separately protected administrator
+                credentials; a Gmail Account value must match the deployment mailbox address.
+            </small>
             <div class="pm-form-error" data-form-error></div>
             <div class="pm-dialog-actions">
                 <button class="pm-button pm-button-danger" type="button" id="deleteConnectionButton" hidden><i data-lucide="trash-2"></i>Delete</button>
@@ -395,12 +400,18 @@
                     <span id="openAIKeyLabel">Personal OpenAI API key</span>
                     <input id="openAIKeyInput" name="api_key" type="password" maxlength="4096"
                            autocomplete="new-password" autocapitalize="none" spellcheck="false" required
-                           aria-describedby="openAIKeyHelp">
+                           aria-describedby="openAIKeyHelp openAIKeyAcquisitionHelp">
                 </label>
                 <small class="pm-ai-key-help" id="openAIKeyHelp">
-                    Your key is encrypted on this server, is never shown again after saving, and is used only for your AI requests.
-                    Usage and billing belong to its OpenAI API project.
-                    <a class="pm-text-link" href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">Manage OpenAI API keys</a>.
+                    Kasugai encrypts the key on this server, never shows it again, and uses it only for your AI requests.
+                </small>
+                <small class="pm-ai-key-help" id="openAIKeyAcquisitionHelp">
+                    In the OpenAI Platform, select the API project that should own usage and billing, open
+                    <strong>API keys</strong>, choose <strong>Create new secret key</strong>, and copy it here immediately;
+                    the secret is shown only once. A restricted key needs model-request access to
+                    <code>POST /v1/chat/completions</code>; never use an organization admin key. API billing is separate
+                    from a ChatGPT subscription.
+                    <a class="pm-text-link" href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">Create or manage an OpenAI API key</a>.
                 </small>
                 <div class="pm-form-error" data-ai-key-error role="alert"></div>
                 <div class="pm-dialog-actions">

@@ -20,14 +20,26 @@
             {% endif %}
 
             <label for="email">DeniLicense Email</label>
-            <input type="email" id="email" name="email" value="{{ submitted_email }}" autocomplete="email" required autofocus>
+            <input type="email" id="email" name="email" value="{{ submitted_email }}" autocomplete="email"
+                   aria-describedby="deniLicenseAccountHelp" required autofocus>
 
             <label for="password">Password</label>
-            <input type="password" id="password" name="password" autocomplete="current-password" required>
+            <input type="password" id="password" name="password" autocomplete="current-password"
+                   aria-describedby="deniLicenseAccountHelp" required>
+            <p class="license-login-hint" id="deniLicenseAccountHelp">
+                Use your customer account for the DeniLicense service shown above. Contact that service's operator
+                to create an account or reset its password. Kasugai sends the password to DeniLicense for this login
+                and does not save it.
+            </p>
 
             <label for="claim_code">Claim Code</label>
-            <input type="text" id="claim_code" name="claim_code" autocomplete="off">
-            <p class="license-login-hint">Optional. Customer accounts only; leave blank when a KASUGAI license is already assigned to the account.</p>
+            <input type="text" id="claim_code" name="claim_code" autocomplete="off"
+                   aria-describedby="claimCodeHelp">
+            <p class="license-login-hint" id="claimCodeHelp">
+                Optional. This code comes from the administrator who operates your DeniLicense service—not from GitHub,
+                OpenAI, or a public Kasugai website. Use it only if that administrator issued one to claim a license.
+                Leave it blank when a {{ product_code }} license is already assigned to this customer account.
+            </p>
 
             <button type="submit">Verify License</button>
         </form>

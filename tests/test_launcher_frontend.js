@@ -106,7 +106,10 @@ test("launcher pairing and confirmation previews require safe one-use values", (
 test("launcher rendering has no HTML or arbitrary execution sink", () => {
     const source = fs.readFileSync(path.join(__dirname, "..", "sites", "static", "js", "launcher.js"), "utf8");
     assert.doesNotMatch(source, /\.innerHTML\s*=/);
-    assert.doesNotMatch(source, /eval\s*\(|new Function|child_process|shell/i);
+    assert.doesNotMatch(
+        source,
+        /eval\s*\(|new Function|child_process|(?:exec|execFile|spawn|fork)\s*\(/i,
+    );
     assert.match(source, /textContent/);
     assert.match(source, /ctrlKey/);
     assert.match(source, /meta\[name="kasugai-csrf-token"\]/);
@@ -114,4 +117,5 @@ test("launcher rendering has no HTML or arbitrary execution sink", () => {
     assert.match(source, /redirect:\s*'error'/);
     assert.match(source, /body:\s*\{ confirmation_token:/);
     assert.doesNotMatch(source, /body:\s*\{[^}]*argv|body:\s*\{[^}]*path/);
+    assert.match(source, /\\scripts\\\\install-launcher-agent\.ps1/);
 });

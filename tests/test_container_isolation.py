@@ -32,6 +32,14 @@ class ContainerIsolationTests(unittest.TestCase):
         self.assertIn("cap_drop:", source)
         self.assertIn("- ALL", source)
 
+    def test_production_wsgi_starts_and_registers_cleanup_for_background_services(self):
+        source = (
+            Path(__file__).resolve().parents[1] / "src" / "wsgi.py"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("server.automation_scheduler.start()", source)
+        self.assertIn("atexit.register(server.stop)", source)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -558,11 +558,22 @@ class ProjectAssistantCompatibleEndpointTests(unittest.TestCase):
         message = str(raised.exception)
         self.assertNotIn(service_key, message)
         self.assertNotIn("abcd", message)
-        self.assertIn("Check KASUGAI_AI_API_KEY", message)
+        self.assertIn("Check the configured AI API credential", message)
         self.assertEqual(
             request.call_args.args[0].get_header("Authorization"),
             f"Bearer {service_key}",
         )
+
+    def test_github_deployment_token_requires_a_repository_target(self):
+        with patch.dict(
+            os.environ,
+            {"KASUGAI_GITHUB_TOKEN_ALLOWLIST": "example/*"},
+            clear=False,
+        ):
+            self.assertFalse(self.assistant._github_token_allowed(["example"]))
+            self.assertTrue(
+                self.assistant._github_token_allowed(["example", "project"])
+            )
 
     def test_upstream_calls_use_and_enforce_the_remaining_request_budget(self):
         github_response = FakeHTTPResponse(b"[]")

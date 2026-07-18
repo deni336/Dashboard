@@ -435,7 +435,7 @@ Allowed actions:
                 if exc.code == 401:
                     raise ProjectAIError(
                         "The AI endpoint rejected its configured credential (401). "
-                        "Check KASUGAI_AI_API_KEY."
+                        "Check the configured AI API credential."
                     ) from exc
                 if exc.code == 403:
                     raise ProjectAIError(
@@ -751,6 +751,12 @@ Allowed actions:
 
     @staticmethod
     def _github_token_allowed(parts):
+        # Account-only connections use GitHub's public-events endpoint and do
+        # not need the deployment repository credential.  Requiring an
+        # explicit owner/repository pair keeps owner/* from widening that
+        # credential boundary beyond repository evidence.
+        if len(parts) < 2:
+            return False
         target = "/".join(parts[:2]).lower()
         owner = parts[0].lower()
         allowed = {

@@ -491,7 +491,7 @@
             const payload = await api('/api/homelab/pairings', { method: 'POST', body: {} });
             byId('homelabPairing').hidden = false;
             byId('homelabPairingCode').textContent = String(payload?.code || '');
-            byId('homelabPairingCommand').textContent = `python -m homelab_agent pair --server ${window.location.origin} --pairing-id ${String(payload?.pairing_id || '')}`;
+            byId('homelabPairingCommand').textContent = `powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\install-homelab-agent.ps1 -ServerUrl ${window.location.origin} -PairingId ${String(payload?.pairing_id || '')}`;
             byId('homelabPairingExpiry').textContent = `Expires ${formatTime(payload?.expires_at)} · pairing ID ${String(payload?.pairing_id || '')}`;
             setFeedback('homelabPairingStatus', 'The agent will securely prompt for this code.', 'success');
         } catch (error) {

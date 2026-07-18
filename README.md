@@ -7,10 +7,28 @@ personal hubs, local AI tools, and a full project workspace. Chat, file
 transfer, and screen sharing live together in the Go-backed Team Room. Access
 is gated by a device-bound DeniLicense activation lease.
 
+## Documentation
+
+The README is the feature tour and deployment overview. The expanded guides are
+organized by task in the [documentation index](docs/README.md):
+
+- [Getting started](docs/GETTING_STARTED.md) — first deployment and first login
+- [User guide](docs/USER_GUIDE.md) — day-to-day workflows across every module
+- [Configuration reference](docs/CONFIGURATION.md) — environment variables,
+  `config.ini`, Compose overlays, allowlists, and precedence
+- [Credentials and external codes](docs/CREDENTIALS.md) — exactly where to get
+  every key, token, password, claim code, and pairing code
+- [Companion agents](docs/COMPANION_AGENTS.md) — install, policy, update,
+  troubleshoot, revoke, and uninstall the three outbound agents
+- [Architecture and security](docs/ARCHITECTURE.md) — components, data flow,
+  trust boundaries, persistence, and threat controls
+- [Operations and troubleshooting](docs/TROUBLESHOOTING.md) — health checks,
+  upgrades, backups, recovery, and common failures
+
 ## Requirements
 
 - Python 3.14
-- Go 1.24 or newer for the gRPC service
+- Go 1.22.6 or a newer toolchain compatible with `kasugai_server/go.mod`
 - A running DeniLicense service with a product and license for the configured product code
 - Docker Desktop and Docker Compose for the container workflow
 
@@ -42,7 +60,7 @@ Open **Projects** from the dashboard navigation to manage a user-scoped portfoli
 
 Project data is stored in `project_manager.db`. Descriptions, meeting content, RAID details, stakeholder notes, connection account labels, and invited email addresses are encrypted at rest with the `[Database] encryption_key`. Every owned project is keyed to the authenticated DeniLicense user ID; each user receives a private portfolio and can reuse project codes used by another owner. Accepted shares are added separately through the collaboration access table.
 
-Connections are validated HTTPS/HTTP shortcuts, not per-user OAuth integrations, and URLs containing embedded credentials are rejected. Each authenticated user can save a personal OpenAI API key from the key control in the Projects top bar. Personal keys are encrypted in `project_manager.db`, scoped to that user's authenticated ID, and never returned by the API after saving. An optional deployment-wide OpenAI key can still be supplied to the dashboard container as a controlled fallback.
+Connections are validated HTTPS/HTTP shortcuts, not per-user OAuth integrations, and URLs containing embedded credentials are rejected. When the effective provider is `openai`, each authenticated user can save a personal OpenAI API key from the key control in the Projects top bar. Personal keys are encrypted in `project_manager.db`, scoped to that user's authenticated ID, and never returned by the API after saving. An optional deployment-wide OpenAI key can still be supplied to the dashboard container as a controlled fallback.
 
 ### Sharing projects
 
@@ -78,8 +96,8 @@ repository overlay described below; the standard Compose stack does not mount
 any host source code. `KASUGAI_DEVELOPER_ALLOWED_USERS` can further restrict the
 feature to comma-separated DeniLicense profile IDs or email addresses.
 
-Each signed-in user can connect a personal GitHub token from **Settings →
-Developer**. Kasugai validates it against GitHub, encrypts it in
+Each signed-in user allowed by `KASUGAI_DEVELOPER_ALLOWED_USERS` can connect a
+personal GitHub token from **Settings → Developer**. Kasugai validates it against GitHub, encrypts it in
 `personal_dashboard.db`, and never returns it to the browser. The connection is
 used for that user's notification feed only.
 
@@ -150,8 +168,9 @@ labels:
 ```
 
 The latter two labels do not grant anything alone. Logs require the local
-`read_logs` policy; restart requires the local `restart` policy and the server's
-`KASUGAI_HOMELAB_ACTIONS_ENABLED=true` kill switch. The host re-reads inventory
+`read_logs` policy and the server's
+`KASUGAI_HOMELAB_ACTIONS_ENABLED=true` kill switch; restart requires that same
+server switch plus the local `restart` policy. The host re-reads inventory
 and labels immediately before acting. Browser requests contain only an opaque
 resource key and the fixed operation `read_logs` or `restart`; exec, shell,
 pull, stop, delete, prune, Compose operations, custom signals, paths, and
@@ -169,7 +188,8 @@ Docker host:
 The one-time code is entered through a hidden prompt. Health checks are also
 configured only in the local policy, preventing the web dashboard from becoming
 a network scanner. HTTP checks follow no redirects, retain no response body,
-and report only a friendly name, status, and latency.
+and report a friendly name, status, latency, and bounded failure/protocol
+metadata—never the target URL or response body.
 
 ## Universal Launcher
 
@@ -216,7 +236,8 @@ tasks only by editing that local file. A minimal policy looks like:
 
 Validate changes with `python -m launcher_agent config validate`. The agent
 re-loads and revalidates this file after each claim, executes an absolute
-executable with `shell=False`, clears inherited task environment, supplies no
+executable with `shell=False`, filters inherited environment to a fixed
+OS path/profile/temp allowlist, supplies no
 stdin, and kills work that exceeds its time or 64 KiB output limit. Task
 delivery also requires `KASUGAI_LAUNCHER_RUNS_ENABLED=true` on the dashboard;
 it is off by default. Tasks marked `requires_confirmation` use a short-lived,
@@ -404,52 +425,18 @@ Set-Location ..\DeniLicense
 docker compose up --build -d --wait
 ```
 
-Create a `.env` file for Kasugai:
+Create `.env` from the complete, commented example:
 
-```ini
-DENILICENSE_API_URL=http://denilicense-api:8080
-DENILICENSE_ISSUER=http://127.0.0.1:8080
-DENILICENSE_PRODUCT_CODE=KASUGAI
-KASUGAI_PUBLIC_URL=
-KASUGAI_DASHBOARD_BIND_HOST=127.0.0.1
-KASUGAI_TRUST_PROXY=false
-KASUGAI_SESSION_COOKIE_SECURE=
-KASUGAI_AI_PROVIDER=disabled
-KASUGAI_AI_BASE_URL=
-KASUGAI_AI_MODEL=gpt-oss:20b
-KASUGAI_AI_API_KEY=
-KASUGAI_AI_API_KEY_FILE=
-KASUGAI_AI_TIMEOUT_SECONDS=300
-KASUGAI_AI_REQUEST_BUDGET_SECONDS=330
-KASUGAI_AI_ALLOWED_USERS=
-KASUGAI_AI_SOURCE_ALLOWED_USERS=owner@example.com
-OLLAMA_IMAGE=ollama/ollama:0.31.2
-OLLAMA_CONTEXT_LENGTH=32768
-GITHUB_TOKEN=
-GITHUB_TOKEN_FILE=
-KASUGAI_GITHUB_TOKEN_ALLOWLIST=your-org/project,your-org/*
-KASUGAI_DEVELOPER_ALLOWED_USERS=
-KASUGAI_REPOSITORY_ROOTS=
-KASUGAI_REPOSITORY_ALLOWED_ROOTS=
-KASUGAI_REPOSITORY_HOST_PATH=
-KASUGAI_WORKSTATION_ENABLED=true
-KASUGAI_WORKSTATION_ALLOWED_USERS=
-KASUGAI_WORKSTATION_RETENTION_HOURS=24
-KASUGAI_WORKSTATION_MAX_AGENTS=8
-KASUGAI_WORKSTATION_INTERVAL_SECONDS=10
-KASUGAI_HOMELAB_ENABLED=true
-KASUGAI_HOMELAB_ALLOWED_USERS=
-KASUGAI_HOMELAB_MAX_AGENTS=8
-KASUGAI_HOMELAB_INTERVAL_SECONDS=15
-KASUGAI_HOMELAB_ACTION_POLL_SECONDS=5
-KASUGAI_HOMELAB_SAMPLE_RETENTION_HOURS=168
-KASUGAI_HOMELAB_ACTIONS_ENABLED=false
-KASUGAI_IMAP_HOST=imap.gmail.com
-KASUGAI_IMAP_PORT=993
-KASUGAI_IMAP_USERNAME=
-KASUGAI_IMAP_PASSWORD=
-KASUGAI_IMAP_PASSWORD_FILE=
+```powershell
+Copy-Item .env.example .env
 ```
+
+At minimum, review the DeniLicense URL, issuer, product, activation label,
+dashboard bind/public URL, and selected AI provider before starting. Leave
+optional OpenAI, GitHub, and IMAP secrets blank until you intentionally enable
+those integrations. Use the
+[configuration reference](docs/CONFIGURATION.md) rather than treating a partial
+README excerpt as an environment inventory.
 
 Set `KASUGAI_PUBLIC_URL` to the externally reachable origin used by invitees, for example `https://kasugai.example.com`. Leaving it blank builds invitation links from the current request host, which is suitable for local use.
 
@@ -579,10 +566,10 @@ docker compose -f docker-compose.yml -f docker-compose.ollama.yml -f docker-comp
 ```
 
 Public GitHub repositories can be read without a token. When `GITHUB_TOKEN` is set, it is sent only for
-repositories or organizations explicitly listed in
-`KASUGAI_GITHUB_TOKEN_ALLOWLIST` (`owner/repo` or `owner/*`). Gmail connections
-use the configured read-only IMAP mailbox; for Gmail, use an app password rather
-than the primary account password. The connection's nonblank Account field must
+repository targets explicitly listed in
+`KASUGAI_GITHUB_TOKEN_ALLOWLIST` (`owner/repo` or `owner/*`). For Gmail, Kasugai
+performs bounded read-only IMAP operations; use an app password rather than the
+primary account password. The connection's nonblank Account field must
 exactly match `KASUGAI_IMAP_USERNAME`. Project workspace context is sent to the
 configured private Ollama service only when an authorized editor generates a
 preview. Deployment-wide GitHub and IMAP sources are available only when that
@@ -601,8 +588,8 @@ automatically.
 
 For production deployment-wide source credentials, prefer the corresponding
 `*_FILE` settings and mount each credential as a Docker secret or read-only
-file. When both forms are present, the direct environment value takes
-precedence. Do not commit credential files or delete the dashboard data volume
+file. When both forms are present, a nonblank direct environment value takes
+precedence; a blank direct value permits the file form. Do not commit credential files or delete the dashboard data volume
 that holds the database and encryption key.
 
 The Ollama commands above start the complete AI-enabled stack. To start only the
@@ -614,9 +601,11 @@ instead of pointing at an absent model service:
 docker compose up --build -d
 ```
 
-Inside the dashboard container, Compose environment values are authoritative
-and update the persisted `[AI]` provider, base URL, and model on every restart.
-Native non-container runs continue to use those values from `config.ini`.
+Inside the dashboard container, nonblank Compose environment values are
+authoritative and update the persisted `[AI]` provider, base URL, and model on
+restart. A blank value does not erase an older nonblank persisted value; edit
+the persistent configuration deliberately when clearing one. Native
+non-container runs continue to use those values from `config.ini`.
 
 If this machine already ran Kasugai outside Docker and that installation owns
 the DeniLicense seat, import its identity into the persistent Docker volume
@@ -659,6 +648,9 @@ and TLS is provided upstream.
 The Go chat, file-transfer, and media service has its own build context in
 `kasugai_server/`. From that directory, copy `.env.vps.example` to `.env`, set
 `KASUGAI_SERVER_IMAGE` to your registry tag, then build and push it:
+
+If that tag is on GHCR, follow the least-privilege token and `docker login`
+steps in [Credentials and external codes](docs/CREDENTIALS.md#optional-ghcr-credential-for-the-vps-image-workflow).
 
 ```powershell
 docker compose -f compose.vps.yml build
@@ -731,11 +723,20 @@ The installation private key, activation reference, and web-session secret are g
 
 ## Validation
 
-Run the focused Python tests:
+Run the Python suite:
 
 ```powershell
 python -m unittest discover -s tests -v
 ```
+
+Run the browser-module contract tests with Node's built-in test runner:
+
+```powershell
+node --test tests/test_*_frontend.js
+```
+
+Go validation and the current legacy integration-test prerequisites are
+documented in [the Team Room server README](kasugai_server/README.md#validate-changes).
 
 Validate and build the container application:
 
